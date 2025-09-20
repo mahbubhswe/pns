@@ -90,16 +90,19 @@ async function persistFile(input: any, fieldName: string): Promise<string | null
 
   if (HAS_BLOB_TOKEN) {
     const key = `${BLOB_UPLOAD_PREFIX}/${Date.now()}-${fieldName}-${base}${ext}`.replace(/\+/g, "/");
-    const uploadUrl = `https://blob.vercel-storage.com/${key}?access=${BLOB_ACCESS_LEVEL}`;
+    const baseBlobUrl = (process.env.BLOB_URL || "https://blob.vercel-storage.com").replace(/\/$/, "");
+    const accessQuery = BLOB_ACCESS_LEVEL ? `?access=${BLOB_ACCESS_LEVEL}` : "";
+    const uploadUrl = `${baseBlobUrl}/${key}${accessQuery}`;
     const fileBuffer = fs.readFileSync(tmp);
+    const body = Uint8Array.from(fileBuffer);
 
     const response = await fetch(uploadUrl, {
-      method: "POST",
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
         "Content-Type": mimetype || "application/octet-stream",
       },
-      body: fileBuffer as BodyInit,
+      body: body,
     });
     if (!response.ok) {
       const detail = await response.text();
@@ -258,6 +261,8 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
 });
 
 export default handler;
+
+
 
 
 
