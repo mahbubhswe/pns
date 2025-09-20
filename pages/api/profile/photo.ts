@@ -11,6 +11,12 @@ export const config = {
   api: { bodyParser: false },
 };
 
+const BLOB_UPLOAD_PREFIX = process.env.BLOB_UPLOAD_PREFIX || "pns-membership";
+const BLOB_ACCESS_LEVEL =
+  process.env.BLOB_ACCESS_LEVEL === "private" ? "private" : "public";
+const IS_VERCEL = Boolean(process.env.VERCEL);
+const HAS_BLOB_TOKEN = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+
 function ensureUploadsDir(dir: string) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
@@ -18,6 +24,89 @@ function ensureUploadsDir(dir: string) {
 function pickFile(f: any): any | null {
   if (!f) return null;
   return Array.isArray(f) ? (f.length ? f[0] : null) : f;
+}
+
+async function persistAvatarFile(
+  file: any,
+  fieldName: string
+): Promise<string | null> {
+  const ext = path.extname(file?.originalFilename || "");
+  const base = (file?.originalFilename || fieldName)
+    .toString()
+    .replace(/\s+/g, "_")
+    .slice(0, 40);
+  const tmp: string | undefined = (file as any)?.filepath || (file as any)?.path;
+  const mimetype: string | undefined = (file as any)?.mimetype || (file as any)?.type;
+
+  if (!tmp || typeof tmp !== "string") {
+    return null;
+  }
+
+  if (HAS_BLOB_TOKEN) {
+    const key = `${BLOB_UPLOAD_PREFIX}/${Date.now()}-${fieldName}-${base}${ext}`.replace(
+      /\+/g,
+      "/"
+    );
+    const baseBlobUrl = (process.env.BLOB_URL || "https://blob.vercel-storage.com").replace(
+      /\/$/,
+      ""
+    );
+    const accessQuery = BLOB_ACCESS_LEVEL ? `?access=${BLOB_ACCESS_LEVEL}` : "";
+    const uploadUrl = `${baseBlobUrl}/${key}${accessQuery}`;
+    const fileBuffer = fs.readFileSync(tmp);
+    const body = Uint8Array.from(fileBuffer);
+
+    const response = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+        "Content-Type": mimetype || "application/octet-stream",
+      },
+      body,
+    });
+
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(
+        `Failed to upload ${fieldName} to blob storage (${response.status}): ${detail}`
+      );
+    }
+
+    const data = (await response.json()) as { url?: string };
+    try {
+      fs.unlinkSync(tmp);
+    } catch {
+      // ignore cleanup errors
+    }
+    if (!data?.url) {
+      throw new Error(`Blob upload for ${fieldName} did not return a URL.`);
+    }
+    return data.url;
+  }
+
+  if (IS_VERCEL) {
+    throw new Error(
+      "File uploads require BLOB_READ_WRITE_TOKEN when running on Vercel. Configure Vercel Blob and set the token."
+    );
+  }
+
+  const uploadDir = path.join(process.cwd(), "public", "uploads");
+  ensureUploadsDir(uploadDir);
+  const safeName = `${Date.now()}-${fieldName}-${base}${ext || ".jpg"}`;
+  const dest = path.join(uploadDir, safeName);
+
+  try {
+    fs.renameSync(tmp, dest);
+  } catch (err: any) {
+    if (err?.code === "EXDEV") {
+      fs.copyFileSync(tmp, dest);
+      fs.unlinkSync(tmp);
+    } else {
+      throw err;
+    }
+  }
+
+  return `/uploads/${safeName}`;
 }
 
 const handler = createApiHandler(["POST"]);
@@ -57,38 +146,27 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
       return res.status(400).json({ error: "Invalid file type" });
     }
 
-    const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
-    ensureUploadsDir(UPLOAD_DIR);
-    const ext = path.extname(f.originalFilename || "");
-    const safeBase = (f.originalFilename || "avatar")
-      .toString()
-      .replace(/\s+/g, "_")
-      .slice(0, 40);
-    const filename = `${Date.now()}-avatar-${safeBase}${ext || ".jpg"}`;
-    const dest = path.join(UPLOAD_DIR, filename);
-    const tmp: string | undefined = (f as any).filepath || (f as any).path;
-    if (!tmp || typeof tmp !== "string") {
-      return res.status(400).json({ error: "Invalid upload" });
+    const publicUrl = await persistAvatarFile(f, "avatar");
+    if (!publicUrl) {
+      return res.status(500).json({ error: "Failed to store uploaded photo" });
     }
-    try {
-      fs.renameSync(tmp, dest);
-    } catch (err: any) {
-      if (err?.code === "EXDEV") {
-        fs.copyFileSync(tmp, dest);
-        fs.unlinkSync(tmp);
-      } else {
-        throw err;
-      }
-    }
-    const publicUrl = `/uploads/${filename}`;
 
-    const existing = await prisma.user.findUnique({ where: { id: userId }, select: { ownerPhoto: true } });
+    const existing = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { ownerPhoto: true },
+    });
     if (existing?.ownerPhoto && existing.ownerPhoto.startsWith("/uploads/")) {
-      const oldPath = path.join(process.cwd(), "public", existing.ownerPhoto.replace(/^\/+/, ""));
+      const oldPath = path.join(
+        process.cwd(),
+        "public",
+        existing.ownerPhoto.replace(/^\/+/, "")
+      );
       if (fs.existsSync(oldPath)) {
         try {
           fs.unlinkSync(oldPath);
-        } catch {}
+        } catch {
+          // noop
+        }
       }
     }
 
