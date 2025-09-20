@@ -5,6 +5,8 @@ import fs from "fs";
 import path from "path";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import type { NextHandler } from "next-connect";
+import { createApiHandler } from "@/lib/server/handler";
 
 export const config = {
   api: { bodyParser: false },
@@ -97,9 +99,8 @@ async function persistFile(input: any, fieldName: string): Promise<string | null
         Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
         "Content-Type": mimetype || "application/octet-stream",
       },
-      body: fileBuffer,
+      body: fileBuffer as BodyInit,
     });
-
     if (!response.ok) {
       const detail = await response.text();
       throw new Error(
@@ -150,22 +151,14 @@ function parseBool(v: any): boolean {
   return s === "true" || s === "1" || s === "yes";
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
+const handler = createApiHandler(["POST"]);
+
+handler.use((req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
   applyCors(req, res);
+  next();
+});
 
-  if (req.method === "OPTIONS") {
-    res.setHeader("Allow", ["POST", "OPTIONS"]);
-    return res.status(204).end();
-  }
-
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST", "OPTIONS"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
+handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     // 1) parse multipart
     const form = formidable({
@@ -188,7 +181,6 @@ export default async function handler(
       return res.status(400).json({ error: "Email is required" });
     }
 
-    // ✅ NEW: password support
     const rawPassword = String(fields?.password || "").trim();
     if (!rawPassword) {
       return res.status(400).json({ error: "Password is required" });
@@ -198,7 +190,6 @@ export default async function handler(
         .status(400)
         .json({ error: "Password must be at least 8 characters" });
     }
-    // Hash (bcryptjs sync is fine for single request)
     const passwordHash = bcrypt.hashSync(rawPassword, 10);
 
     // 3) save files
@@ -223,17 +214,12 @@ export default async function handler(
     // 5) prisma create
     const user = await prisma.user.create({
       data: {
-        // Plot info
         sectorNumber: String(fields?.sectorNumber || "").trim(),
         roadNumber: String(fields?.roadNumber || "").trim(),
         plotNumber: String(fields?.plotNumber || "").trim(),
         plotSize: String(fields?.plotSize || "").trim(),
-
-        // Ownership proof
         ownershipProofType: ownershipProofType as any,
         ownershipProofFile: ownershipProofUrl,
-
-        // Owner info
         ownerNameEnglish: String(fields?.ownerNameEnglish || "").trim(),
         ownerNameBangla: String(fields?.ownerNameBangla || "").trim(),
         contactNumber: String(fields?.contactNumber || "").trim(),
@@ -242,11 +228,7 @@ export default async function handler(
         permanentAddress: String(fields?.permanentAddress || "").trim(),
         email: rawEmail,
         ownerPhoto: ownerPhotoUrl,
-
-        // ✅ NEW: save hashed password
         password: passwordHash,
-
-        // Payment
         paymentMethod: paymentMethod as any,
         bkashTransactionId: fields?.bkashTransactionId
           ? String(fields.bkashTransactionId).trim()
@@ -258,7 +240,6 @@ export default async function handler(
           ? String(fields.bankAccountNumberFrom).trim()
           : null,
         paymentReceipt: paymentReceiptUrl,
-
         membershipFee,
         agreeDataUse,
       },
@@ -267,7 +248,6 @@ export default async function handler(
     return res.status(201).json({ id: user.id, ok: true });
   } catch (e: any) {
     if (e?.code === "P2002") {
-      // unique constraint (likely email)
       return res.status(409).json({ error: "Email already exists" });
     }
     console.error(e);
@@ -275,4 +255,10 @@ export default async function handler(
       .status(500)
       .json({ error: "Server error", detail: e?.message ?? String(e) });
   }
-}
+});
+
+export default handler;
+
+
+
+

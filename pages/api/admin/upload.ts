@@ -3,6 +3,7 @@ import formidable from "formidable";
 import fs from "fs";
 import path from "path";
 import jwt from "jsonwebtoken";
+import { createApiHandler } from "@/lib/server/handler";
 
 export const config = { api: { bodyParser: false } };
 
@@ -10,14 +11,10 @@ function ensureUploadsDir(dir: string) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+const handler = createApiHandler(["POST"]);
 
+handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    // Require admin cookie
     const cookie = req.headers.cookie || "";
     const token = cookie
       .split(/;\s*/)
@@ -67,5 +64,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error(e);
     return res.status(500).json({ error: "Server error", detail: e?.message || "" });
   }
-}
+});
 
+export default handler;

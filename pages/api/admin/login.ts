@@ -3,24 +3,19 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { serialize as serializeCookie } from "cookie";
 import { prisma } from "@/lib/prisma";
+import { createApiHandler } from "@/lib/server/handler";
 
 const ADMIN_COOKIE = "admin_token";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Handle preflight on Vercel if any proxy triggers OPTIONS
-  if (req.method === "OPTIONS") {
-    res.setHeader("Allow", ["POST", "OPTIONS"]);
-    return res.status(204).end();
-  }
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST", "OPTIONS"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+const handler = createApiHandler(["POST"]);
+
+handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { email, password } = req.body || {};
     const rawEmail = String(email || "").trim().toLowerCase();
     const rawPassword = String(password || "").trim();
-    if (!rawEmail || !rawPassword) return res.status(400).json({ error: "Email and password are required" });
+    if (!rawEmail || !rawPassword)
+      return res.status(400).json({ error: "Email and password are required" });
 
     const admin = await prisma.managementUser.findUnique({ where: { email: rawEmail } });
     if (!admin) return res.status(401).json({ error: "Invalid email or password" });
@@ -31,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const token = jwt.sign({ sub: admin.id, email: admin.email, role: admin.role }, secret, { expiresIn: "7d" });
 
     const host = req.headers.host || "";
-    const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+    const isLocalhost = /^(localhost|127\.0\.0\.1)(:\\d+)?$/.test(host);
     const cookie = serializeCookie(ADMIN_COOKIE, token, {
       httpOnly: true,
       sameSite: "lax",
@@ -48,9 +43,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.setHeader("Location", "/dashboard");
       return res.end();
     }
-    return res.status(200).json({ ok: true, admin: { id: admin.id, email: admin.email, name: (admin as any).name, role: admin.role } });
+    return res
+      .status(200)
+      .json({ ok: true, admin: { id: admin.id, email: admin.email, name: (admin as any).name, role: admin.role } });
   } catch (e: any) {
     console.error(e);
     return res.status(500).json({ error: "Server error", detail: e?.message || "" });
   }
-}
+});
+
+export default handler;

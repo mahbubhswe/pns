@@ -1,13 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { serialize as serializeCookie } from "cookie";
+import { createApiHandler } from "@/lib/server/handler";
 
 const ADMIN_COOKIE = "admin_token";
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+const handler = createApiHandler(["POST"]);
+
+handler.post((req: NextApiRequest, res: NextApiResponse) => {
   const cookie = serializeCookie(ADMIN_COOKIE, "", {
     httpOnly: true,
     sameSite: "lax",
@@ -17,5 +16,6 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   });
   res.setHeader("Set-Cookie", cookie);
   return res.status(200).json({ ok: true });
-}
+});
 
+export default handler;

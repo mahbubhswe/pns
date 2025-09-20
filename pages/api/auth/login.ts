@@ -4,16 +4,11 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { serialize as serializeCookie } from "cookie";
 import { prisma } from "@/lib/prisma";
+import { createApiHandler } from "@/lib/server/handler";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+const handler = createApiHandler(["POST"]);
 
+handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const { email, password } = req.body || {};
 
@@ -28,7 +23,6 @@ export default async function handler(
 
     const user = await prisma.user.findUnique({ where: { email: rawEmail } });
     if (!user || !user.password) {
-      // Avoid leaking which part failed
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
@@ -37,7 +31,6 @@ export default async function handler(
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Minimal payload (no sensitive fields)
     const payload = {
       id: user.id,
       email: user.email,
@@ -45,20 +38,18 @@ export default async function handler(
       status: user.status,
     };
 
-    // Issue JWT and set HttpOnly cookie
     const secret = process.env.JWT_SECRET || "dev-secret";
     const token = jwt.sign({ sub: user.id, email: user.email }, secret, {
       expiresIn: "7d",
     });
     const host = req.headers.host || "";
-    const isLocalhost = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+    const isLocalhost = /^(localhost|127\.0\.0\.1)(:\\d+)?$/.test(host);
     const cookie = serializeCookie("pns_token", token, {
       httpOnly: true,
       sameSite: "lax",
       path: "/",
-      // In production over HTTP (localhost), avoid Secure so browser accepts it
       secure: !isLocalhost && process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     });
     res.setHeader("Set-Cookie", cookie);
     const accepts = String(req.headers.accept || "");
@@ -77,4 +68,6 @@ export default async function handler(
       .status(500)
       .json({ error: "Server error", detail: e?.message ?? String(e) });
   }
-}
+});
+
+export default handler;

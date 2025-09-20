@@ -1,25 +1,31 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextHandler } from "next-connect";
 import { prisma } from "@/lib/prisma";
 import { ensureAdmin } from "@/lib/server/auth";
+import { createApiHandler } from "@/lib/server/handler";
 
 type Resp = {
-  // Membership
   total: number;
   active: number;
   pending: number;
   inactive: number;
   byType: Record<string, number>;
-  // Management users
   adminUsers: number;
-  // Posts
   postsTotal: number;
   postsPublished: number;
   postsDraft: number;
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse<Resp>) {
-  if (!ensureAdmin(req, res)) return;
-  // Membership (Prisma User model)
+const handler = createApiHandler(["GET"]);
+
+handler.use((req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
+  if (!ensureAdmin(req, res)) {
+    return;
+  }
+  next();
+});
+
+handler.get(async (_req: NextApiRequest, res: NextApiResponse<Resp>) => {
   const users = await prisma.user.findMany({ select: { status: true } });
   const total = users.length;
   const active = users.filter(u => (u as any).status === "active").length;
@@ -27,13 +33,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
   const inactive = users.filter(u => (u as any).status === "inactive").length;
   const byType: Record<string, number> = { standard: total };
 
-  // Management users
   const adminUsers = await prisma.managementUser.count();
 
-  // Posts (DB-backed)
   const postsTotal = await prisma.post.count();
   const postsPublished = await prisma.post.count({ where: { published: true } });
   const postsDraft = postsTotal - postsPublished;
 
-  res.status(200).json({ total, active, pending, inactive, byType, adminUsers, postsTotal, postsPublished, postsDraft });
-}
+  res.status(200).json({
+    total,
+    active,
+    pending,
+    inactive,
+    byType,
+    adminUsers,
+    postsTotal,
+    postsPublished,
+    postsDraft,
+  });
+});
+
+export default handler;

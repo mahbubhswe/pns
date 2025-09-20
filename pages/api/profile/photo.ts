@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+import { createApiHandler } from "@/lib/server/handler";
 
 export const config = {
   api: { bodyParser: false },
@@ -19,14 +20,10 @@ function pickFile(f: any): any | null {
   return Array.isArray(f) ? (f.length ? f[0] : null) : f;
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+const handler = createApiHandler(["POST"]);
 
+handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
   try {
-    // 1) Auth via JWT cookie
     const cookie = req.headers.cookie || "";
     const token = cookie
       .split(/;\s*/)
@@ -43,7 +40,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const userId = Number(payload?.sub);
     if (!userId) return res.status(401).json({ error: "Invalid token" });
 
-    // 2) Parse multipart form
     const form = formidable({
       multiples: false,
       maxFileSize: 10 * 1024 * 1024,
@@ -61,7 +57,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Invalid file type" });
     }
 
-    // 3) Move to /public/uploads
     const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
     ensureUploadsDir(UPLOAD_DIR);
     const ext = path.extname(f.originalFilename || "");
@@ -87,7 +82,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     const publicUrl = `/uploads/${filename}`;
 
-    // 4) Delete old local file if any (only if it's in /uploads)
     const existing = await prisma.user.findUnique({ where: { id: userId }, select: { ownerPhoto: true } });
     if (existing?.ownerPhoto && existing.ownerPhoto.startsWith("/uploads/")) {
       const oldPath = path.join(process.cwd(), "public", existing.ownerPhoto.replace(/^\/+/, ""));
@@ -98,7 +92,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // 5) Update user
     await prisma.user.update({ where: { id: userId }, data: { ownerPhoto: publicUrl } });
 
     return res.status(200).json({ ok: true, url: publicUrl });
@@ -106,4 +99,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error(e);
     return res.status(500).json({ error: "Server error", detail: e?.message ?? String(e) });
   }
-}
+});
+
+export default handler;

@@ -1,8 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextHandler } from "next-connect";
 import { prisma } from "@/lib/prisma";
 import { ensureAdmin } from "@/lib/server/auth";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
+import { createApiHandler } from "@/lib/server/handler";
 
 type UiMember = {
   id: string;
@@ -11,7 +13,7 @@ type UiMember = {
   phone?: string | null;
   membershipType?: string | null;
   status: string;
-  joinedAt: string; // ISO
+  joinedAt: string;
 };
 
 function mapUserToUi(m: any): UiMember {
@@ -31,57 +33,62 @@ function mapUserToUi(m: any): UiMember {
   };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (!ensureAdmin(req, res)) return;
-  if (req.method === "GET") {
-    const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
-    const members: UiMember[] = users.map(mapUserToUi);
-    return res.status(200).json({ members });
-  }
+const handler = createApiHandler(["GET", "POST"]);
 
-  if (req.method === "POST") {
-    try {
-      const body = req.body;
-      const rows: Array<any> = Array.isArray(body) ? body : [body];
-      const created = [] as any[];
-      const fromUiStatus: Record<string, any> = {
-        active: "APPROVED",
-        pending: "PENDING",
-        inactive: "REJECTED",
-      };
-      for (const r of rows) {
-        const email = (r.email && String(r.email).trim()) || `imported+${randomUUID()}@example.com`;
-        const password = await bcrypt.hash(randomUUID(), 8);
-        const user = await prisma.user.create({
-          data: {
-            sectorNumber: "NA",
-            roadNumber: "NA",
-            plotNumber: "NA",
-            plotSize: "NA",
-            ownershipProofType: "LD_TAX_RECEIPT",
-            ownerNameEnglish: String(r.name || "Unnamed"),
-            ownerNameBangla: String(r.name || "Unnamed"),
-            contactNumber: String(r.phone || ""),
-            nidNumber: "NA",
-            presentAddress: "NA",
-            permanentAddress: "NA",
-            email,
-            password,
-            paymentMethod: "BKASH",
-            membershipFee: 1020,
-            agreeDataUse: false,
-            status: fromUiStatus[String(r.status || "active")] || "APPROVED",
-            createdAt: r.joinedAt ? new Date(r.joinedAt) : undefined,
-          },
-        });
-        created.push(user);
-      }
-      return res.status(200).json({ ok: true, count: created.length });
-    } catch (e: any) {
-      return res.status(400).json({ ok: false, error: e?.message || "Invalid payload" });
+handler.use((req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
+  if (!ensureAdmin(req, res)) {
+    return;
+  }
+  next();
+});
+
+handler.get(async (_req: NextApiRequest, res: NextApiResponse) => {
+  const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+  const members: UiMember[] = users.map(mapUserToUi);
+  return res.status(200).json({ members });
+});
+
+handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
+  try {
+    const body = req.body;
+    const rows: Array<any> = Array.isArray(body) ? body : [body];
+    const created = [] as any[];
+    const fromUiStatus: Record<string, any> = {
+      active: "APPROVED",
+      pending: "PENDING",
+      inactive: "REJECTED",
+    };
+    for (const r of rows) {
+      const email = (r.email && String(r.email).trim()) || `imported+${randomUUID()}@example.com`;
+      const password = await bcrypt.hash(randomUUID(), 8);
+      const user = await prisma.user.create({
+        data: {
+          sectorNumber: "NA",
+          roadNumber: "NA",
+          plotNumber: "NA",
+          plotSize: "NA",
+          ownershipProofType: "LD_TAX_RECEIPT",
+          ownerNameEnglish: String(r.name || "Unnamed"),
+          ownerNameBangla: String(r.name || "Unnamed"),
+          contactNumber: String(r.phone || ""),
+          nidNumber: "NA",
+          presentAddress: "NA",
+          permanentAddress: "NA",
+          email,
+          password,
+          paymentMethod: "BKASH",
+          membershipFee: 1020,
+          agreeDataUse: false,
+          status: fromUiStatus[String(r.status || "active")] || "APPROVED",
+          createdAt: r.joinedAt ? new Date(r.joinedAt) : undefined,
+        },
+      });
+      created.push(user);
     }
+    return res.status(200).json({ ok: true, count: created.length });
+  } catch (e: any) {
+    return res.status(400).json({ ok: false, error: e?.message || "Invalid payload" });
   }
+});
 
-  res.setHeader("Allow", ["GET", "POST"]);
-  return res.status(405).end("Method Not Allowed");
-}
+export default handler;

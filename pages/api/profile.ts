@@ -2,6 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import jwt from "jsonwebtoken";
 import { prisma } from "@/lib/prisma";
+import { createApiHandler } from "@/lib/server/handler";
 
 function getTokenFromCookie(req: NextApiRequest): string | null {
   const cookie = req.headers.cookie || "";
@@ -13,15 +14,9 @@ function getTokenFromCookie(req: NextApiRequest): string | null {
   return null;
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", ["GET"]);
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+const handler = createApiHandler(["GET"]);
 
+handler.get(async (req: NextApiRequest, res: NextApiResponse) => {
   try {
     const token = getTokenFromCookie(req);
     if (!token) return res.status(401).json({ error: "Not authenticated" });
@@ -40,7 +35,6 @@ export default async function handler(
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    // Return all registration-time fields (exclude password)
     const profile = {
       id: user.id,
       sectorNumber: user.sectorNumber,
@@ -76,5 +70,6 @@ export default async function handler(
       .status(500)
       .json({ error: "Server error", detail: e?.message ?? String(e) });
   }
-}
+});
 
+export default handler;
