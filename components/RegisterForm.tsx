@@ -646,11 +646,7 @@ export default function PnsMembershipForm() {
               flexWrap="wrap"
               sx={{ pt: 1 }}
             >
-              <Chip
-                label={`Fee: BDT ${MEMBERSHIP_FEE}`}
-                variant="filled"
-                color="success"
-              />
+           
               <Chip
                 label={`bKash: ${BKASH_NUMBER}`}
                 variant="filled"
