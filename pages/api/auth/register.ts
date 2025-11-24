@@ -24,8 +24,7 @@ const RAW_ALLOWED_ORIGINS = [
     : undefined,
 ].filter(Boolean) as string[];
 
-const ALLOWED_ORIGINS = RAW_ALLOWED_ORIGINS
-  .flatMap(value => value.split(","))
+const ALLOWED_ORIGINS = RAW_ALLOWED_ORIGINS.flatMap(value => value.split(","))
   .map(value => value.trim())
   .filter(Boolean);
 
@@ -56,7 +55,10 @@ function applyCors(req: NextApiRequest, res: NextApiResponse) {
 
   res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", process.env.CORS_ALLOW_HEADERS || "Content-Type, Authorization");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    process.env.CORS_ALLOW_HEADERS || "Content-Type, Authorization"
+  );
   res.setHeader("Access-Control-Max-Age", "86400");
   res.setHeader("Vary", "Origin");
 }
@@ -72,7 +74,10 @@ function pickFile(f: any): any | null {
 }
 
 // Persist upload either locally (dev) or to Vercel Blob in production
-async function persistFile(input: any, fieldName: string): Promise<string | null> {
+async function persistFile(
+  input: any,
+  fieldName: string
+): Promise<string | null> {
   const f = pickFile(input);
   if (!f) return null;
 
@@ -89,8 +94,14 @@ async function persistFile(input: any, fieldName: string): Promise<string | null
   }
 
   if (HAS_BLOB_TOKEN) {
-    const key = `${BLOB_UPLOAD_PREFIX}/${Date.now()}-${fieldName}-${base}${ext}`.replace(/\+/g, "/");
-    const baseBlobUrl = (process.env.BLOB_URL || "https://blob.vercel-storage.com").replace(/\/$/, "");
+    const key =
+      `${BLOB_UPLOAD_PREFIX}/${Date.now()}-${fieldName}-${base}${ext}`.replace(
+        /\+/g,
+        "/"
+      );
+    const baseBlobUrl = (
+      process.env.BLOB_URL || "https://blob.vercel-storage.com"
+    ).replace(/\/$/, "");
     const accessQuery = BLOB_ACCESS_LEVEL ? `?access=${BLOB_ACCESS_LEVEL}` : "";
     const uploadUrl = `${baseBlobUrl}/${key}${accessQuery}`;
     const fileBuffer = fs.readFileSync(tmp);
@@ -162,8 +173,11 @@ handler.use((req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
 });
 
 handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
+  console.log("[REGISTER] Starting registration process");
+
   try {
     // 1) parse multipart
+    console.log("[REGISTER] Parsing multipart form data");
     const form = formidable({
       multiples: true, // safe even if single files
       maxFileSize: 10 * 1024 * 1024,
@@ -171,9 +185,15 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     const { fields, files }: any = await new Promise((resolve, reject) => {
-      form.parse(req, (err, flds, fls) =>
-        err ? reject(err) : resolve({ fields: flds, files: fls })
-      );
+      form.parse(req, (err, flds, fls) => {
+        if (err) {
+          console.error("[REGISTER] Form parse error:", err);
+          reject(err);
+        } else {
+          console.log("[REGISTER] Form parsed successfully");
+          resolve({ fields: flds, files: fls });
+        }
+      });
     });
 
     // 2) basic server-side checks
@@ -196,14 +216,27 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
     const passwordHash = bcrypt.hashSync(rawPassword, 10);
 
     // 3) save files
+    console.log("[REGISTER] Starting file uploads");
     const ownershipProofUrl = await persistFile(
       files?.ownershipProofFile,
       "ownershipProof"
     );
+    console.log(
+      "[REGISTER] Ownership proof uploaded:",
+      ownershipProofUrl ? "success" : "null"
+    );
     const ownerPhotoUrl = await persistFile(files?.ownerPhoto, "ownerPhoto");
+    console.log(
+      "[REGISTER] Owner photo uploaded:",
+      ownerPhotoUrl ? "success" : "null"
+    );
     const paymentReceiptUrl = await persistFile(
       files?.paymentReceipt,
       "paymentReceipt"
+    );
+    console.log(
+      "[REGISTER] Payment receipt uploaded:",
+      paymentReceiptUrl ? "success" : "null"
     );
 
     // 4) map fields
@@ -214,46 +247,64 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
     const membershipFee = Number(fields?.membershipFee ?? 1020) || 1020;
     const agreeDataUse = parseBool(fields?.agreeDataUse);
 
-    // 5) prisma create
-    const user = await prisma.user.create({
-      data: {
-        sectorNumber: String(fields?.sectorNumber || "").trim(),
-        roadNumber: String(fields?.roadNumber || "").trim(),
-        plotNumber: String(fields?.plotNumber || "").trim(),
-        plotSize: String(fields?.plotSize || "").trim(),
-        ownershipProofType: ownershipProofType as any,
-        ownershipProofFile: ownershipProofUrl,
-        ownerNameEnglish: String(fields?.ownerNameEnglish || "").trim(),
-        ownerNameBangla: String(fields?.ownerNameBangla || "").trim(),
-        contactNumber: String(fields?.contactNumber || "").trim(),
-        nidNumber: String(fields?.nidNumber || "").trim(),
-        presentAddress: String(fields?.presentAddress || "").trim(),
-        permanentAddress: String(fields?.permanentAddress || "").trim(),
-        email: rawEmail,
-        ownerPhoto: ownerPhotoUrl,
-        password: passwordHash,
-        paymentMethod: paymentMethod as any,
-        bkashTransactionId: fields?.bkashTransactionId
-          ? String(fields.bkashTransactionId).trim()
-          : null,
-        bkashAccountNumber: fields?.bkashAccountNumber
-          ? String(fields.bkashAccountNumber).trim()
-          : null,
-        bankAccountNumberFrom: fields?.bankAccountNumberFrom
-          ? String(fields.bankAccountNumberFrom).trim()
-          : null,
-        paymentReceipt: paymentReceiptUrl,
-        membershipFee,
-        agreeDataUse,
-      },
-    });
+    // 5) prisma create with timeout
+    console.log("[REGISTER] Creating user in database");
+    const timeoutPromise = new Promise(
+      (_, reject) =>
+        setTimeout(
+          () => reject(new Error("Database operation timed out")),
+          30000
+        ) // 30 seconds timeout
+    );
+
+    const user = (await Promise.race([
+      prisma.user.create({
+        data: {
+          sectorNumber: String(fields?.sectorNumber || "").trim(),
+          roadNumber: String(fields?.roadNumber || "").trim(),
+          plotNumber: String(fields?.plotNumber || "").trim(),
+          plotSize: String(fields?.plotSize || "").trim(),
+          ownershipProofType: ownershipProofType as any,
+          ownershipProofFile: ownershipProofUrl,
+          ownerNameEnglish: String(fields?.ownerNameEnglish || "").trim(),
+          ownerNameBangla: String(fields?.ownerNameBangla || "").trim(),
+          contactNumber: String(fields?.contactNumber || "").trim(),
+          nidNumber: String(fields?.nidNumber || "").trim(),
+          presentAddress: String(fields?.presentAddress || "").trim(),
+          permanentAddress: String(fields?.permanentAddress || "").trim(),
+          email: rawEmail,
+          ownerPhoto: ownerPhotoUrl,
+          password: passwordHash,
+          paymentMethod: paymentMethod as any,
+          bkashTransactionId: fields?.bkashTransactionId
+            ? String(fields.bkashTransactionId).trim()
+            : null,
+          bkashAccountNumber: fields?.bkashAccountNumber
+            ? String(fields.bkashAccountNumber).trim()
+            : null,
+          bankAccountNumberFrom: fields?.bankAccountNumberFrom
+            ? String(fields.bankAccountNumberFrom).trim()
+            : null,
+          paymentReceipt: paymentReceiptUrl,
+          membershipFee,
+          agreeDataUse,
+        },
+      }),
+      timeoutPromise,
+    ])) as any;
+
+    console.log("[REGISTER] User created successfully, ID:", user.id);
 
     return res.status(201).json({ id: user.id, ok: true });
   } catch (e: any) {
+    console.error("[REGISTER] Error occurred:", e);
+
     if (e?.code === "P2002") {
+      console.log("[REGISTER] Email already exists error");
       return res.status(409).json({ error: "Email already exists" });
     }
-    console.error(e);
+
+    console.error("[REGISTER] Sending 500 error response");
     return res
       .status(500)
       .json({ error: "Server error", detail: e?.message ?? String(e) });
@@ -261,9 +312,3 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
 });
 
 export default handler;
-
-
-
-
-
-
