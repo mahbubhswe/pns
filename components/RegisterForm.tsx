@@ -31,6 +31,43 @@ import Head from "next/head";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import styled from "@emotion/styled";
+
+// Animated title component with multiple color animation
+const AnimatedTitle = styled.div`
+  font-weight: 800;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  font-size: 28px;
+  background: linear-gradient(
+    45deg,
+    #ff0000,
+    #ff7f00,
+    #ffff00,
+    #00ff00,
+    #0000ff,
+    #4b0082,
+    #9400d3
+  );
+  background-size: 400% 400%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: colorShift 6s linear infinite;
+  @keyframes colorShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+`;
+
+// 🖼️ Hero background (internet image)
 import axios from "axios";
 
 // 🖼️ Hero background (internet image)
@@ -38,7 +75,9 @@ const HERO_IMG =
   "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg";
 
 // 🧾 Constants from the PDF instruction
-const MEMBERSHIP_FEE = 1020; // BDT
+const MEMBERSHIP_FEE = 1020; // BDT (used for API, but display varies)
+const BKASH_FEE = 1020; // BDT
+const BANK_FEE = 1000; // BDT
 const BKASH_NUMBER = "01625358082"; // Send Money (personal)
 const BANK = {
   name: "Sonali Bank Limited, Dhaka University",
@@ -160,7 +199,7 @@ function FilePicker({
   const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (file && isPdf(file)) {
+    if (file && (isPdf(file) || isImage(file))) {
       const obj = URL.createObjectURL(file);
       setUrl(obj);
       return () => URL.revokeObjectURL(obj);
@@ -193,14 +232,14 @@ function FilePicker({
           />
         </Button>
 
-        {file && isPdf(file) && url && (
+        {file && (isPdf(file) || isImage(file)) && url && (
           <Button
             onClick={() => setOpen(true)}
             size="small"
             variant="text"
             sx={{ whiteSpace: "nowrap" }}
           >
-            Preview PDF
+            Preview File
           </Button>
         )}
       </Stack>
@@ -212,7 +251,7 @@ function FilePicker({
         </FormHelperText>
       )}
 
-      {/* Preview dialog for PDF */}
+      {/* Preview dialog for PDF or Image */}
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
@@ -228,29 +267,58 @@ function FilePicker({
             <CloseIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers sx={{ p: 0, height: "80vh" }}>
+        <DialogContent
+          dividers
+          sx={{
+            p: 0,
+            height: "80vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
           {url ? (
-            <object
-              data={url}
-              type="application/pdf"
-              width="100%"
-              height="100%"
-            >
+            isPdf(file) ? (
+              <object
+                data={url}
+                type="application/pdf"
+                width="100%"
+                height="100%"
+              >
+                <Box p={2}>
+                  <Typography>
+                    PDF preview is not available in this browser. You can
+                    download and open it locally.
+                  </Typography>
+                  <Button
+                    href={url}
+                    target="_blank"
+                    rel="noopener"
+                    sx={{ mt: 1 }}
+                  >
+                    Open PDF in new tab
+                  </Button>
+                </Box>
+              </object>
+            ) : isImage(file) ? (
+              <Box sx={{ maxWidth: "100%", maxHeight: "100%" }}>
+                <img
+                  src={url}
+                  alt="File preview"
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: "100%",
+                    objectFit: "contain",
+                  }}
+                />
+              </Box>
+            ) : (
               <Box p={2}>
                 <Typography>
-                  PDF preview is not available in this browser. You can download
-                  and open it locally.
+                  Preview not supported for this file type.
                 </Typography>
-                <Button
-                  href={url}
-                  target="_blank"
-                  rel="noopener"
-                  sx={{ mt: 1 }}
-                >
-                  Open PDF in new tab
-                </Button>
               </Box>
-            </object>
+            )
           ) : (
             <Box p={2}>No preview available.</Box>
           )}
@@ -342,8 +410,10 @@ function validateField(key: Key, v: FormState): string | undefined {
         return "Bank account number (sender) is required";
       return;
     case "paymentReceipt":
-      if (!v.paymentReceipt) return "Payment receipt/screenshot is required";
-      if (!validateSize(v.paymentReceipt)) return "Receipt must be ≤ 10MB";
+      if (v.paymentMethod === "BANK" && !v.paymentReceipt)
+        return "Payment receipt/screenshot is required";
+      if (v.paymentReceipt && !validateSize(v.paymentReceipt))
+        return "Receipt must be ≤ 10MB";
       return;
     case "agreeDataUse":
       if (!v.agreeDataUse) return "You must agree to the data use notice";
@@ -454,7 +524,7 @@ export default function PnsMembershipForm() {
     const paymentOk =
       v.paymentMethod === "BKASH"
         ? nonEmpty(v.bkashTransactionId) && nonEmpty(v.bkashAccountNumber)
-        : nonEmpty(v.bankAccountNumberFrom);
+        : nonEmpty(v.bankAccountNumberFrom) && !!v.paymentReceipt;
 
     return Boolean(baseOk && paymentOk);
   }, [v]);
@@ -621,21 +691,12 @@ export default function PnsMembershipForm() {
         />
         <Container maxWidth="lg">
           <Stack spacing={1} sx={{ position: "relative", zIndex: 1 }}>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: 800,
-                textShadow: "0 2px 12px rgba(0,0,0,.4)",
-                fontSize: { xs: 28, md: 40 },
-              }}
-            >
-              Purbachal Newtown Society
-            </Typography>
+            <AnimatedTitle>Purbachal Newtown Society</AnimatedTitle>
             <Typography
               variant="h6"
               sx={{ opacity: 0.95, fontWeight: 500, letterSpacing: 0.2 }}
             >
-              Membership Registration
+              Membership Registration Form
             </Typography>
 
             {/* quick callouts */}
@@ -646,7 +707,6 @@ export default function PnsMembershipForm() {
               flexWrap="wrap"
               sx={{ pt: 1 }}
             >
-           
               <Chip
                 label={`bKash: ${BKASH_NUMBER}`}
                 variant="filled"
@@ -666,9 +726,9 @@ export default function PnsMembershipForm() {
                 }}
               />
             </Stack>
-            <Typography>
-              Membership registration fee: 1000 TK (Bank Transfer) / 1020 TK
-              (bKash)
+            <Typography style={{ fontWeight: "bold", color: "#F9B12B" }}>
+              Membership Registration Fee: BDT 1,020 via bKash / BDT 1,000
+              through bank deposit or bank transfer.
             </Typography>
           </Stack>
         </Container>
@@ -693,9 +753,19 @@ export default function PnsMembershipForm() {
               <Typography variant="body2" color="text.secondary">
                 Fill the form accurately. Fields marked with * are required.
               </Typography>
-              <Typography variant="body2">
-                Already a member? <Link href="/auth/login">Login</Link>
-              </Typography>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="body2">Already a member?</Typography>
+                <Button
+                  component={Link}
+                  href="/auth/login"
+                  variant="text"
+                  size="small"
+                  startIcon={<AccountCircleIcon fontSize="small" />}
+                  sx={{ textDecoration: "none", color: "inherit" }}
+                >
+                  Login
+                </Button>
+              </Stack>
             </Stack>
           </CardContent>
         </Card>
@@ -708,7 +778,7 @@ export default function PnsMembershipForm() {
             {/* Plot Information */}
             <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
               <CardHeader
-                title="Plot information"
+                title="Plot Information"
                 subheader="Sector, Road, Plot, Size"
               />
               <CardContent>
@@ -773,7 +843,7 @@ export default function PnsMembershipForm() {
             {/* Ownership Proof */}
             <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
               <CardHeader
-                title="Ownership proof"
+                title="Ownership Proof"
                 subheader="Attach exactly ONE document"
               />
               <CardContent>
@@ -826,14 +896,14 @@ export default function PnsMembershipForm() {
 
             {/* Owner Info */}
             <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
-              <CardHeader title="Plot owner's information" />
+              <CardHeader title="Plot Owner’s Information" />
               <CardContent>
                 <Row>
                   <Col>
                     <TextField
                       size="small"
                       required
-                      label="Owner's name (English) — as per land document"
+                      label="Owner's name (English) — As Recorded in the Land Documents"
                       value={v.ownerNameEnglish}
                       onChange={e =>
                         setField("ownerNameEnglish", e.target.value)
@@ -993,7 +1063,21 @@ export default function PnsMembershipForm() {
                         </Select>
                       </FormControl>
                     </Col>
+                  </Row>
 
+                  {/* Fee Alert based on payment method */}
+                  {v.paymentMethod === "BKASH" && (
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                      Registration fee: BDT {BKASH_FEE}
+                    </Alert>
+                  )}
+                  {v.paymentMethod === "BANK" && (
+                    <Alert severity="info" sx={{ borderRadius: 2 }}>
+                      Registration fee: BDT {BANK_FEE}
+                    </Alert>
+                  )}
+
+                  <Row>
                     {v.paymentMethod === "BKASH" ? (
                       <>
                         <Col>
@@ -1047,7 +1131,7 @@ export default function PnsMembershipForm() {
 
                     <Col>
                       <FilePicker
-                        required
+                        required={v.paymentMethod === "BANK"}
                         label={
                           v.paymentMethod === "BKASH"
                             ? "Upload bKash receipt/screenshot"
@@ -1058,7 +1142,11 @@ export default function PnsMembershipForm() {
                           // setField already marks touched and validates
                           setField("paymentReceipt", f);
                         }}
-                        helper={"PDF/JPG/PNG (≤10MB)"}
+                        helper={
+                          v.paymentMethod === "BANK"
+                            ? "PDF/JPG/PNG (≤10MB)"
+                            : "Optional for bKash (PDF/JPG/PNG ≤10MB if uploaded)"
+                        }
                         errorText={showErr("paymentReceipt")}
                       />
                     </Col>

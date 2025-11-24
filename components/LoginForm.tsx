@@ -13,6 +13,7 @@ import {
   Typography,
   Container,
 } from "@mui/material";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -121,10 +122,19 @@ export default function LoginForm() {
               <Typography variant="body2" color="text.secondary">
                 Enter your email and password to continue.
               </Typography>
-              <Typography variant="body2">
-                Don’t have an account?{" "}
-                <Link href="/auth/register">Register</Link>
-              </Typography>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Typography variant="body2">Don’t have an account?</Typography>
+                <Button
+                  component={Link}
+                  href="/auth/register"
+                  variant="text"
+                  size="small"
+                  startIcon={<PersonAddIcon fontSize="small" />}
+                  sx={{ textDecoration: "none", color: "inherit" }}
+                >
+                  Register
+                </Button>
+              </Stack>
             </Stack>
           </CardContent>
         </Card>
@@ -187,9 +197,21 @@ export default function LoginForm() {
                   {submitting ? "Signing in…" : "Login"}
                 </Button>
 
-                <Typography variant="body2" color="text.secondary">
-                  New here? <Link href="/auth/register">Create an account</Link>
-                </Typography>
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <Typography variant="body2" color="text.secondary">
+                    New here?
+                  </Typography>
+                  <Button
+                    component={Link}
+                    href="/auth/register"
+                    variant="text"
+                    size="small"
+                    startIcon={<PersonAddIcon fontSize="small" />}
+                    sx={{ textDecoration: "none", color: "inherit" }}
+                  >
+                    Create an account
+                  </Button>
+                </Stack>
               </Stack>
             </Box>
           </CardContent>

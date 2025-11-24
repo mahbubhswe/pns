@@ -17,6 +17,7 @@ import {
   ListItemText,
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import LoginIcon from "@mui/icons-material/Login";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import SecurityIcon from "@mui/icons-material/Security";
 import ArticleIcon from "@mui/icons-material/Article";
@@ -258,6 +259,17 @@ export default function HomePage() {
                   >
                     Register Now
                   </Button>
+                  <Button
+                    component={Link}
+                    href="/auth/login"
+                    size="large"
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<LoginIcon />}
+                  >
+                    Login
+                  </Button>
+
                   <Button
                     component="a"
                     href="#about-purbachal"
