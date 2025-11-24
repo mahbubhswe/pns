@@ -41,7 +41,7 @@ const HERO_IMG =
 const MEMBERSHIP_FEE = 1020; // BDT
 const BKASH_NUMBER = "01625358082"; // Send Money (personal)
 const BANK = {
-  name: "Sonali Bank Limited, Purbachal Branch",
+  name: "Sonali Bank Limited, Dhaka University",
   accountName: "Purbachal Newtown Society",
   accountNumber: "4405702001730",
   routingNumber: "200271750",
@@ -442,7 +442,8 @@ export default function PnsMembershipForm() {
       nonEmpty(v.permanentAddress) &&
       nonEmpty(v.email) &&
       emailOk(v.email) &&
-      nonEmpty(v.password) && v.password.length >= 8 &&
+      nonEmpty(v.password) &&
+      v.password.length >= 8 &&
       v.ownerPhoto &&
       v.paymentReceipt &&
       v.agreeDataUse &&
@@ -653,14 +654,26 @@ export default function PnsMembershipForm() {
               <Chip
                 label={`bKash: ${BKASH_NUMBER}`}
                 variant="filled"
-                sx={{ bgcolor: '#fde7f2', color: '#b31259', borderColor: 'transparent' }}
+                sx={{
+                  bgcolor: "#fde7f2",
+                  color: "#b31259",
+                  borderColor: "transparent",
+                }}
               />
               <Chip
                 label={`Bank: ${BANK.accountNumber}`}
                 variant="filled"
-                sx={{ bgcolor: '#e8f0fe', color: '#0b3d91', borderColor: 'transparent' }}
+                sx={{
+                  bgcolor: "#e8f0fe",
+                  color: "#0b3d91",
+                  borderColor: "transparent",
+                }}
               />
             </Stack>
+            <Typography>
+              Membership registration fee: 1000 TK (Bank Transfer) / 1020 TK
+              (bKash)
+            </Typography>
           </Stack>
         </Container>
       </Box>
@@ -748,7 +761,7 @@ export default function PnsMembershipForm() {
                       size="small"
                       required
                       label="Plot size"
-                      placeholder="e.g., 3 Katha / 1800 sft"
+                      placeholder="e.g., 3 Katha"
                       value={v.plotSize}
                       onChange={e => setField("plotSize", e.target.value)}
                       onBlur={() => markTouched("plotSize")}
@@ -787,13 +800,13 @@ export default function PnsMembershipForm() {
                       }
                       onBlur={() => markTouched("ownershipProofType")}
                     >
+                      <MenuItem value="BDS_KHATIAN">BDS Khatian</MenuItem>
+                      <MenuItem value="MUTATION_PAPER">
+                        Mutation paper (RAJUK/AC land)
+                      </MenuItem>{" "}
                       <MenuItem value="LD_TAX_RECEIPT">
                         LD tax receipt (with plot details)
                       </MenuItem>
-                      <MenuItem value="MUTATION_PAPER">
-                        Mutation paper (RAJUK/AC land)
-                      </MenuItem>
-                      <MenuItem value="BDS_KHATIAN">BDS Khatian</MenuItem>
                     </Select>
                     <FormHelperText>
                       Select the one you will upload
@@ -804,10 +817,10 @@ export default function PnsMembershipForm() {
                     required
                     label="Upload ownership proof (PDF/JPG/PNG)"
                     file={v.ownershipProofFile}
-                      onChange={f => {
-                        // setField already marks touched and validates
-                        setField("ownershipProofFile", f);
-                      }}
+                    onChange={f => {
+                      // setField already marks touched and validates
+                      setField("ownershipProofFile", f);
+                    }}
                     helper={"Max ~10MB. Clear scan or photo."}
                     errorText={showErr("ownershipProofFile")}
                   />

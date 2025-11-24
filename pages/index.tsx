@@ -72,7 +72,7 @@ export default function HomePage() {
   const MEMBERSHIP_FEE = 1020; // BDT
   const BKASH_NUMBER = "01625358082";
   const BANK = {
-    name: "Sonali Bank Limited, Purbachal Branch",
+    name: "Sonali Bank Limited, Dhaka University",
     accountName: "Purbachal Newtown Society",
     accountNumber: "4405702001730",
     routingNumber: "200271750",
@@ -85,10 +85,13 @@ export default function HomePage() {
   const len = slides.length;
   const reduce = useReducedMotion();
 
-  const go = useCallback((next: number, direction: 1 | -1) => {
-    setDir(direction);
-    setIndex(((next % len) + len) % len);
-  }, [len]);
+  const go = useCallback(
+    (next: number, direction: 1 | -1) => {
+      setDir(direction);
+      setIndex(((next % len) + len) % len);
+    },
+    [len]
+  );
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
