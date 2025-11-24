@@ -90,7 +90,7 @@ const initialState: FormState = {
   roadNumber: "",
   plotNumber: "",
   plotSize: "",
-  ownershipProofType: "LD_TAX_RECEIPT",
+  ownershipProofType: "BDS_KHATIAN",
   ownershipProofFile: null,
   ownerNameEnglish: "",
   ownerNameBangla: "",
