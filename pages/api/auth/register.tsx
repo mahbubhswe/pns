@@ -1,9 +1,13 @@
 // pages/api/auth/register-pns-membership.ts
+import React from "react";
 import type { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import fs from "fs";
 import path from "path";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
+import { renderToBuffer } from "@react-pdf/renderer";
+import ApplicationPDF from "@/lib/pdf-generator";
 import { prisma } from "@/lib/prisma";
 import type { NextHandler } from "next-connect";
 import { createApiHandler } from "@/lib/server/handler";
@@ -36,6 +40,17 @@ const BLOB_ACCESS_LEVEL =
   process.env.BLOB_ACCESS_LEVEL === "private" ? "private" : "public";
 const IS_VERCEL = Boolean(process.env.VERCEL);
 const HAS_BLOB_TOKEN = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+
+// Email configuration
+const emailTransporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.SMTP_PORT || "587"),
+  secure: process.env.SMTP_SECURE === "true",
+  auth: {
+    user: "myaleenaapp@gmail.com",
+    pass: "gvrb vrdk lxtc zqtj",
+  },
+});
 
 function resolveAllowedOrigin(originHeader?: string | null): string {
   if (ALLOW_ANY_ORIGIN) {
@@ -295,7 +310,69 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
 
     console.log("[REGISTER] User created successfully, ID:", user.id);
 
-    return res.status(201).json({ id: user.id, ok: true });
+    // Generate PDF
+    const pdfData = {
+      sectorNumber: user.sectorNumber,
+      roadNumber: user.roadNumber,
+      plotNumber: user.plotNumber,
+      plotSize: user.plotSize,
+      ownershipProofType: user.ownershipProofType,
+      ownerNameEnglish: user.ownerNameEnglish,
+      ownerNameBangla: user.ownerNameBangla,
+      contactNumber: user.contactNumber,
+      nidNumber: user.nidNumber,
+      presentAddress: user.presentAddress,
+      permanentAddress: user.permanentAddress,
+      email: user.email,
+      paymentMethod: user.paymentMethod,
+      membershipFee: user.membershipFee,
+      bkashTransactionId: user.bkashTransactionId,
+      bkashAccountNumber: user.bkashAccountNumber,
+      bankAccountNumberFrom: user.bankAccountNumberFrom,
+    };
+
+    const pdfBuffer = await renderToBuffer(<ApplicationPDF data={pdfData} />);
+    console.log("[REGISTER] PDF generated successfully");
+
+    // Send email with PDF attachment
+    await emailTransporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: user.email,
+      subject: "PNS Membership Application Confirmation",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Purbachal Newtown Society - Membership Application</h2>
+          <p>Dear ${user.ownerNameEnglish},</p>
+          <p>Thank you for submitting your membership application to Purbachal Newtown Society.</p>
+          <p>Your application has been received and is being processed. Please find attached a PDF copy of your application form for your records.</p>
+          <p><strong>Application Details:</strong></p>
+          <ul>
+            <li>Name: ${user.ownerNameEnglish}</li>
+            <li>Email: ${user.email}</li>
+            <li>Plot: Sector ${user.sectorNumber}, Road ${user.roadNumber}, Plot ${user.plotNumber}</li>
+            <li>Payment Method: ${user.paymentMethod}</li>
+            <li>Membership Fee: BDT ${user.membershipFee}</li>
+          </ul>
+          <p>You will receive further updates regarding your application status.</p>
+          <p>Best regards,<br>Purbachal Newtown Society Team</p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: `PNS_Application_${user.sectorNumber}_${user.plotNumber}.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+    });
+    console.log("[REGISTER] Email sent successfully");
+
+    return res.status(201).json({
+      id: user.id,
+      ok: true,
+      message:
+        "Registration completed successfully. Please check your email for the application PDF.",
+    });
   } catch (e: any) {
     console.error("[REGISTER] Error occurred:", e);
 
