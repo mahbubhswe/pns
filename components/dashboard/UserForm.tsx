@@ -17,6 +17,7 @@ import {
   IconButton,
   Avatar,
   InputAdornment,
+  Backdrop,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import Visibility from "@mui/icons-material/Visibility";
@@ -70,6 +71,7 @@ export default function UserForm({
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(
     initial?.photoUrl || undefined
   );
+  const [loading, setLoading] = useState(false);
 
   // Crop dialog state
   const [cropOpen, setCropOpen] = useState(false);
@@ -89,7 +91,8 @@ export default function UserForm({
   useEffect(() => {
     return () => {
       if (imgUrl) URL.revokeObjectURL(imgUrl);
-      if (previewUrl && previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
+      if (previewUrl && previewUrl.startsWith("blob:"))
+        URL.revokeObjectURL(previewUrl);
     };
   }, [imgUrl, previewUrl]);
 
@@ -123,334 +126,348 @@ export default function UserForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
-    const payload: ManagementUserInput = {
-      ...values,
-      photoUrl: values.photoUrl || null,
-      address: values.address || null,
-      title: values.title || null,
-    } as any;
-    await onSubmit(payload, photoFile);
+    setLoading(true);
+    try {
+      const payload: ManagementUserInput = {
+        ...values,
+        photoUrl: values.photoUrl || null,
+        address: values.address || null,
+        title: values.title || null,
+      } as any;
+      await onSubmit(payload, photoFile);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
-      <CardHeader title={title} subheader={subheader} />
-      <CardContent>
-        <Box component="form" onSubmit={handleSubmit} noValidate>
-          <Stack spacing={2}>
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={2}
-              alignItems={{ md: "flex-start" }}
-            >
-              <Stack spacing={2} flex={1}>
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Name"
-                  value={values.name}
-                  onChange={handleChange("name")}
-                  error={!!errors.name}
-                  helperText={errors.name || " "}
-                  required
-                />
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  value={values.email}
-                  onChange={handleChange("email")}
-                  error={!!errors.email}
-                  helperText={errors.email || " "}
-                  required
-                />
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Phone"
-                  value={values.phone}
-                  onChange={handleChange("phone")}
-                  error={!!errors.phone}
-                  helperText={errors.phone || " "}
-                  required
-                />
-                <TextField
-                  size="small"
-                  select
-                  fullWidth
-                  label="Role"
-                  value={values.role}
-                  onChange={handleChange("role")}
-                >
-                  <MenuItem value="ADMIN">ADMIN</MenuItem>
-                  <MenuItem value="EDITOR">EDITOR</MenuItem>
-                  <MenuItem value="VIEWER">VIEWER</MenuItem>
-                </TextField>
-                {errors.role && (
-                  <Typography variant="caption" color="error.main">
-                    {errors.role}
-                  </Typography>
-                )}
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Title"
-                  value={values.title || ""}
-                  onChange={handleChange("title")}
-                />
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Address"
-                  value={values.address || ""}
-                  onChange={handleChange("address")}
-                />
+    <>
+      <Backdrop
+        sx={theme => ({ color: "#fff", zIndex: theme.zIndex.drawer + 1 })}
+        open={loading}
+        onClick={() => {}}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
+      <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
+        <CardHeader title={title} subheader={subheader} />
+        <CardContent>
+          <Box component="form" onSubmit={handleSubmit} noValidate>
+            <Stack spacing={2}>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={2}
+                alignItems={{ md: "flex-start" }}
+              >
+                <Stack spacing={2} flex={1}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Name"
+                    value={values.name}
+                    onChange={handleChange("name")}
+                    error={!!errors.name}
+                    helperText={errors.name || " "}
+                    required
+                  />
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    value={values.email}
+                    onChange={handleChange("email")}
+                    error={!!errors.email}
+                    helperText={errors.email || " "}
+                    required
+                  />
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Phone"
+                    value={values.phone}
+                    onChange={handleChange("phone")}
+                    error={!!errors.phone}
+                    helperText={errors.phone || " "}
+                    required
+                  />
+                  <TextField
+                    size="small"
+                    select
+                    fullWidth
+                    label="Role"
+                    value={values.role}
+                    onChange={handleChange("role")}
+                  >
+                    <MenuItem value="ADMIN">ADMIN</MenuItem>
+                    <MenuItem value="EDITOR">EDITOR</MenuItem>
+                    <MenuItem value="VIEWER">VIEWER</MenuItem>
+                  </TextField>
+                  {errors.role && (
+                    <Typography variant="caption" color="error.main">
+                      {errors.role}
+                    </Typography>
+                  )}
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Title"
+                    value={values.title || ""}
+                    onChange={handleChange("title")}
+                  />
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Address"
+                    value={values.address || ""}
+                    onChange={handleChange("address")}
+                  />
 
-                <Stack spacing={0.5}>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Button variant="outlined" size="small" component="label">
-                      Choose Photo
-                      <input
-                        type="file"
-                        accept="image/*"
-                        hidden
-                        onChange={e => {
-                          const f = e.target.files?.[0] || null;
-                          if (!f) return;
-                          setPhotoFile(f);
-                          const url = URL.createObjectURL(f);
-                          setImgUrl(url);
-                          setScale(1);
-                          setPos({ x: 0, y: 0 });
-                          setCropOpen(true);
-                        }}
-                      />
-                    </Button>
-                    <Button
-                      variant="text"
-                      size="small"
-                      disabled={!photoFile}
-                      onClick={() => photoFile && setCropOpen(true)}
-                    >
-                      Crop
-                    </Button>
+                  <Stack spacing={0.5}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Button variant="outlined" size="small" component="label">
+                        Choose Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={e => {
+                            const f = e.target.files?.[0] || null;
+                            if (!f) return;
+                            setPhotoFile(f);
+                            const url = URL.createObjectURL(f);
+                            setImgUrl(url);
+                            setScale(1);
+                            setPos({ x: 0, y: 0 });
+                            setCropOpen(true);
+                          }}
+                        />
+                      </Button>
+                      <Button
+                        variant="text"
+                        size="small"
+                        disabled={!photoFile}
+                        onClick={() => photoFile && setCropOpen(true)}
+                      >
+                        Crop
+                      </Button>
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      Upload and crop an image. Square crop recommended.
+                    </Typography>
                   </Stack>
-                  <Typography variant="caption" color="text.secondary">
-                    Upload and crop an image. Square crop recommended.
-                  </Typography>
+
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Password"
+                    type={showPassword ? "text" : "password"}
+                    value={values.password || ""}
+                    onChange={handleChange("password")}
+                    error={!!errors.password}
+                    helperText={errors.password || "At least 6 characters"}
+                    required
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={() => setShowPassword(s => !s)}
+                            edge="end"
+                          >
+                            {showPassword ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Confirm Password"
+                    type={showConfirm ? "text" : "password"}
+                    value={confirm}
+                    onChange={e => setConfirm(e.target.value)}
+                    error={!!errors.confirm}
+                    helperText={errors.confirm || "Re-enter password"}
+                    required
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle confirm password visibility"
+                            onClick={() => setShowConfirm(s => !s)}
+                            edge="end"
+                          >
+                            {showConfirm ? <VisibilityOff /> : <Visibility />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
                 </Stack>
 
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Password"
-                  type={showPassword ? "text" : "password"}
-                  value={values.password || ""}
-                  onChange={handleChange("password")}
-                  error={!!errors.password}
-                  helperText={errors.password || "At least 6 characters"}
-                  required
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={() => setShowPassword(s => !s)}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  size="small"
-                  fullWidth
-                  label="Confirm Password"
-                  type={showConfirm ? "text" : "password"}
-                  value={confirm}
-                  onChange={e => setConfirm(e.target.value)}
-                  error={!!errors.confirm}
-                  helperText={errors.confirm || "Re-enter password"}
-                  required
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle confirm password visibility"
-                          onClick={() => setShowConfirm(s => !s)}
-                          edge="end"
-                        >
-                          {showConfirm ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+                <Stack
+                  width={{ xs: "100%", md: 280 }}
+                  alignItems="center"
+                  spacing={1}
+                  sx={{ height: "100%", justifyContent: "center" }}
+                >
+                  <Avatar
+                    variant="rounded"
+                    src={previewUrl || values.photoUrl || undefined}
+                    sx={{ width: 120, height: 120 }}
+                  />
+                  <Typography variant="body2" color="text.secondary">
+                    Profile preview
+                  </Typography>
+                </Stack>
               </Stack>
 
-              <Stack
-                width={{ xs: "100%", md: 280 }}
-                alignItems="center"
-                spacing={1}
-                sx={{ height: "100%", justifyContent: "center" }}
-              >
-                <Avatar
-                  variant="rounded"
-                  src={previewUrl || values.photoUrl || undefined}
-                  sx={{ width: 120, height: 120 }}
-                />
-                <Typography variant="body2" color="text.secondary">
-                  Profile preview
-                </Typography>
-              </Stack>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={busy}
+                  startIcon={busy ? <CircularProgress size={18} /> : undefined}
+                >
+                  {submitLabel}
+                </Button>
+              </Box>
             </Stack>
-
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={busy}
-                startIcon={busy ? <CircularProgress size={18} /> : undefined}
-              >
-                {submitLabel}
-              </Button>
-            </Box>
-          </Stack>
-        </Box>
-      </CardContent>
-
-      {/* Crop dialog */}
-      <Dialog
-        open={cropOpen}
-        onClose={() => setCropOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ pr: 6 }}>
-          Crop Photo
-          <IconButton
-            onClick={() => setCropOpen(false)}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Box
-              sx={{
-                width: "100%",
-                aspectRatio: "1 / 1",
-                backgroundColor: "#111",
-                borderRadius: 2,
-                position: "relative",
-                overflow: "hidden",
-                touchAction: "none",
-              }}
-              onPointerDown={e => {
-                (e.target as HTMLElement).setPointerCapture(e.pointerId);
-                setDrag({
-                  active: true,
-                  startX: e.clientX,
-                  startY: e.clientY,
-                  origX: pos.x,
-                  origY: pos.y,
-                });
-              }}
-              onPointerMove={e => {
-                if (!drag.active) return;
-                const dx = e.clientX - drag.startX;
-                const dy = e.clientY - drag.startY;
-                setPos({ x: drag.origX + dx, y: drag.origY + dy });
-              }}
-              onPointerUp={() => setDrag(d => ({ ...d, active: false }))}
-            >
-              {imgUrl && (
-                // Using native <img> for direct canvas interactions
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  ref={imgRef}
-                  src={imgUrl}
-                  alt="to-crop"
-                  style={{
-                    position: "absolute",
-                    left: `calc(50% + ${pos.x}px)`,
-                    top: `calc(50% + ${pos.y}px)`,
-                    transform: `translate(-50%, -50%) scale(${scale})`,
-                    userSelect: "none",
-                    pointerEvents: "none",
-                    maxWidth: "none",
-                  }}
-                />
-              )}
-              <canvas ref={canvasRef} style={{ display: "none" }} />
-            </Box>
-            <Box px={1}>
-              <Typography variant="caption">Zoom</Typography>
-              <Slider
-                min={1}
-                max={3}
-                step={0.01}
-                value={scale}
-                onChange={(_, v) => setScale(v as number)}
-              />
-            </Box>
-            <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-              <Button variant="outlined" onClick={() => setCropOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                onClick={() => {
-                  const container = (e => e?.parentElement)(
-                    imgRef.current as unknown as HTMLElement | null
-                  ) as HTMLElement | null;
-                  const size = container
-                    ? Math.min(container.clientWidth, container.clientHeight)
-                    : 300;
-                  const canvas =
-                    canvasRef.current || document.createElement("canvas");
-                  canvas.width = size;
-                  canvas.height = size;
-                  const ctx = canvas.getContext("2d");
-                  const img = imgRef.current;
-                  if (!ctx || !img) return;
-                  // Calculate draw size
-                  const iw = img.naturalWidth;
-                  const ih = img.naturalHeight;
-                  const dw = iw * scale;
-                  const dh = ih * scale;
-                  // Image center aligned to container center + pos offset
-                  const x = size / 2 + pos.x - dw / 2;
-                  const y = size / 2 + pos.y - dh / 2;
-                  ctx.clearRect(0, 0, size, size);
-                  ctx.imageSmoothingQuality = "high";
-                  ctx.drawImage(img, x, y, dw, dh);
-                  canvas.toBlob(
-                    b => {
-                      if (!b) return;
-                      const file = new File([b], "avatar.jpg", {
-                        type: b.type || "image/jpeg",
-                      });
-                      setPhotoFile(file);
-                      const url = URL.createObjectURL(b);
-                      setPreviewUrl(url);
-                      setCropOpen(false);
-                    },
-                    "image/jpeg",
-                    0.92
-                  );
-                }}
-              >
-                Crop & Use
-              </Button>
-            </Box>
           </Box>
-        </DialogContent>
-      </Dialog>
-    </Card>
+        </CardContent>
+
+        {/* Crop dialog */}
+        <Dialog
+          open={cropOpen}
+          onClose={() => setCropOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ pr: 6 }}>
+            Crop Photo
+            <IconButton
+              onClick={() => setCropOpen(false)}
+              sx={{ position: "absolute", right: 8, top: 8 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent dividers>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box
+                sx={{
+                  width: "100%",
+                  aspectRatio: "1 / 1",
+                  backgroundColor: "#111",
+                  borderRadius: 2,
+                  position: "relative",
+                  overflow: "hidden",
+                  touchAction: "none",
+                }}
+                onPointerDown={e => {
+                  (e.target as HTMLElement).setPointerCapture(e.pointerId);
+                  setDrag({
+                    active: true,
+                    startX: e.clientX,
+                    startY: e.clientY,
+                    origX: pos.x,
+                    origY: pos.y,
+                  });
+                }}
+                onPointerMove={e => {
+                  if (!drag.active) return;
+                  const dx = e.clientX - drag.startX;
+                  const dy = e.clientY - drag.startY;
+                  setPos({ x: drag.origX + dx, y: drag.origY + dy });
+                }}
+                onPointerUp={() => setDrag(d => ({ ...d, active: false }))}
+              >
+                {imgUrl && (
+                  // Using native <img> for direct canvas interactions
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    ref={imgRef}
+                    src={imgUrl}
+                    alt="to-crop"
+                    style={{
+                      position: "absolute",
+                      left: `calc(50% + ${pos.x}px)`,
+                      top: `calc(50% + ${pos.y}px)`,
+                      transform: `translate(-50%, -50%) scale(${scale})`,
+                      userSelect: "none",
+                      pointerEvents: "none",
+                      maxWidth: "none",
+                    }}
+                  />
+                )}
+                <canvas ref={canvasRef} style={{ display: "none" }} />
+              </Box>
+              <Box px={1}>
+                <Typography variant="caption">Zoom</Typography>
+                <Slider
+                  min={1}
+                  max={3}
+                  step={0.01}
+                  value={scale}
+                  onChange={(_, v) => setScale(v as number)}
+                />
+              </Box>
+              <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+                <Button variant="outlined" onClick={() => setCropOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    const container = (e => e?.parentElement)(
+                      imgRef.current as unknown as HTMLElement | null
+                    ) as HTMLElement | null;
+                    const size = container
+                      ? Math.min(container.clientWidth, container.clientHeight)
+                      : 300;
+                    const canvas =
+                      canvasRef.current || document.createElement("canvas");
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext("2d");
+                    const img = imgRef.current;
+                    if (!ctx || !img) return;
+                    // Calculate draw size
+                    const iw = img.naturalWidth;
+                    const ih = img.naturalHeight;
+                    const dw = iw * scale;
+                    const dh = ih * scale;
+                    // Image center aligned to container center + pos offset
+                    const x = size / 2 + pos.x - dw / 2;
+                    const y = size / 2 + pos.y - dh / 2;
+                    ctx.clearRect(0, 0, size, size);
+                    ctx.imageSmoothingQuality = "high";
+                    ctx.drawImage(img, x, y, dw, dh);
+                    canvas.toBlob(
+                      b => {
+                        if (!b) return;
+                        const file = new File([b], "avatar.jpg", {
+                          type: b.type || "image/jpeg",
+                        });
+                        setPhotoFile(file);
+                        const url = URL.createObjectURL(b);
+                        setPreviewUrl(url);
+                        setCropOpen(false);
+                      },
+                      "image/jpeg",
+                      0.92
+                    );
+                  }}
+                >
+                  Crop & Use
+                </Button>
+              </Box>
+            </Box>
+          </DialogContent>
+        </Dialog>
+      </Card>
+    </>
   );
 }

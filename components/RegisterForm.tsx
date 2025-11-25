@@ -6,7 +6,6 @@ import {
   CardContent,
   CardHeader,
   Checkbox,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -1269,453 +1268,418 @@ export default function PnsMembershipForm() {
               </DialogTitle>
 
               <DialogContent dividers>
-                <Box sx={{ p: 3 }}>
-                  {/* Header */}
-
+                <Box>
                   {/* Plot Information Section */}
-                  <Box
-                    sx={{
-                      mb: 4,
-                      p: 2,
-                    }}
+
+                  <Card
+                    variant="outlined"
+                    sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}
                   >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        p: 1,
-                        mb: 2,
-                        borderRadius: 1,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Plot Information
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(200px, 1fr))",
-                        gap: 2,
-                      }}
-                    >
+                    <CardHeader title="Plot Information" />
+                    <CardContent>
                       <Box
                         sx={{
-                          p: 1,
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(200px, 1fr))",
+                          gap: 2,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            p: 1,
 
-                          borderRadius: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Sector Number
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold">
-                          {v.sectorNumber}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Road Number
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold">
-                          {v.roadNumber}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Plot Number
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold">
-                          {v.plotNumber}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Plot Size
-                        </Typography>
-                        <Typography variant="h6" fontWeight="bold">
-                          {v.plotSize} Katha
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  {/* Owner Information Section */}
-                  <Box
-                    sx={{
-                      mb: 4,
-                      p: 2,
-
-                      borderRadius: 1,
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        p: 1,
-                        mb: 2,
-
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Owner Information
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(280px, 1fr))",
-                        gap: 2,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Name (English)
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.ownerNameEnglish}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          নাম (বাংলা)
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.ownerNameBangla}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Contact Number
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.contactNumber}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          NID Number
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.nidNumber}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Email Address
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.email}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-
-                          gridColumn: "1 / -1",
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Present Address
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.presentAddress}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-
-                          gridColumn: "1 / -1",
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Permanent Address
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.permanentAddress}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-
-                  {/* Payment Information Section */}
-                  <Box
-                    sx={{
-                      mb: 4,
-                      p: 2,
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        p: 1,
-                        mb: 2,
-                        borderRadius: 1,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Payment Information
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(250px, 1fr))",
-                        gap: 2,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Payment Method
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.paymentMethod}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Registration Fee
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          BDT{" "}
-                          {v.paymentMethod === "BKASH" ? BKASH_FEE : BANK_FEE}
-                        </Typography>
-                      </Box>
-                      {v.paymentMethod === "BKASH" && (
-                        <>
-                          <Box
-                            sx={{
-                              p: 1,
-                            }}
-                          >
-                            <Typography variant="body2" color="text.secondary">
-                              Transaction ID
-                            </Typography>
-                            <Typography variant="body1" fontWeight="medium">
-                              {v.bkashTransactionId}
-                            </Typography>
-                          </Box>
-                          <Box
-                            sx={{
-                              p: 1,
-                            }}
-                          >
-                            <Typography variant="body2" color="text.secondary">
-                              Account Number
-                            </Typography>
-                            <Typography variant="body1" fontWeight="medium">
-                              {v.bkashAccountNumber}
-                            </Typography>
-                          </Box>
-                        </>
-                      )}
-                      {v.paymentMethod === "BANK" && (
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Sector Number
+                          </Typography>
+                          <Typography variant="h6" fontWeight="bold">
+                            {v.sectorNumber}
+                          </Typography>
+                        </Box>
                         <Box
                           sx={{
                             p: 1,
                           }}
                         >
                           <Typography variant="body2" color="text.secondary">
-                            Sender Account
+                            Road Number
+                          </Typography>
+                          <Typography variant="h6" fontWeight="bold">
+                            {v.roadNumber}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Plot Number
+                          </Typography>
+                          <Typography variant="h6" fontWeight="bold">
+                            {v.plotNumber}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Plot Size
+                          </Typography>
+                          <Typography variant="h6" fontWeight="bold">
+                            {v.plotSize} Katha
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+
+                  {/* Owner Information Section */}
+                  <Card
+                    variant="outlined"
+                    sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}
+                  >
+                    <CardHeader title="Owner Information" />
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(280px, 1fr))",
+                          gap: 2,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Name (English)
                           </Typography>
                           <Typography variant="body1" fontWeight="medium">
-                            {v.bankAccountNumberFrom}
+                            {v.ownerNameEnglish}
                           </Typography>
                         </Box>
-                      )}
-                    </Box>
-                  </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            নাম (বাংলা)
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.ownerNameBangla}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Contact Number
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.contactNumber}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            NID Number
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.nidNumber}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Email Address
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.email}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+
+                            gridColumn: "1 / -1",
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Present Address
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.presentAddress}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+
+                            gridColumn: "1 / -1",
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Permanent Address
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.permanentAddress}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+
+                  {/* Payment Information Section */}
+                  <Card
+                    variant="outlined"
+                    sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}
+                  >
+                    <CardHeader title="Payment Information" />
+                    <CardContent>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(250px, 1fr))",
+                          gap: 2,
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Payment Method
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.paymentMethod}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Registration Fee
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            BDT{" "}
+                            {v.paymentMethod === "BKASH" ? BKASH_FEE : BANK_FEE}
+                          </Typography>
+                        </Box>
+                        {v.paymentMethod === "BKASH" && (
+                          <>
+                            <Box
+                              sx={{
+                                p: 1,
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Transaction ID
+                              </Typography>
+                              <Typography variant="body1" fontWeight="medium">
+                                {v.bkashTransactionId}
+                              </Typography>
+                            </Box>
+                            <Box
+                              sx={{
+                                p: 1,
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
+                                Account Number
+                              </Typography>
+                              <Typography variant="body1" fontWeight="medium">
+                                {v.bkashAccountNumber}
+                              </Typography>
+                            </Box>
+                          </>
+                        )}
+                        {v.paymentMethod === "BANK" && (
+                          <Box
+                            sx={{
+                              p: 1,
+                            }}
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Sender Account
+                            </Typography>
+                            <Typography variant="body1" fontWeight="medium">
+                              {v.bankAccountNumberFrom}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
 
                   {/* Documents Section */}
-                  <Box
-                    sx={{
-                      mb: 4,
-                      p: 2,
-                    }}
+                  <Card
+                    variant="outlined"
+                    sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}
                   >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        p: 1,
-                        mb: 2,
-
-                        fontWeight: "bold",
-                      }}
-                    >
-                      Documents & Proofs
-                    </Typography>
-                    <Box
-                      sx={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(300px, 1fr))",
-                        gap: 2,
-                      }}
-                    >
+                    <CardHeader title="Documents & Proofs" />
+                    <CardContent>
                       <Box
                         sx={{
-                          p: 1,
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(300px, 1fr))",
+                          gap: 2,
                         }}
                       >
-                        <Typography variant="body2" color="text.secondary">
-                          Ownership Proof Type
-                        </Typography>
-                        <Typography variant="body1" fontWeight="medium">
-                          {v.ownershipProofType}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Ownership Proof File
-                        </Typography>
                         <Box
                           sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            mt: 1,
+                            p: 1,
                           }}
                         >
-                          {v.ownershipProofFile ? (
-                            isPdf(v.ownershipProofFile) ? (
-                              <PictureAsPdfIcon
+                          <Typography variant="body2" color="text.secondary">
+                            Ownership Proof Type
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.ownershipProofType}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Ownership Proof File
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              mt: 1,
+                            }}
+                          >
+                            {v.ownershipProofFile ? (
+                              isPdf(v.ownershipProofFile) ? (
+                                <PictureAsPdfIcon
+                                  sx={{ fontSize: 120, color: "error.main" }}
+                                />
+                              ) : isImage(v.ownershipProofFile) ? (
+                                <Avatar
+                                  src={URL.createObjectURL(
+                                    v.ownershipProofFile
+                                  )}
+                                  sx={{ width: 120, height: 120 }}
+                                  variant="rounded"
+                                />
+                              ) : (
+                                <ImageIcon
+                                  sx={{ fontSize: 120, color: "success.main" }}
+                                />
+                              )
+                            ) : (
+                              <CloseIcon
                                 sx={{ fontSize: 120, color: "error.main" }}
                               />
-                            ) : isImage(v.ownershipProofFile) ? (
-                              <Avatar
-                                src={URL.createObjectURL(v.ownershipProofFile)}
-                                sx={{ width: 120, height: 120 }}
-                                variant="rounded"
-                              />
-                            ) : (
-                              <ImageIcon
-                                sx={{ fontSize: 120, color: "success.main" }}
-                              />
-                            )
-                          ) : (
-                            <CloseIcon
-                              sx={{ fontSize: 120, color: "error.main" }}
-                            />
-                          )}
+                            )}
+                          </Box>
                         </Box>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Owner Photo
-                        </Typography>
                         <Box
                           sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            mt: 1,
+                            p: 1,
                           }}
                         >
-                          {v.ownerPhoto ? (
-                            isImage(v.ownerPhoto) ? (
-                              <Avatar
-                                src={URL.createObjectURL(v.ownerPhoto)}
-                                sx={{ width: 120, height: 120 }}
-                                variant="rounded"
-                              />
+                          <Typography variant="body2" color="text.secondary">
+                            Owner Photo
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              mt: 1,
+                            }}
+                          >
+                            {v.ownerPhoto ? (
+                              isImage(v.ownerPhoto) ? (
+                                <Avatar
+                                  src={URL.createObjectURL(v.ownerPhoto)}
+                                  sx={{ width: 120, height: 120 }}
+                                  variant="rounded"
+                                />
+                              ) : (
+                                <ImageIcon
+                                  sx={{ fontSize: 120, color: "success.main" }}
+                                />
+                              )
                             ) : (
-                              <ImageIcon
-                                sx={{ fontSize: 120, color: "success.main" }}
+                              <CloseIcon
+                                sx={{ fontSize: 120, color: "error.main" }}
                               />
-                            )
-                          ) : (
-                            <CloseIcon
-                              sx={{ fontSize: 120, color: "error.main" }}
-                            />
-                          )}
+                            )}
+                          </Box>
                         </Box>
-                      </Box>
-                      <Box
-                        sx={{
-                          p: 1,
-                        }}
-                      >
-                        <Typography variant="body2" color="text.secondary">
-                          Payment Receipt
-                        </Typography>
                         <Box
                           sx={{
-                            display: "flex",
-                            justifyContent: "center",
-                            mt: 1,
+                            p: 1,
                           }}
                         >
-                          {v.paymentReceipt ? (
-                            isPdf(v.paymentReceipt) ? (
-                              <PictureAsPdfIcon
+                          <Typography variant="body2" color="text.secondary">
+                            Payment Receipt
+                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              mt: 1,
+                            }}
+                          >
+                            {v.paymentReceipt ? (
+                              isPdf(v.paymentReceipt) ? (
+                                <PictureAsPdfIcon
+                                  sx={{ fontSize: 80, color: "error.main" }}
+                                />
+                              ) : isImage(v.paymentReceipt) ? (
+                                <Avatar
+                                  src={URL.createObjectURL(v.paymentReceipt)}
+                                  sx={{ width: 80, height: 80 }}
+                                  variant="rounded"
+                                />
+                              ) : (
+                                <ImageIcon
+                                  sx={{ fontSize: 80, color: "success.main" }}
+                                />
+                              )
+                            ) : (
+                              <CloseIcon
                                 sx={{ fontSize: 80, color: "error.main" }}
                               />
-                            ) : isImage(v.paymentReceipt) ? (
-                              <Avatar
-                                src={URL.createObjectURL(v.paymentReceipt)}
-                                sx={{ width: 80, height: 80 }}
-                                variant="rounded"
-                              />
-                            ) : (
-                              <ImageIcon
-                                sx={{ fontSize: 80, color: "success.main" }}
-                              />
-                            )
-                          ) : (
-                            <CloseIcon
-                              sx={{ fontSize: 80, color: "error.main" }}
-                            />
-                          )}
+                            )}
+                          </Box>
                         </Box>
                       </Box>
-                    </Box>
-                  </Box>
+                    </CardContent>
+                  </Card>
                 </Box>
               </DialogContent>
 
