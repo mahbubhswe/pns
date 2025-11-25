@@ -196,11 +196,7 @@ export default function LoginForm() {
                 >
                   {submitting ? "Signing in…" : "Login"}
                 </Button>
-
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Typography variant="body2" color="text.secondary">
-                    New here?
-                  </Typography>
+                <Typography  >
                   <Button
                     component={Link}
                     href="/auth/register"
@@ -209,9 +205,9 @@ export default function LoginForm() {
                     startIcon={<PersonAddIcon fontSize="small" />}
                     sx={{ textDecoration: "none", color: "inherit" }}
                   >
-                    Create an account
+                    New Registration
                   </Button>
-                </Stack>
+                </Typography>
               </Stack>
             </Box>
           </CardContent>

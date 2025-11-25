@@ -25,6 +25,7 @@ import {
   IconButton,
   Container,
   Chip,
+  Avatar,
 } from "@mui/material";
 import Link from "next/link";
 import Head from "next/head";
@@ -32,6 +33,8 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
+import ImageIcon from "@mui/icons-material/Image";
 import styled from "@emotion/styled";
 
 // Animated title component with multiple color animation
@@ -80,7 +83,7 @@ const BKASH_FEE = 1020; // BDT
 const BANK_FEE = 1000; // BDT
 const BKASH_NUMBER = "01625358082"; // Send Money (personal)
 const BANK = {
-  name: "Sonali Bank Limited, Dhaka University",
+  name: "Sonali Bank Limited, Dhaka University Branch",
   accountName: "Purbachal Newtown Society",
   accountNumber: "4405702001730",
   routingNumber: "200271750",
@@ -97,7 +100,7 @@ type FormState = {
   plotSize: string;
 
   // Ownership proof
-  ownershipProofType: "LD_TAX_RECEIPT" | "MUTATION_PAPER" | "BDS_KHATIAN";
+  ownershipProofType: "MUTATION_PAPER" | "BDS_KHATIAN";
   ownershipProofFile: File | null;
 
   // Owner info
@@ -154,8 +157,9 @@ const isPdf = (f: File | null) => !!f && f.type === "application/pdf";
 const isImage = (f: File | null) => !!f && f.type.startsWith("image/");
 const nonEmpty = (s: string) => !!s && s.trim().length > 0;
 const emailOk = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
-const phoneOk = (s: string) => /^[0-9+\-\s]{8,20}$/.test(s);
-const nidOk = (s: string) => /^[0-9]{8,20}$/.test(s.replace(/\s/g, ""));
+const phoneOk = (s: string) => /^[0-9+\-\s]{11,}$/.test(s);
+const nidOk = (s: string) =>
+  /^[0-9]{13}$|^[0-9]{17}$/.test(s.replace(/\s/g, ""));
 function validateSize(f: File | null) {
   if (!f) return true;
   return f.size <= TEN_MB;
@@ -358,10 +362,20 @@ const LABELS: Record<Key, string> = {
 function validateField(key: Key, v: FormState): string | undefined {
   switch (key) {
     case "sectorNumber":
+      if (!nonEmpty(v.sectorNumber)) return "Sector number is required";
+      return;
     case "roadNumber":
+      if (!nonEmpty(v.roadNumber)) return "Road number is required";
+      return;
     case "plotNumber":
+      if (!nonEmpty(v.plotNumber)) return "Plot number is required";
+      return;
     case "plotSize":
-      if (!nonEmpty((v as any)[key])) return `${LABELS[key]} is required`;
+      if (!nonEmpty(v.plotSize)) return "Plot size is required";
+      const num = parseFloat(v.plotSize);
+      if (isNaN(num) || num <= 0)
+        return "Plot size must be a number greater than 0";
+      if (num < 3) return "Plot size must be at least 3 Katha";
       return;
     case "ownerNameEnglish":
     case "ownerNameBangla":
@@ -381,7 +395,7 @@ function validateField(key: Key, v: FormState): string | undefined {
       return;
     case "nidNumber":
       if (!nonEmpty(v.nidNumber) || !nidOk(v.nidNumber))
-        return "Enter a valid numeric NID (8–20 digits)";
+        return "Enter a valid numeric NID (13 or 17 digits)";
       return;
     case "email":
       if (!nonEmpty(v.email) || !emailOk(v.email))
@@ -398,12 +412,20 @@ function validateField(key: Key, v: FormState): string | undefined {
       if (!isImage(v.ownerPhoto)) return "Photo must be an image file";
       return;
     case "bkashTransactionId":
-      if (v.paymentMethod === "BKASH" && !nonEmpty(v.bkashTransactionId))
-        return "bKash transaction ID is required";
+      if (v.paymentMethod === "BKASH") {
+        if (!nonEmpty(v.bkashTransactionId))
+          return "bKash transaction ID is required";
+        if (!/^[a-zA-Z0-9]{10}$/.test(v.bkashTransactionId.trim()))
+          return "bKash transaction ID must be exactly 10 alphanumeric characters";
+      }
       return;
     case "bkashAccountNumber":
-      if (v.paymentMethod === "BKASH" && !nonEmpty(v.bkashAccountNumber))
-        return "bKash account number used is required";
+      if (v.paymentMethod === "BKASH") {
+        if (!nonEmpty(v.bkashAccountNumber))
+          return "bKash account number used is required";
+        if (!/^[0-9]{11}$/.test(v.bkashAccountNumber.trim()))
+          return "bKash account number must be exactly 11 digits";
+      }
       return;
     case "bankAccountNumberFrom":
       if (v.paymentMethod === "BANK" && !nonEmpty(v.bankAccountNumberFrom))
@@ -468,6 +490,7 @@ export default function PnsMembershipForm() {
   const [submittedOnce, setSubmittedOnce] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   // const [doneId, setDoneId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     open: boolean;
@@ -638,14 +661,14 @@ export default function PnsMembershipForm() {
   const paymentInfo = (
     <Alert severity="info" sx={{ borderRadius: 2 }}>
       <Typography fontWeight={600} gutterBottom>
-        Membership Registration Fee: BDT {MEMBERSHIP_FEE}
+        Membership Registration Fee:
       </Typography>
       <Typography variant="body2" gutterBottom>
         Pay via <b>bKash Send Money</b> to <b>{BKASH_NUMBER}</b> (personal){" "}
         <i>or</i> deposit to <b>{BANK.name}</b> — A/C{" "}
         <b>{BANK.accountNumber}</b>, A/C Name <b>{BANK.accountName}</b>, Routing{" "}
-        <b>{BANK.routingNumber}</b>. Attach a receipt/screenshot before
-        submitting.
+        <b>{BANK.routingNumber}</b>. Please attach the payment receipt or
+        screenshot before submitting.
       </Typography>
     </Alert>
   );
@@ -751,10 +774,11 @@ export default function PnsMembershipForm() {
               justifyContent="space-between"
             >
               <Typography variant="body2" color="text.secondary">
-                Fill the form accurately. Fields marked with * are required.
+                Please fill in the form accurately. All fields marked with * are
+                mandatory.
               </Typography>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <Typography variant="body2">Already a member?</Typography>
+                <Typography variant="body2">Existing member?</Typography>
                 <Button
                   component={Link}
                   href="/auth/login"
@@ -773,7 +797,7 @@ export default function PnsMembershipForm() {
 
       {/* 🔹 Main form */}
       <Container maxWidth="lg" sx={{ pt: 2, pb: { xs: 4, md: 6 } }}>
-        <Box component="form" onSubmit={handleSubmit} noValidate>
+        <Box component="form" noValidate>
           <Stack spacing={3}>
             {/* Plot Information */}
             <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
@@ -784,17 +808,28 @@ export default function PnsMembershipForm() {
               <CardContent>
                 <Row>
                   <Col>
-                    <TextField
-                      size="small"
-                      required
-                      label="Sector number"
-                      value={v.sectorNumber}
-                      onChange={e => setField("sectorNumber", e.target.value)}
-                      onBlur={() => markTouched("sectorNumber")}
-                      error={!!showErr("sectorNumber")}
-                      helperText={showErr("sectorNumber")}
-                      fullWidth
-                    />
+                    <FormControl fullWidth size="small">
+                      <InputLabel id="sector-label">Sector number</InputLabel>
+                      <Select
+                        labelId="sector-label"
+                        label="Sector number"
+                        value={v.sectorNumber}
+                        onChange={e => setField("sectorNumber", e.target.value)}
+                        onBlur={() => markTouched("sectorNumber")}
+                        error={!!showErr("sectorNumber")}
+                      >
+                        {Array.from({ length: 30 }, (_, i) => i + 1).map(
+                          num => (
+                            <MenuItem key={num} value={String(num)}>
+                              {num}
+                            </MenuItem>
+                          )
+                        )}
+                      </Select>
+                      <FormHelperText error={!!showErr("sectorNumber")}>
+                        {showErr("sectorNumber")}
+                      </FormHelperText>
+                    </FormControl>
                   </Col>
                   <Col>
                     <TextField
@@ -827,6 +862,7 @@ export default function PnsMembershipForm() {
                       size="small"
                       required
                       label="Plot size"
+                      type="number"
                       placeholder="e.g., 3 Katha"
                       value={v.plotSize}
                       onChange={e => setField("plotSize", e.target.value)}
@@ -870,9 +906,6 @@ export default function PnsMembershipForm() {
                       <MenuItem value="MUTATION_PAPER">
                         Mutation paper (RAJUK/AC land)
                       </MenuItem>{" "}
-                      <MenuItem value="LD_TAX_RECEIPT">
-                        LD tax receipt (with plot details)
-                      </MenuItem>
                     </Select>
                     <FormHelperText>
                       Select the one you will upload
@@ -1166,10 +1199,9 @@ export default function PnsMembershipForm() {
                     }
                     label={
                       <Typography variant="body2">
-                        I agree that my personal data and documents will be used
-                        for PNS membership registration, identity verification,
-                        and administration. I consent to collection &amp; secure
-                        storage.
+                        I hereby give my consent and acknowledge that my
+                        personal data and documents may be used for the purpose
+                        of PNS membership registration.
                       </Typography>
                     }
                   />
@@ -1182,34 +1214,541 @@ export default function PnsMembershipForm() {
               </CardContent>
             </Card>
 
-            {/* Submit */}
+            {/* Preview & Submit */}
             <Stack
               direction={{ xs: "column", sm: "row" }}
               spacing={2}
               alignItems="center"
             >
               <Button
-                type="submit"
+                onClick={() => setShowPreview(true)}
                 variant="contained"
                 size="medium"
                 disabled={submitting || !canSubmit}
-                startIcon={
-                  submitting ? (
-                    <CircularProgress size={20} />
-                  ) : (
-                    <CheckCircleOutlineIcon />
-                  )
-                }
+                startIcon={<CheckCircleOutlineIcon />}
               >
-                {submitting ? "Submitting…" : "Submit application"}
+                Preview Application
               </Button>
 
               {!canSubmit && (
                 <Typography variant="body2" color="text.secondary">
-                  {`Complete all required fields to enable submit. (${blocking.length} issues)`}
+                  {`Complete all required fields to enable preview. (${blocking.length} issues)`}
                 </Typography>
               )}
             </Stack>
+
+            {/* Preview Dialog */}
+            <Dialog
+              open={showPreview}
+              onClose={() => setShowPreview(false)}
+              fullWidth
+              maxWidth="lg"
+              scroll="paper"
+            >
+              <DialogTitle
+                sx={{
+                  py: 2,
+                  pr: 6,
+                }}
+              >
+                <Typography variant="h5" fontWeight="bold">
+                  Application Preview
+                </Typography>
+
+                <IconButton
+                  onClick={() => setShowPreview(false)}
+                  sx={{
+                    position: "absolute",
+                    right: 8,
+                    top: 8,
+                    color: "red",
+                  }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </DialogTitle>
+
+              <DialogContent dividers>
+                <Box sx={{ p: 3 }}>
+                  {/* Header */}
+
+                  {/* Plot Information Section */}
+                  <Box
+                    sx={{
+                      mb: 4,
+                      p: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        p: 1,
+                        mb: 2,
+                        borderRadius: 1,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Plot Information
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(200px, 1fr))",
+                        gap: 2,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          p: 1,
+
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Sector Number
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold">
+                          {v.sectorNumber}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Road Number
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold">
+                          {v.roadNumber}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Plot Number
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold">
+                          {v.plotNumber}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Plot Size
+                        </Typography>
+                        <Typography variant="h6" fontWeight="bold">
+                          {v.plotSize} Katha
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Owner Information Section */}
+                  <Box
+                    sx={{
+                      mb: 4,
+                      p: 2,
+
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        p: 1,
+                        mb: 2,
+
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Owner Information
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(280px, 1fr))",
+                        gap: 2,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Name (English)
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.ownerNameEnglish}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          নাম (বাংলা)
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.ownerNameBangla}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Contact Number
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.contactNumber}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          NID Number
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.nidNumber}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Email Address
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.email}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+
+                          gridColumn: "1 / -1",
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Present Address
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.presentAddress}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+
+                          gridColumn: "1 / -1",
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Permanent Address
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.permanentAddress}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Payment Information Section */}
+                  <Box
+                    sx={{
+                      mb: 4,
+                      p: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        p: 1,
+                        mb: 2,
+                        borderRadius: 1,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Payment Information
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(250px, 1fr))",
+                        gap: 2,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Payment Method
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.paymentMethod}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Registration Fee
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          BDT{" "}
+                          {v.paymentMethod === "BKASH" ? BKASH_FEE : BANK_FEE}
+                        </Typography>
+                      </Box>
+                      {v.paymentMethod === "BKASH" && (
+                        <>
+                          <Box
+                            sx={{
+                              p: 1,
+                            }}
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Transaction ID
+                            </Typography>
+                            <Typography variant="body1" fontWeight="medium">
+                              {v.bkashTransactionId}
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              p: 1,
+                            }}
+                          >
+                            <Typography variant="body2" color="text.secondary">
+                              Account Number
+                            </Typography>
+                            <Typography variant="body1" fontWeight="medium">
+                              {v.bkashAccountNumber}
+                            </Typography>
+                          </Box>
+                        </>
+                      )}
+                      {v.paymentMethod === "BANK" && (
+                        <Box
+                          sx={{
+                            p: 1,
+                          }}
+                        >
+                          <Typography variant="body2" color="text.secondary">
+                            Sender Account
+                          </Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {v.bankAccountNumberFrom}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+
+                  {/* Documents Section */}
+                  <Box
+                    sx={{
+                      mb: 4,
+                      p: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        p: 1,
+                        mb: 2,
+
+                        fontWeight: "bold",
+                      }}
+                    >
+                      Documents & Proofs
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(300px, 1fr))",
+                        gap: 2,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Ownership Proof Type
+                        </Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {v.ownershipProofType}
+                        </Typography>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Ownership Proof File
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 1,
+                          }}
+                        >
+                          {v.ownershipProofFile ? (
+                            isPdf(v.ownershipProofFile) ? (
+                              <PictureAsPdfIcon
+                                sx={{ fontSize: 120, color: "error.main" }}
+                              />
+                            ) : isImage(v.ownershipProofFile) ? (
+                              <Avatar
+                                src={URL.createObjectURL(v.ownershipProofFile)}
+                                sx={{ width: 120, height: 120 }}
+                                variant="rounded"
+                              />
+                            ) : (
+                              <ImageIcon
+                                sx={{ fontSize: 120, color: "success.main" }}
+                              />
+                            )
+                          ) : (
+                            <CloseIcon
+                              sx={{ fontSize: 120, color: "error.main" }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Owner Photo
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 1,
+                          }}
+                        >
+                          {v.ownerPhoto ? (
+                            isImage(v.ownerPhoto) ? (
+                              <Avatar
+                                src={URL.createObjectURL(v.ownerPhoto)}
+                                sx={{ width: 120, height: 120 }}
+                                variant="rounded"
+                              />
+                            ) : (
+                              <ImageIcon
+                                sx={{ fontSize: 120, color: "success.main" }}
+                              />
+                            )
+                          ) : (
+                            <CloseIcon
+                              sx={{ fontSize: 120, color: "error.main" }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                      <Box
+                        sx={{
+                          p: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          Payment Receipt
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            mt: 1,
+                          }}
+                        >
+                          {v.paymentReceipt ? (
+                            isPdf(v.paymentReceipt) ? (
+                              <PictureAsPdfIcon
+                                sx={{ fontSize: 80, color: "error.main" }}
+                              />
+                            ) : isImage(v.paymentReceipt) ? (
+                              <Avatar
+                                src={URL.createObjectURL(v.paymentReceipt)}
+                                sx={{ width: 80, height: 80 }}
+                                variant="rounded"
+                              />
+                            ) : (
+                              <ImageIcon
+                                sx={{ fontSize: 80, color: "success.main" }}
+                              />
+                            )
+                          ) : (
+                            <CloseIcon
+                              sx={{ fontSize: 80, color: "error.main" }}
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              </DialogContent>
+
+              <Box
+                sx={theme => ({
+                  p: 2,
+                  backgroundColor:
+                    theme.palette.mode === "dark" ? "#2a2a2a" : "#f5f5f5",
+                  borderTop: `1px solid ${theme.palette.divider}`,
+                })}
+              >
+                <Stack direction="row" spacing={2} justifyContent="flex-end">
+                  <Button
+                    onClick={() => setShowPreview(false)}
+                    variant="outlined"
+                    sx={{ minWidth: 120 }}
+                  >
+                    Edit Information
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setShowPreview(false);
+                      handleSubmit({ preventDefault: () => {} } as any);
+                    }}
+                    variant="contained"
+                    disabled={submitting}
+                    sx={{ minWidth: 150 }}
+                  >
+                    {submitting ? "Submitting…" : "Confirm & Submit"}
+                  </Button>
+                </Stack>
+              </Box>
+            </Dialog>
 
             {/* Compact live error summary when disabled */}
             {!canSubmit && blocking.length > 0 && (
