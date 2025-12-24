@@ -491,7 +491,6 @@ export default function PnsMembershipForm() {
   const [submittedOnce, setSubmittedOnce] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [locked, setLocked] = useState(false);
   // const [doneId, setDoneId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
@@ -798,29 +797,11 @@ export default function PnsMembershipForm() {
             </Stack>
           </CardContent>
         </Card>
-        <Backdrop
-          open={submitting}
-          sx={theme => ({
-            color: "#fff",
-            zIndex: theme.zIndex.appBar + 1,
-            flexDirection: "column",
-          })}
-        >
-          <Stack spacing={1} alignItems="center">
-            <CircularProgress color="inherit" />
-            <Typography variant="h6" fontWeight="600">
-              Submitting your application…
-            </Typography>
-            <Typography variant="body2" color="inherit">
-              Please wait while we generate your confirmation email and PDF.
-            </Typography>
-          </Stack>
-        </Backdrop>
       </Container>
 
       {/* 🔹 Main form */}
       <Container maxWidth="lg" sx={{ pt: 2, pb: { xs: 4, md: 6 } }}>
-        <Box component="form" noValidate sx={{ position: "relative" }}>
+        <Box component="form" noValidate sx={{ position: "relative" }} onSubmit={handleSubmit}>
           {locked && (
             <Box
               sx={theme => ({
@@ -1268,506 +1249,27 @@ export default function PnsMembershipForm() {
               </CardContent>
             </Card>
 
-            {/* Preview & Submit */}
             <Stack
               direction={{ xs: "column", sm: "row" }}
               spacing={2}
               alignItems="center"
             >
               <Button
-                onClick={() => setShowPreview(true)}
+                type="submit"
                 variant="contained"
                 size="medium"
                 disabled={submitting || !canSubmit || locked}
                 startIcon={<CheckCircleOutlineIcon />}
               >
-                Preview Application
+                {submitting ? "Submitting…" : "Submit Application"}
               </Button>
 
               {!canSubmit && (
                 <Typography variant="body2" color="text.secondary">
-                  {`Complete all required fields to enable preview. (${blocking.length} issues)`}
+                  {`Complete all required fields to submit. (${blocking.length} issues)`}
                 </Typography>
               )}
             </Stack>
-
-            {/* Preview Dialog */}
-            <Dialog
-              open={showPreview}
-              onClose={() => setShowPreview(false)}
-              fullWidth
-              maxWidth="lg"
-              scroll="paper"
-            >
-              <DialogTitle
-                sx={{
-                  py: 2,
-                  pr: 6,
-                }}
-              >
-                <Typography variant="h5" fontWeight="bold">
-                  Application Preview
-                </Typography>
-
-                <IconButton
-                  onClick={() => setShowPreview(false)}
-                  sx={{
-                    position: "absolute",
-                    right: 8,
-                    top: 8,
-                    color: "red",
-                  }}
-                >
-                  <CloseIcon />
-                </IconButton>
-              </DialogTitle>
-
-              <DialogContent dividers>
-                <Box>
-                  {/* Plot Information Section */}
-
-                  <Card
-                    variant="outlined"
-                    sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}
-                  >
-                    <CardHeader title="Plot Information" />
-                    <CardContent>
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(200px, 1fr))",
-                          gap: 2,
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            p: 1,
-
-                            borderRadius: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Sector Number
-                          </Typography>
-                          <Typography variant="h6" fontWeight="bold">
-                            {v.sectorNumber}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Road Number
-                          </Typography>
-                          <Typography variant="h6" fontWeight="bold">
-                            {v.roadNumber}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Plot Number
-                          </Typography>
-                          <Typography variant="h6" fontWeight="bold">
-                            {v.plotNumber}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Plot Size
-                          </Typography>
-                          <Typography variant="h6" fontWeight="bold">
-                            {v.plotSize} Katha
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
-
-                  {/* Owner Information Section */}
-                  <Card
-                    variant="outlined"
-                    sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}
-                  >
-                    <CardHeader title="Owner Information" />
-                    <CardContent>
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(280px, 1fr))",
-                          gap: 2,
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Name (English)
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.ownerNameEnglish}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            নাম (বাংলা)
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.ownerNameBangla}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Contact Number
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.contactNumber}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            NID Number
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.nidNumber}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Email Address
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.email}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-
-                            gridColumn: "1 / -1",
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Present Address
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.presentAddress}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-
-                            gridColumn: "1 / -1",
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Permanent Address
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.permanentAddress}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
-
-                  {/* Payment Information Section */}
-                  <Card
-                    variant="outlined"
-                    sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}
-                  >
-                    <CardHeader title="Payment Information" />
-                    <CardContent>
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(250px, 1fr))",
-                          gap: 2,
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Payment Method
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.paymentMethod}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Registration Fee
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            BDT{" "}
-                            {v.paymentMethod === "BKASH" ? BKASH_FEE : BANK_FEE}
-                          </Typography>
-                        </Box>
-                        {v.paymentMethod === "BKASH" && (
-                          <>
-                            <Box
-                              sx={{
-                                p: 1,
-                              }}
-                            >
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                Transaction ID
-                              </Typography>
-                              <Typography variant="body1" fontWeight="medium">
-                                {v.bkashTransactionId}
-                              </Typography>
-                            </Box>
-                            <Box
-                              sx={{
-                                p: 1,
-                              }}
-                            >
-                              <Typography
-                                variant="body2"
-                                color="text.secondary"
-                              >
-                                Account Number
-                              </Typography>
-                              <Typography variant="body1" fontWeight="medium">
-                                {v.bkashAccountNumber}
-                              </Typography>
-                            </Box>
-                          </>
-                        )}
-                        {v.paymentMethod === "BANK" && (
-                          <Box
-                            sx={{
-                              p: 1,
-                            }}
-                          >
-                            <Typography variant="body2" color="text.secondary">
-                              Sender Account
-                            </Typography>
-                            <Typography variant="body1" fontWeight="medium">
-                              {v.bankAccountNumberFrom}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    </CardContent>
-                  </Card>
-
-                  {/* Documents Section */}
-                  <Card
-                    variant="outlined"
-                    sx={{ mb: 4, borderRadius: 3, boxShadow: 1 }}
-                  >
-                    <CardHeader title="Documents & Proofs" />
-                    <CardContent>
-                      <Box
-                        sx={{
-                          display: "grid",
-                          gridTemplateColumns:
-                            "repeat(auto-fit, minmax(300px, 1fr))",
-                          gap: 2,
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Ownership Proof Type
-                          </Typography>
-                          <Typography variant="body1" fontWeight="medium">
-                            {v.ownershipProofType}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Ownership Proof File
-                          </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "center",
-                              mt: 1,
-                            }}
-                          >
-                            {v.ownershipProofFile ? (
-                              isPdf(v.ownershipProofFile) ? (
-                                <PictureAsPdfIcon
-                                  sx={{ fontSize: 120, color: "error.main" }}
-                                />
-                              ) : isImage(v.ownershipProofFile) ? (
-                                <Avatar
-                                  src={URL.createObjectURL(
-                                    v.ownershipProofFile
-                                  )}
-                                  sx={{ width: 120, height: 120 }}
-                                  variant="rounded"
-                                />
-                              ) : (
-                                <ImageIcon
-                                  sx={{ fontSize: 120, color: "success.main" }}
-                                />
-                              )
-                            ) : (
-                              <CloseIcon
-                                sx={{ fontSize: 120, color: "error.main" }}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Owner Photo
-                          </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "center",
-                              mt: 1,
-                            }}
-                          >
-                            {v.ownerPhoto ? (
-                              isImage(v.ownerPhoto) ? (
-                                <Avatar
-                                  src={URL.createObjectURL(v.ownerPhoto)}
-                                  sx={{ width: 120, height: 120 }}
-                                  variant="rounded"
-                                />
-                              ) : (
-                                <ImageIcon
-                                  sx={{ fontSize: 120, color: "success.main" }}
-                                />
-                              )
-                            ) : (
-                              <CloseIcon
-                                sx={{ fontSize: 120, color: "error.main" }}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Payment Receipt
-                          </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "center",
-                              mt: 1,
-                            }}
-                          >
-                            {v.paymentReceipt ? (
-                              isPdf(v.paymentReceipt) ? (
-                                <PictureAsPdfIcon
-                                  sx={{ fontSize: 80, color: "error.main" }}
-                                />
-                              ) : isImage(v.paymentReceipt) ? (
-                                <Avatar
-                                  src={URL.createObjectURL(v.paymentReceipt)}
-                                  sx={{ width: 80, height: 80 }}
-                                  variant="rounded"
-                                />
-                              ) : (
-                                <ImageIcon
-                                  sx={{ fontSize: 80, color: "success.main" }}
-                                />
-                              )
-                            ) : (
-                              <CloseIcon
-                                sx={{ fontSize: 80, color: "error.main" }}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Box>
-              </DialogContent>
-
-              <Box
-                sx={theme => ({
-                  p: 2,
-                  backgroundColor:
-                    theme.palette.mode === "dark" ? "#2a2a2a" : "#f5f5f5",
-                  borderTop: `1px solid ${theme.palette.divider}`,
-                })}
-              >
-                <Stack direction="row" spacing={2} justifyContent="flex-end">
-                  <Button
-                    onClick={() => setShowPreview(false)}
-                    variant="outlined"
-                    sx={{ minWidth: 120 }}
-                  >
-                    Edit Information
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setShowPreview(false);
-                      handleSubmit({ preventDefault: () => {} } as any);
-                    }}
-                    variant="contained"
-                    disabled={submitting || locked}
-                    sx={{ minWidth: 150 }}
-                  >
-                    {submitting ? "Submitting…" : "Confirm & Submit"}
-                  </Button>
-                </Stack>
-              </Box>
-            </Dialog>
 
             {/* Compact live error summary when disabled */}
             {!canSubmit && blocking.length > 0 && (
@@ -1810,6 +1312,24 @@ export default function PnsMembershipForm() {
           </Snackbar>
         </Box>
       </Container>
+      <Backdrop
+        open={submitting}
+        sx={theme => ({
+          color: "#fff",
+          zIndex: theme.zIndex.drawer + 1200,
+          flexDirection: "column",
+        })}
+      >
+        <Stack spacing={1} alignItems="center">
+          <CircularProgress color="inherit" />
+          <Typography variant="h6" fontWeight="600">
+            Submitting your application…
+          </Typography>
+          <Typography variant="body2" color="inherit">
+            Please wait...
+          </Typography>
+        </Stack>
+      </Backdrop>
     </>
   );
 }

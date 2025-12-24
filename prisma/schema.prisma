@@ -117,3 +117,10 @@ model ManagementUser {
 
   @@index([name, email])
 }
+
+model PreviewDocument {
+  id        Int      @id @default(autoincrement())
+  title     String?
+  fileUrl   String
+  createdAt DateTime @default(now())
+}
