@@ -493,9 +493,13 @@ export default function PnsMembershipForm() {
   const [submitting, setSubmitting] = useState(false);
   const [locked, setLocked] = useState(false);
   const [showGuidelinePreview, setShowGuidelinePreview] = useState(false);
-  const [templatePreviewUrl, setTemplatePreviewUrl] = useState<string | null>(null);
+  const [templatePreviewUrl, setTemplatePreviewUrl] = useState<string | null>(
+    null
+  );
   const [loadingTemplatePreview, setLoadingTemplatePreview] = useState(false);
-  const [templatePreviewError, setTemplatePreviewError] = useState<string | null>(null);
+  const [templatePreviewError, setTemplatePreviewError] = useState<
+    string | null
+  >(null);
   // const [doneId, setDoneId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     open: boolean;
@@ -667,18 +671,14 @@ export default function PnsMembershipForm() {
   }
 
   const paymentInfo = (
-    <Alert severity="info" sx={{ borderRadius: 2 }}>
-      <Typography fontWeight={600} gutterBottom>
-        Membership Registration Fee:
+    <Box sx={{ borderRadius: 2, p: 2 }}>
+      <Typography variant="h6" sx={{ fontWeight: 700 }}>
+        Membership Registration Fee
       </Typography>
-      <Typography variant="body2" gutterBottom>
-        Pay via <b>bKash Send Money</b> to <b>{BKASH_NUMBER}</b> (personal){" "}
-        <i>or</i> deposit to <b>{BANK.name}</b> — A/C{" "}
-        <b>{BANK.accountNumber}</b>, A/C Name <b>{BANK.accountName}</b>, Routing{" "}
-        <b>{BANK.routingNumber}</b>. Please attach the payment receipt or
-        screenshot before submitting.
+      <Typography variant="body2">
+        BDT 1,020 via bKash / BDT 1,000 through bank deposit or bank transfer.
       </Typography>
-    </Alert>
+    </Box>
   );
 
   // Helper to show error only when touched or after first submit attempt
@@ -720,7 +720,8 @@ export default function PnsMembershipForm() {
       <Box
         sx={{
           position: "relative",
-          minHeight: { xs: 180, md: 260 },
+
+          py: { xs: 4, md: 6 },
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -747,18 +748,21 @@ export default function PnsMembershipForm() {
             <AnimatedTitle>Purbachal Newtown Society</AnimatedTitle>
             <Typography
               variant="h6"
-              sx={{ opacity: 0.95, fontWeight: 500, letterSpacing: 0.2 }}
+              sx={{
+                opacity: 0.95,
+                fontWeight: 500,
+                letterSpacing: 0.2,
+                mb: 1,
+              }}
             >
               Membership Registration Form
             </Typography>
-
-            {/* quick callouts */}
             <Stack
               direction="row"
-              spacing={1}
+              spacing={1.5}
               justifyContent="center"
               flexWrap="wrap"
-              sx={{ pt: 1 }}
+              sx={{ mt: 1 }}
             >
               <Chip
                 label={`bKash: ${BKASH_NUMBER}`}
@@ -779,13 +783,22 @@ export default function PnsMembershipForm() {
                 }}
               />
             </Stack>
-            <Typography style={{ fontWeight: "bold", color: "#F9B12B" }}>
-              Membership Registration Fee: BDT 1,020 via bKash / BDT 1,000
-              through bank deposit or bank transfer.
-            </Typography>
+
+            {/* quick callouts */}
           </Stack>
         </Container>
       </Box>
+
+      <Container maxWidth="lg" sx={{ mt: 2 }}>
+        <Card
+          variant="outlined"
+          sx={{
+            borderRadius: 3,
+          }}
+        >
+          <CardContent>{paymentInfo}</CardContent>
+        </Card>
+      </Container>
 
       {/* 🔹 Floating header card (overlaps hero bottom slightly) */}
       <Container maxWidth="lg" sx={{ transform: "translateY(-32px)" }}>
@@ -827,7 +840,12 @@ export default function PnsMembershipForm() {
 
       {/* 🔹 Main form */}
       <Container maxWidth="lg" sx={{ pt: 2, pb: { xs: 4, md: 6 } }}>
-        <Box component="form" noValidate sx={{ position: "relative" }} onSubmit={handleSubmit}>
+        <Box
+          component="form"
+          noValidate
+          sx={{ position: "relative" }}
+          onSubmit={handleSubmit}
+        >
           {locked && (
             <Box
               sx={theme => ({
@@ -851,11 +869,12 @@ export default function PnsMembershipForm() {
                 Application Locked
               </Typography>
               <Typography variant="body1" color="text.secondary">
-                Your submission has been recorded and edits are no longer allowed.
+                Your submission has been recorded and edits are no longer
+                allowed.
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Need to make a change? Contact the admin team with your application
-                details.
+                Need to make a change? Contact the admin team with your
+                application details.
               </Typography>
             </Box>
           )}
@@ -870,7 +889,9 @@ export default function PnsMembershipForm() {
                     size="small"
                     variant="outlined"
                     onClick={handleGuidelinePreview}
-                    disabled={!canSubmit || submitting || loadingTemplatePreview}
+                    disabled={
+                      !canSubmit || submitting || loadingTemplatePreview
+                    }
                   >
                     Show Guideline
                   </Button>
