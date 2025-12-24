@@ -1,30 +1,32 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
+  Avatar,
+  Backdrop,
   Box,
   Button,
   Card,
   CardContent,
   CardHeader,
   Checkbox,
+  CircularProgress,
+  Container,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControl,
   FormControlLabel,
   FormHelperText,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
   Snackbar,
-  Alert,
   Stack,
   TextField,
   Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  IconButton,
-  Container,
   Chip,
-  Avatar,
 } from "@mui/material";
 import Link from "next/link";
 import Head from "next/head";
@@ -490,6 +492,7 @@ export default function PnsMembershipForm() {
 
   const [submitting, setSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [locked, setLocked] = useState(false);
   // const [doneId, setDoneId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     open: boolean;
@@ -618,6 +621,10 @@ export default function PnsMembershipForm() {
       return;
     }
 
+    if (locked) {
+      return;
+    }
+
     try {
       setSubmitting(true);
       const formData = toFormData(v);
@@ -633,11 +640,10 @@ export default function PnsMembershipForm() {
         sev: "success",
       });
 
-      // Optionally reset
-      setV(initialState);
       setErrors({});
       setTouched({});
-      setSubmittedOnce(false);
+      setSubmittedOnce(true);
+      setLocked(true);
     } catch (err: unknown) {
       const msg = ((): string => {
         if (axios.isAxiosError(err)) {
@@ -792,12 +798,61 @@ export default function PnsMembershipForm() {
             </Stack>
           </CardContent>
         </Card>
+        <Backdrop
+          open={submitting}
+          sx={theme => ({
+            color: "#fff",
+            zIndex: theme.zIndex.appBar + 1,
+            flexDirection: "column",
+          })}
+        >
+          <Stack spacing={1} alignItems="center">
+            <CircularProgress color="inherit" />
+            <Typography variant="h6" fontWeight="600">
+              Submitting your application…
+            </Typography>
+            <Typography variant="body2" color="inherit">
+              Please wait while we generate your confirmation email and PDF.
+            </Typography>
+          </Stack>
+        </Backdrop>
       </Container>
 
       {/* 🔹 Main form */}
       <Container maxWidth="lg" sx={{ pt: 2, pb: { xs: 4, md: 6 } }}>
-        <Box component="form" noValidate>
-          <Stack spacing={3}>
+        <Box component="form" noValidate sx={{ position: "relative" }}>
+          {locked && (
+            <Box
+              sx={theme => ({
+                position: "absolute",
+                inset: 0,
+                zIndex: 50,
+                backgroundColor:
+                  theme.palette.mode === "dark"
+                    ? "rgba(15,15,15,0.92)"
+                    : "rgba(255,255,255,0.92)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                gap: 1.5,
+                px: 2,
+              })}
+            >
+              <Typography variant="h5" fontWeight="bold">
+                Application Locked
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Your submission has been recorded and edits are no longer allowed.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Need to make a change? Contact the admin team with your application
+                details.
+              </Typography>
+            </Box>
+          )}
+          <Stack spacing={3} sx={{ opacity: locked ? 0.4 : 1 }}>
             {/* Plot Information */}
             <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
               <CardHeader
@@ -1223,7 +1278,7 @@ export default function PnsMembershipForm() {
                 onClick={() => setShowPreview(true)}
                 variant="contained"
                 size="medium"
-                disabled={submitting || !canSubmit}
+                disabled={submitting || !canSubmit || locked}
                 startIcon={<CheckCircleOutlineIcon />}
               >
                 Preview Application
@@ -1705,7 +1760,7 @@ export default function PnsMembershipForm() {
                       handleSubmit({ preventDefault: () => {} } as any);
                     }}
                     variant="contained"
-                    disabled={submitting}
+                    disabled={submitting || locked}
                     sx={{ minWidth: 150 }}
                   >
                     {submitting ? "Submitting…" : "Confirm & Submit"}

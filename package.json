@@ -3,12 +3,13 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "dev": "next dev --turbopack",
-        "build": "next build",
-        "start": "next start",
-        "lint": "next lint",
-        "seed:admin": "node scripts/seed-admin.js",
-        "postinstall": "prisma generate"
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "seed:admin": "node scripts/seed-admin.js",
+    "migrate:memberships": "node scripts/migrate-memberships.js",
+    "postinstall": "prisma generate"
     },
     "prisma": {
         "seed": "node scripts/seed-admin.js"
