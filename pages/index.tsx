@@ -129,13 +129,14 @@ export default function HomePage() {
         transition={{ duration: 0.35 }}
       >
         {/* HERO SLIDER */}
-        <Box
-          sx={{
-            position: "relative",
-            height: { xs: 520, md: 640 },
-            overflow: "hidden",
-          }}
-        >
+      <Box
+        sx={{
+          position: "relative",
+          height: { xs: "auto", md: 720 },
+          minHeight: { xs: 680, md: 720 },
+          overflow: "hidden",
+        }}
+      >
           {/* Slide with HeroBanner-like drift + zoom + mask */}
           <AnimatePresence initial={false} custom={dir}>
             <motion.div
@@ -222,12 +223,20 @@ export default function HomePage() {
             maxWidth="lg"
             sx={{ position: "relative", zIndex: 1, height: "100%" }}
           >
-            <Stack justifyContent="center" sx={{ height: "100%" }} spacing={2}>
+            <Stack
+              justifyContent="center"
+              alignItems="center"
+              sx={{ height: "100%" }}
+              spacing={2}
+            >
               <Paper
                 elevation={0}
                 sx={{
                   p: { xs: 3, md: 4 },
                   maxWidth: 820,
+                  width: { xs: "calc(100% - 32px)", sm: "min(100%, 820px)" },
+                  boxSizing: "border-box",
+                  mx: { xs: "auto", sm: 0 },
                   borderRadius: 3,
                   bgcolor: "rgba(255,255,255,0.14)",
                   color: "#fff",
