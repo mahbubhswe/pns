@@ -30,7 +30,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   ensureUploadDir();
 
-  const { fields, files } = await new Promise<{ fields: formidable.Fields; files: formidable.Files }>(
+  const parsed = await new Promise<{ fields: formidable.Fields; files: formidable.Files } | null>(
     (resolve, reject) => {
       const form = formidable({
         uploadDir: UPLOAD_DIR,
@@ -52,9 +52,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return null;
   });
 
-  if (!fields || !files) {
+  if (!parsed) {
     return;
   }
+
+  const { fields, files } = parsed;
 
   const pdf = files.file as File | undefined;
   if (!pdf || !pdf.originalFilename) {

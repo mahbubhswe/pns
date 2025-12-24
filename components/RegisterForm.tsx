@@ -492,6 +492,10 @@ export default function PnsMembershipForm() {
 
   const [submitting, setSubmitting] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [showGuidelinePreview, setShowGuidelinePreview] = useState(false);
+  const [templatePreviewUrl, setTemplatePreviewUrl] = useState<string | null>(null);
+  const [loadingTemplatePreview, setLoadingTemplatePreview] = useState(false);
+  const [templatePreviewError, setTemplatePreviewError] = useState<string | null>(null);
   // const [doneId, setDoneId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     open: boolean;
@@ -678,6 +682,28 @@ export default function PnsMembershipForm() {
   );
 
   // Helper to show error only when touched or after first submit attempt
+  const handleGuidelinePreview = async () => {
+    setTemplatePreviewError(null);
+    if (!templatePreviewUrl) {
+      setLoadingTemplatePreview(true);
+      try {
+        const res = await fetch("/api/previews/latest");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.error || "Failed to load preview");
+        }
+        const data = await res.json();
+        setTemplatePreviewUrl(data.url);
+      } catch (error) {
+        setTemplatePreviewError((error as Error).message);
+        setLoadingTemplatePreview(false);
+        return;
+      }
+      setLoadingTemplatePreview(false);
+    }
+    setShowGuidelinePreview(true);
+  };
+
   const showErr = (key: Key) =>
     !!errors[key] && (touched[key] || submittedOnce) ? errors[key] : "";
 
@@ -839,6 +865,16 @@ export default function PnsMembershipForm() {
               <CardHeader
                 title="Plot Information"
                 subheader="Sector, Road, Plot, Size"
+                action={
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={handleGuidelinePreview}
+                    disabled={!canSubmit || submitting || loadingTemplatePreview}
+                  >
+                    Show Guideline
+                  </Button>
+                }
               />
               <CardContent>
                 <Row>
@@ -1294,6 +1330,33 @@ export default function PnsMembershipForm() {
               </Alert>
             )}
           </Stack>
+
+          <Dialog
+            open={showGuidelinePreview}
+            onClose={() => setShowGuidelinePreview(false)}
+            fullWidth
+            maxWidth="md"
+          >
+            <DialogTitle>Preview Uploaded Guideline</DialogTitle>
+            <DialogContent dividers sx={{ height: 640 }}>
+              {loadingTemplatePreview && (
+                <Stack alignItems="center" spacing={1} sx={{ py: 4 }}>
+                  <CircularProgress />
+                  <Typography>Loading guideline PDF…</Typography>
+                </Stack>
+              )}
+              {templatePreviewError && (
+                <Alert severity="error">{templatePreviewError}</Alert>
+              )}
+              {templatePreviewUrl && (
+                <Box
+                  component="iframe"
+                  src={templatePreviewUrl}
+                  sx={{ border: 0, width: "100%", height: "100%" }}
+                />
+              )}
+            </DialogContent>
+          </Dialog>
 
           <Snackbar
             open={toast.open}
