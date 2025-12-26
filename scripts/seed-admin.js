@@ -15,8 +15,8 @@ const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('../lib/generated/prisma');
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const password = process.env.ADMIN_PASSWORD || 'ChangeMe123!';
+  const email = process.env.ADMIN_EMAIL || 'admin@pns.com';
+  const password = process.env.ADMIN_PASSWORD || 'ChangeMe!';
   const name = process.env.ADMIN_NAME || 'Administrator';
   const phone = process.env.ADMIN_PHONE || '0000000000';
   const title = process.env.ADMIN_TITLE || 'Admin';
