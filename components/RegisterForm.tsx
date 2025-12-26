@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Avatar,
@@ -30,7 +30,6 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import Head from "next/head";
-import dynamic from "next/dynamic";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
@@ -91,13 +90,6 @@ const BANK = {
   routingNumber: "200271750",
 };
 
-const PdfDocument = dynamic(
-  () => import("react-pdf").then(mod => mod.Document),
-  { ssr: false }
-);
-const PdfPage = dynamic(() => import("react-pdf").then(mod => mod.Page), {
-  ssr: false,
-});
 
 // 🔢 Types
 type PaymentMethod = "BKASH" | "BANK";
@@ -510,10 +502,6 @@ export default function PnsMembershipForm() {
   const [templatePreviewError, setTemplatePreviewError] = useState<
     string | null
   >(null);
-  const [guidelinePages, setGuidelinePages] = useState(0);
-  const [guidelinePage, setGuidelinePage] = useState(1);
-  const [guidelineWidth, setGuidelineWidth] = useState<number | null>(null);
-  const guidelineContainerRef = useRef<HTMLDivElement | null>(null);
   // const [doneId, setDoneId] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     open: boolean;
@@ -521,48 +509,6 @@ export default function PnsMembershipForm() {
     sev: "success" | "error" | "info" | "warning";
   }>({ open: false, msg: "", sev: "success" });
 
-  useEffect(() => {
-    let active = true;
-    if (typeof window === "undefined") return;
-    import("react-pdf").then(({ pdfjs }) => {
-      if (!active) return;
-      const workerSrc = "/pdf.worker.min.mjs";
-      if (pdfjs.GlobalWorkerOptions.workerSrc !== workerSrc) {
-        pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    setGuidelinePage(1);
-    setGuidelinePages(0);
-  }, [templatePreviewUrl]);
-
-  useEffect(() => {
-    if (!showGuidelinePreview) return;
-    if (typeof window === "undefined") return;
-    const el = guidelineContainerRef.current;
-    if (!el) return;
-
-    const updateWidth = () => {
-      const nextWidth = Math.min(el.clientWidth, 900);
-      if (nextWidth) setGuidelineWidth(nextWidth);
-    };
-
-    updateWidth();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateWidth);
-      return () => window.removeEventListener("resize", updateWidth);
-    }
-
-    const observer = new ResizeObserver(updateWidth);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [showGuidelinePreview]);
 
   // ---- unified setters for live validation ----
   function markTouched<K extends Key>(key: K) {
@@ -740,7 +686,18 @@ export default function PnsMembershipForm() {
 
   // Helper to show error only when touched or after first submit attempt
   const handleGuidelinePreview = async () => {
-    setShowGuidelinePreview(true);
+    const isMobile = (() => {
+      if (typeof navigator === "undefined") return false;
+      const ua = navigator.userAgent || "";
+      const isTouchMac =
+        ua.includes("Macintosh") && (navigator.maxTouchPoints || 0) > 1;
+      return (
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          ua
+        ) || isTouchMac
+      );
+    })();
+
     setTemplatePreviewError(null);
     setLoadingTemplatePreview(true);
     try {
@@ -750,10 +707,20 @@ export default function PnsMembershipForm() {
         throw new Error(body?.error || "Failed to load preview");
       }
       const data = await res.json();
-      setTemplatePreviewUrl(`${data.url}?v=${Date.now()}`);
+      const nextUrl = `${data.url}?v=${Date.now()}`;
+      setTemplatePreviewUrl(nextUrl);
+
+      if (isMobile && typeof window !== "undefined") {
+        setShowGuidelinePreview(false);
+        window.open(nextUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      setShowGuidelinePreview(true);
     } catch (error) {
       setTemplatePreviewUrl(null);
       setTemplatePreviewError((error as Error).message);
+      setShowGuidelinePreview(true);
     } finally {
       setLoadingTemplatePreview(false);
     }
@@ -1443,90 +1410,27 @@ export default function PnsMembershipForm() {
                 <Alert severity="error">{templatePreviewError}</Alert>
               )}
               {templatePreviewUrl && (
-                <>
-                  <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    spacing={1}
-                    sx={{ px: 1 }}
-                  >
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() =>
-                          setGuidelinePage(page => Math.max(page - 1, 1))
-                        }
-                        disabled={guidelinePage <= 1}
-                      >
-                        Prev
-                      </Button>
-                      <Typography variant="body2">
-                        {guidelinePages
-                          ? `${guidelinePage} / ${guidelinePages}`
-                          : "Page"}
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() =>
-                          setGuidelinePage(page =>
-                            guidelinePages ? Math.min(page + 1, guidelinePages) : page + 1
-                          )
-                        }
-                        disabled={!guidelinePages || guidelinePage >= guidelinePages}
-                      >
-                        Next
-                      </Button>
-                    </Stack>
+                <object
+                  data={templatePreviewUrl}
+                  type="application/pdf"
+                  width="100%"
+                  height="100%"
+                >
+                  <Box p={2}>
+                    <Typography>
+                      PDF preview is not available in this browser. You can
+                      open it in a new tab.
+                    </Typography>
                     <Button
-                      size="small"
                       href={templatePreviewUrl}
                       target="_blank"
                       rel="noopener"
+                      sx={{ mt: 1 }}
                     >
                       Open PDF in new tab
                     </Button>
-                  </Stack>
-                  <Box
-                    ref={guidelineContainerRef}
-                    sx={{
-                      flex: 1,
-                      overflow: "auto",
-                      display: "flex",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <PdfDocument
-                      file={templatePreviewUrl}
-                      onLoadSuccess={pdf => {
-                        setGuidelinePages(pdf.numPages);
-                        setGuidelinePage(page =>
-                          Math.min(page, pdf.numPages || 1)
-                        );
-                      }}
-                      onLoadError={error => {
-                        setTemplatePreviewError(
-                          (error as Error).message || "Failed to load PDF"
-                        );
-                      }}
-                      loading={
-                        <Stack alignItems="center" spacing={1} sx={{ py: 4 }}>
-                          <CircularProgress />
-                          <Typography>Rendering PDF…</Typography>
-                        </Stack>
-                      }
-                    >
-                      <PdfPage
-                        pageNumber={guidelinePage}
-                        width={guidelineWidth ?? 600}
-                        renderTextLayer={false}
-                        renderAnnotationLayer={false}
-                      />
-                    </PdfDocument>
                   </Box>
-                </>
+                </object>
               )}
             </DialogContent>
           </Dialog>
