@@ -58,7 +58,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   const { fields, files } = parsed;
 
-  const pdf = files.file as File | undefined;
+  const fileEntry = files.file as File | File[] | undefined;
+  const pdf = Array.isArray(fileEntry) ? fileEntry[0] : fileEntry;
   if (!pdf || !pdf.originalFilename) {
     return res.status(400).json({ error: "PDF file is required" });
   }

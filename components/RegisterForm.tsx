@@ -409,8 +409,9 @@ function validateField(key: Key, v: FormState): string | undefined {
       return;
     case "ownerPhoto":
       if (!v.ownerPhoto) return "Owner photo is required";
-      if (!validateSize(v.ownerPhoto)) return "Photo must be ≤ 10MB";
-      if (!isImage(v.ownerPhoto)) return "Photo must be an image file";
+      if (!validateSize(v.ownerPhoto)) return "Photo must be within 10MB";
+      if (!isImage(v.ownerPhoto) && !isPdf(v.ownerPhoto))
+        return "Photo must be an image or PDF file";
       return;
     case "bkashTransactionId":
       if (v.paymentMethod === "BKASH") {
@@ -683,25 +684,23 @@ export default function PnsMembershipForm() {
 
   // Helper to show error only when touched or after first submit attempt
   const handleGuidelinePreview = async () => {
+    setShowGuidelinePreview(true);
     setTemplatePreviewError(null);
-    if (!templatePreviewUrl) {
-      setLoadingTemplatePreview(true);
-      try {
-        const res = await fetch("/api/previews/latest");
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body?.error || "Failed to load preview");
-        }
-        const data = await res.json();
-        setTemplatePreviewUrl(data.url);
-      } catch (error) {
-        setTemplatePreviewError((error as Error).message);
-        setLoadingTemplatePreview(false);
-        return;
+    setLoadingTemplatePreview(true);
+    try {
+      const res = await fetch("/api/previews/latest", { cache: "no-store" });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body?.error || "Failed to load preview");
       }
+      const data = await res.json();
+      setTemplatePreviewUrl(`${data.url}?v=${Date.now()}`);
+    } catch (error) {
+      setTemplatePreviewUrl(null);
+      setTemplatePreviewError((error as Error).message);
+    } finally {
       setLoadingTemplatePreview(false);
     }
-    setShowGuidelinePreview(true);
   };
 
   const showErr = (key: Key) =>
@@ -889,9 +888,7 @@ export default function PnsMembershipForm() {
                     size="small"
                     variant="outlined"
                     onClick={handleGuidelinePreview}
-                    disabled={
-                      !canSubmit || submitting || loadingTemplatePreview
-                    }
+                    disabled={submitting || loadingTemplatePreview}
                   >
                     Show Guideline
                   </Button>
@@ -1140,8 +1137,8 @@ export default function PnsMembershipForm() {
                   <Col>
                     <FilePicker
                       required
-                      label="Upload owner's photo (JPG/PNG)"
-                      accept="image/*"
+                      label="Upload owner's photo (JPG/PNG/PDF)"
+                      accept="image/*,application/pdf"
                       file={v.ownerPhoto}
                       onChange={f => {
                         // setField already marks touched and validates
@@ -1358,7 +1355,16 @@ export default function PnsMembershipForm() {
             fullWidth
             maxWidth="md"
           >
-            <DialogTitle>Preview Uploaded Guideline</DialogTitle>
+            <DialogTitle sx={{ pr: 6 }}>
+              Preview Uploaded Guideline
+              <IconButton
+                onClick={() => setShowGuidelinePreview(false)}
+                sx={{ position: "absolute", right: 8, top: 8 }}
+                aria-label="Close preview"
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
             <DialogContent dividers sx={{ height: 640 }}>
               {loadingTemplatePreview && (
                 <Stack alignItems="center" spacing={1} sx={{ py: 4 }}>
@@ -1370,11 +1376,27 @@ export default function PnsMembershipForm() {
                 <Alert severity="error">{templatePreviewError}</Alert>
               )}
               {templatePreviewUrl && (
-                <Box
-                  component="iframe"
-                  src={templatePreviewUrl}
-                  sx={{ border: 0, width: "100%", height: "100%" }}
-                />
+                <object
+                  data={templatePreviewUrl}
+                  type="application/pdf"
+                  width="100%"
+                  height="100%"
+                >
+                  <Box p={2}>
+                    <Typography>
+                      PDF preview is not available in this browser. You can
+                      open it in a new tab.
+                    </Typography>
+                    <Button
+                      href={templatePreviewUrl}
+                      target="_blank"
+                      rel="noopener"
+                      sx={{ mt: 1 }}
+                    >
+                      Open PDF in new tab
+                    </Button>
+                  </Box>
+                </object>
               )}
             </DialogContent>
           </Dialog>
