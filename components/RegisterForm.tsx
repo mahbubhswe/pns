@@ -1056,6 +1056,7 @@ export default function PnsMembershipForm() {
                       size="small"
                       required
                       label="Contact number"
+                      type="number"
                       value={v.contactNumber}
                       onChange={e => setField("contactNumber", e.target.value)}
                       onBlur={() => markTouched("contactNumber")}
@@ -1069,6 +1070,7 @@ export default function PnsMembershipForm() {
                       size="small"
                       required
                       label="NID number"
+                      type="number"
                       value={v.nidNumber}
                       onChange={e => setField("nidNumber", e.target.value)}
                       onBlur={() => markTouched("nidNumber")}
@@ -1222,6 +1224,7 @@ export default function PnsMembershipForm() {
                             size="small"
                             required
                             label="bKash account number used"
+                            type="number"
                             value={v.bkashAccountNumber}
                             onChange={e =>
                               setField("bkashAccountNumber", e.target.value)
