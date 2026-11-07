@@ -1,49 +1,41 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { AUTH_COOKIES } from "@/lib/config/constants";
 
-const AUTH_COOKIE = "pns_token";
-const ADMIN_COOKIE = "admin_token";
-const AUTH_PAGES = ["/auth/login", "/auth/register"]; // pages users shouldn't see when logged in
-const PROTECTED_PAGES = ["/profile"]; // pages that require member auth
-const ADMIN_PROTECTED = ["/dashboard"]; // dashboard requires admin auth
+/**
+ * Page-level redirects based on the presence of auth cookies.
+ *
+ * This is a UX convenience only: it runs on the edge and does not verify the
+ * token signature. Every API route re-verifies the JWT with `requireAdmin` /
+ * `requireMember`, so a forged cookie can reach a page shell but no data.
+ */
+const MEMBER_AUTH_PAGES = ["/auth/login", "/auth/register"];
+const MEMBER_PROTECTED = ["/profile"];
+const ADMIN_PROTECTED = ["/dashboard"];
+
+const startsWithAny = (pathname: string, prefixes: string[]) =>
+  prefixes.some(p => pathname === p || pathname.startsWith(`${p}/`));
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const token = req.cookies.get(AUTH_COOKIE)?.value;
-  const adminToken = req.cookies.get(ADMIN_COOKIE)?.value;
+  const hasMemberToken = Boolean(req.cookies.get(AUTH_COOKIES.member)?.value);
+  const hasAdminToken = Boolean(req.cookies.get(AUTH_COOKIES.admin)?.value);
 
-  const isAuth = Boolean(token);
-  const isAuthPage = AUTH_PAGES.some(p => pathname.startsWith(p));
-  const isProtected = PROTECTED_PAGES.some(p => pathname.startsWith(p));
-  const isAdminProtected = ADMIN_PROTECTED.some(p => pathname.startsWith(p));
-
-  // If logged in, block access to login/register -> redirect to profile
-  if (isAuth && isAuthPage) {
+  const redirectTo = (path: string) => {
     const url = req.nextUrl.clone();
-    url.pathname = "/profile";
+    url.pathname = path;
+    url.search = "";
     return NextResponse.redirect(url);
-  }
+  };
 
-  // If not logged in, block access to protected pages -> redirect to login
-  if (!isAuth && isProtected) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/auth/login";
-    return NextResponse.redirect(url);
-  }
-
-  // If no admin token, block access to dashboard -> redirect to admin login
-  if (!adminToken && isAdminProtected) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/admin/login";
-    return NextResponse.redirect(url);
-  }
+  if (hasMemberToken && startsWithAny(pathname, MEMBER_AUTH_PAGES)) return redirectTo("/profile");
+  if (!hasMemberToken && startsWithAny(pathname, MEMBER_PROTECTED)) return redirectTo("/auth/login");
+  if (!hasAdminToken && startsWithAny(pathname, ADMIN_PROTECTED)) return redirectTo("/admin/login");
 
   return NextResponse.next();
 }
 
 export const config = {
-  // Exclude all API routes and Next internals; only run on app pages
-  matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)",
-  ],
+  // Exclude API routes, Next internals and static assets; only run on pages.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|uploads/).*)"],
 };

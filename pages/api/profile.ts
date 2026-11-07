@@ -1,75 +1,16 @@
-// pages/api/profile.ts
-import type { NextApiRequest, NextApiResponse } from "next";
-import jwt from "jsonwebtoken";
-import { prisma } from "@/lib/prisma";
-import { createApiHandler } from "@/lib/server/handler";
+import { createApiHandler } from "@/lib/server/http";
+import { requireMember, type MemberRequest } from "@/lib/server/auth";
+import { getMemberById, toMemberDto } from "@/features/membership";
+import type { ProfileResponse } from "@/types/api";
 
-function getTokenFromCookie(req: NextApiRequest): string | null {
-  const cookie = req.headers.cookie || "";
-  const parts = cookie.split(/;\s*/);
-  for (const p of parts) {
-    const [k, ...rest] = p.split("=");
-    if (k === "pns_token") return decodeURIComponent(rest.join("="));
-  }
-  return null;
-}
+const handler = createApiHandler<MemberRequest>(["GET"]);
 
-const handler = createApiHandler(["GET"]);
+handler.use(requireMember);
 
-handler.get(async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    const token = getTokenFromCookie(req);
-    if (!token) return res.status(401).json({ error: "Not authenticated" });
-
-    const secret = process.env.JWT_SECRET || "dev-secret";
-    let payload: any;
-    try {
-      payload = jwt.verify(token, secret);
-    } catch {
-      return res.status(401).json({ error: "Invalid token" });
-    }
-
-    const userId = Number(payload?.sub);
-    if (!userId) return res.status(401).json({ error: "Invalid token" });
-
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    const profile = {
-      id: user.id,
-      sectorNumber: user.sectorNumber,
-      roadNumber: user.roadNumber,
-      plotNumber: user.plotNumber,
-      plotSize: user.plotSize,
-      ownershipProofType: user.ownershipProofType,
-      ownershipProofFile: user.ownershipProofFile,
-      ownerNameEnglish: user.ownerNameEnglish,
-      ownerNameBangla: user.ownerNameBangla,
-      contactNumber: user.contactNumber,
-      nidNumber: user.nidNumber,
-      presentAddress: user.presentAddress,
-      permanentAddress: user.permanentAddress,
-      email: user.email,
-      ownerPhoto: user.ownerPhoto,
-      paymentMethod: user.paymentMethod,
-      bkashTransactionId: user.bkashTransactionId,
-      bkashAccountNumber: user.bkashAccountNumber,
-      bankAccountNumberFrom: user.bankAccountNumberFrom,
-      paymentReceipt: user.paymentReceipt,
-      membershipFee: user.membershipFee,
-      agreeDataUse: user.agreeDataUse,
-      status: user.status,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
-
-    return res.status(200).json({ ok: true, profile });
-  } catch (e: any) {
-    console.error(e);
-    return res
-      .status(500)
-      .json({ error: "Server error", detail: e?.message ?? String(e) });
-  }
+handler.get(async (req, res) => {
+  const user = await getMemberById(req.member.sub);
+  const body: ProfileResponse = { ok: true, profile: toMemberDto(user) };
+  res.status(200).json(body);
 });
 
 export default handler;

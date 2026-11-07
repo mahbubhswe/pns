@@ -14,6 +14,16 @@ import {
   Container,
 } from "@mui/material";
 import axios from "axios";
+import type { GetServerSideProps } from "next";
+import { needsInitialSetup } from "@/features/management-user";
+
+/** No management user yet? Send the visitor to first-run setup instead. */
+export const getServerSideProps: GetServerSideProps = async () => {
+  if (await needsInitialSetup()) {
+    return { redirect: { destination: "/admin/setup", permanent: false } };
+  }
+  return { props: {} };
+};
 
 const HERO_IMG =
   "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg";

@@ -1,4 +1,5 @@
 import React from "react";
+import type { DashboardStats as Stats } from "@/types/api";
 import useSWR from "swr";
 import { Box, Card, CardContent, Typography, Chip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
@@ -9,17 +10,6 @@ import BlockIcon from "@mui/icons-material/Block";
 import DashboardLayout from "@/components/dashboard/Layout";
 import { getJSON } from "@/lib/api";
 
-type Stats = {
-  total: number;
-  active: number;
-  pending: number;
-  inactive: number;
-  byType: Record<string, number>;
-  adminUsers: number;
-  postsTotal: number;
-  postsPublished: number;
-  postsDraft: number;
-};
 
 export default function DashboardPage() {
   const { data } = useSWR<Stats>("/api/dashboard/stats", getJSON);

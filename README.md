@@ -1,40 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# PNS – Purbachal Newtown Society
 
-## Getting Started
+Membership portal and admin dashboard for Purbachal Newtown Society.
+Members register with their plot and payment details; management users review
+applications, publish posts and manage staff accounts.
 
-First, run the development server:
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the code layout and the
+rules every new feature should follow.
+
+## Requirements
+
+- Node.js 20+
+- PostgreSQL 14+
+
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install                 # also runs `prisma generate`
+cp .env.example .env        # then fill in DATABASE_URL, JWT_SECRET, SMTP_*
+npm run db:migrate          # apply migrations to your local database
+npm run dev                 # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open `http://localhost:3000/admin/login`. With an empty database it
+redirects to the **first-run setup page**, where you create the initial admin
+account and are signed in. After that the setup page is permanently closed.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+Next, go to **Dashboard → Settings** to set the organisation name, membership
+fees, bKash/bank details and whether registration is open. Everything the
+public site shows comes from there.
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Dashboard login: `/admin/login`. Member login: `/auth/login`.
+`npm run db:seed` is an optional CLI alternative for creating an admin
+(requires `ADMIN_EMAIL` and `ADMIN_PASSWORD`).
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script                     | What it does                                        |
+| -------------------------- | --------------------------------------------------- |
+| `npm run dev`              | Development server                                  |
+| `npm run build` / `start`  | Production build / serve                            |
+| `npm run check`            | Typecheck + lint (run before every commit)          |
+| `npm run typecheck`        | `tsc --noEmit`                                      |
+| `npm run lint` / `lint:fix`| ESLint                                              |
+| `npm run format`           | Prettier                                            |
+| `npm run db:migrate`       | Create/apply a migration in development             |
+| `npm run db:deploy`        | Apply migrations in production                      |
+| `npm run db:studio`        | Prisma Studio                                       |
+| `npm run db:seed`          | Seed the initial admin user                         |
+| `npm run migrate:memberships <file.json>` | Import legacy membership records     |
 
-## Learn More
+## Environment
 
-To learn more about Next.js, take a look at the following resources:
+All variables are documented in [.env.example](.env.example) and validated at
+runtime by `lib/config/env.ts`. The app refuses to start in production without
+`DATABASE_URL` and a strong `JWT_SECRET`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+Email (application confirmation PDF) is sent only when `SMTP_USER` and
+`SMTP_PASS` are set; otherwise registration still succeeds and a warning is
+logged.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+File uploads are stored under `public/uploads` locally, or in Vercel Blob when
+`BLOB_READ_WRITE_TOKEN` is set.
 
-## Deploy on Vercel
+## Project layout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+pages/            Routes (UI) and pages/api (HTTP controllers)
+features/         Business logic per domain (schema, service, mapper)
+lib/server/       HTTP, auth, storage, mail, logger foundation
+lib/config/       Validated env + constants
+lib/shared/       Isomorphic business constants
+types/api.ts      API contracts shared by server and browser
+components/       React components
+prisma/           Schema and migrations
+scripts/          One-off Node scripts (seed, legacy import)
+docs/             Architecture notes
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+## Deployment
+
+1. Set the environment variables from `.env.example` on the host.
+2. `npm run build`
+3. `npm run db:deploy`
+4. `npm start`
+
+On Vercel the filesystem is read-only, so `BLOB_READ_WRITE_TOKEN` is required
+for uploads.

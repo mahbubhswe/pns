@@ -1,4 +1,5 @@
 import React from "react";
+import type { MemberDto as Member } from "@/types/api";
 import useSWR from "swr";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -28,33 +29,6 @@ import EditIcon from "@mui/icons-material/Edit";
 const HERO_IMG =
   "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg";
 
-type Member = {
-  id: number;
-  sectorNumber: string;
-  roadNumber: string;
-  plotNumber: string;
-  plotSize: string;
-  ownershipProofType: string;
-  ownershipProofFile?: string | null;
-  ownerNameEnglish: string;
-  ownerNameBangla: string;
-  contactNumber: string;
-  nidNumber: string;
-  presentAddress: string;
-  permanentAddress: string;
-  email: string;
-  ownerPhoto?: string | null;
-  paymentMethod: string;
-  bkashTransactionId?: string | null;
-  bkashAccountNumber?: string | null;
-  bankAccountNumberFrom?: string | null;
-  paymentReceipt?: string | null;
-  membershipFee: number;
-  agreeDataUse: boolean;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-};
 
 export default function MemberDetailPage() {
   const router = useRouter();

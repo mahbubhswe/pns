@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
+import type { MemberDto as Member, MembersListResponse as MembersResp } from "@/types/api";
 import useSWR from "swr";
 import { useRouter } from "next/router";
 import {
@@ -25,37 +26,8 @@ import {
   GridToolbar,
   GridActionsCellItem,
 } from "@mui/x-data-grid";
-import moment from "moment";
+import dayjs from "dayjs";
 
-type Member = {
-  id: string;
-  sectorNumber: string;
-  roadNumber: string;
-  plotNumber: string;
-  plotSize: string;
-  ownershipProofType: string;
-  ownershipProofFile?: string | null;
-  ownerNameEnglish: string;
-  ownerNameBangla: string;
-  contactNumber: string;
-  nidNumber: string;
-  presentAddress: string;
-  permanentAddress: string;
-  email: string;
-  ownerPhoto?: string | null;
-  paymentMethod: string;
-  bkashTransactionId?: string | null;
-  bkashAccountNumber?: string | null;
-  bankAccountNumberFrom?: string | null;
-  paymentReceipt?: string | null;
-  membershipFee: number;
-  agreeDataUse: boolean;
-  status: "active" | "pending" | "inactive";
-  joinedAt: string;
-  updatedAt: string;
-};
-
-type MembersResp = { members: Member[] };
 
 const CSV_FIELDS: Array<{ key: keyof Member; label: string }> = [
   { key: "id", label: "ID" },
@@ -176,7 +148,7 @@ export default function MembershipPage() {
       renderCell: (params: any) => {
         const v = params?.row?.joinedAt;
         if (!v) return "";
-        const d = moment(v);
+        const d = dayjs(v);
         return d.isValid() ? d.format("D, MMM YYYY") : "";
       },
     },

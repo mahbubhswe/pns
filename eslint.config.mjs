@@ -1,39 +1,50 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const eslintConfig = [
-  // Ignore generated Prisma client and build artifacts
-  { ignores: [
-    "lib/generated/**",
+export default defineConfig([
+  // Never lint build output, generated code, dependencies or user uploads.
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "build/**",
+    "coverage/**",
     "node_modules/**",
-  ] },
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
-  // Local overrides
+    "lib/generated/**",
+    "public/**",
+    "next-env.d.ts",
+  ]),
+  ...nextVitals,
+  ...nextTs,
   {
     rules: {
-      // Relax strictness to reduce noise/errors during migration
-      "@typescript-eslint/no-explicit-any": "off",
+      // `any` is tolerated at the edges (legacy UI code) but should not spread.
+      // New server code under lib/server and features/ must stay `any`-free.
+      "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_", ignoreRestSiblings: true },
       ],
       "react-hooks/exhaustive-deps": "warn",
+      // React Compiler readiness rules (new in eslint-config-next 16). The app
+      // does not use the compiler yet and legacy UI code trips them; keep them
+      // visible as warnings and fix when touching those components.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/immutability": "warn",
     },
   },
   {
-    files: ["lib/useXlsx.ts"],
+    // Server foundation + feature modules are held to a stricter standard.
+    files: ["lib/server/**/*.ts", "lib/config/**/*.ts", "features/**/*.ts", "features/**/*.tsx", "types/**/*.ts"],
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-explicit-any": "error",
     },
   },
-];
-
-export default eslintConfig;
+  {
+    // Plain Node scripts use CommonJS on purpose.
+    files: ["scripts/**/*.js"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+]);

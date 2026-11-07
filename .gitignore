@@ -44,9 +44,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# generated prisma client (rebuilt by `prisma generate` on install)
 /lib/generated/prisma
 
 # user-uploaded files (may contain private documents)
 /public/uploads/
-
-/lib/generated/prisma

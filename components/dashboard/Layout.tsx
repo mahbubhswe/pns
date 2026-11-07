@@ -24,6 +24,7 @@ import GroupIcon from "@mui/icons-material/Group";
 import PeopleIcon from "@mui/icons-material/People";
 import ArticleIcon from "@mui/icons-material/Article";
 import PreviewIcon from "@mui/icons-material/Preview";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { useTheme } from "@mui/material/styles";
 import ThemeToggle from "@/components/ThemeToggle";
 
@@ -35,6 +36,7 @@ const navItems = [
   { label: "Users", href: "/dashboard/users", icon: <PeopleIcon /> },
   { label: "Posts", href: "/dashboard/posts", icon: <ArticleIcon /> },
   { label: "Add Preview", href: "/dashboard/add-preview", icon: <PreviewIcon /> },
+  { label: "Settings", href: "/dashboard/settings", icon: <SettingsIcon /> },
 ];
 
 export default function DashboardLayout({ children }: PropsWithChildren) {

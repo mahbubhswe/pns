@@ -1,19 +1,14 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/prisma";
+import { createApiHandler } from "@/lib/server/http";
+import { getLatestPreview } from "@/features/preview";
+import type { LatestPreviewResponse } from "@/types/api";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+/** Public: URL of the most recent guideline PDF. */
+const handler = createApiHandler(["GET"]);
 
-  const preview = await prisma.previewDocument.findFirst({
-    orderBy: { createdAt: "desc" },
-  });
+handler.get(async (_req, res) => {
+  const preview = await getLatestPreview();
+  const body: LatestPreviewResponse = { url: preview.fileUrl };
+  res.status(200).json(body);
+});
 
-  if (!preview) {
-    return res.status(404).json({ error: "No preview available" });
-  }
-
-  return res.status(200).json({ url: preview.fileUrl });
-}
+export default handler;

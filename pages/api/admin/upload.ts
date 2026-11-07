@@ -1,69 +1,24 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import formidable from "formidable";
-import fs from "fs";
-import path from "path";
-import jwt from "jsonwebtoken";
-import { createApiHandler } from "@/lib/server/handler";
+import { assertMimeType, createApiHandler, isImageMime, parseMultipart, requireFile } from "@/lib/server/http";
+import { requireAdmin, type AdminRequest } from "@/lib/server/auth";
+import { persistUpload } from "@/lib/server/storage";
+import { UPLOAD_LIMITS } from "@/lib/config/constants";
+import type { UploadResponse } from "@/types/api";
 
 export const config = { api: { bodyParser: false } };
 
-function ensureUploadsDir(dir: string) {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-}
+/** Generic image upload used by the dashboard (post covers, user photos). */
+const handler = createApiHandler<AdminRequest>(["POST"]);
 
-const handler = createApiHandler(["POST"]);
+handler.use(requireAdmin);
 
-handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    const cookie = req.headers.cookie || "";
-    const token = cookie
-      .split(/;\s*/)
-      .map(p => p.split("="))
-      .find(([k]) => k === "admin_token")?.[1];
-    if (!token) return res.status(401).json({ error: "Not authenticated" });
-    const secret = process.env.JWT_SECRET || "dev-secret";
-    try {
-      jwt.verify(decodeURIComponent(token), secret);
-    } catch {
-      return res.status(401).json({ error: "Invalid token" });
-    }
+handler.post(async (req, res) => {
+  const { files } = await parseMultipart(req, { maxFileSize: UPLOAD_LIMITS.imageBytes });
+  const file = requireFile(files, "file");
+  assertMimeType(file, isImageMime, "Only image files are allowed");
 
-    const form = formidable({ multiples: false, maxFileSize: 10 * 1024 * 1024, keepExtensions: true });
-    const { files }: any = await new Promise((resolve, reject) => {
-      form.parse(req, (err, _fields, fls) => (err ? reject(err) : resolve({ files: fls })));
-    });
-    const f = Array.isArray(files?.file) ? files.file[0] : files?.file;
-    if (!f) return res.status(400).json({ error: "No file uploaded" });
-    const mime = (f.mimetype || f.type || "").toString();
-    if (!mime.startsWith("image/")) return res.status(400).json({ error: "Invalid file type" });
-
-    const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
-    ensureUploadsDir(UPLOAD_DIR);
-    const ext = path.extname(f.originalFilename || "");
-    const safeBase = (f.originalFilename || "image")
-      .toString()
-      .replace(/\s+/g, "_")
-      .slice(0, 40);
-    const filename = `${Date.now()}-avatar-${safeBase}${ext || ".jpg"}`;
-    const dest = path.join(UPLOAD_DIR, filename);
-    const tmp: string | undefined = (f as any).filepath || (f as any).path;
-    if (!tmp || typeof tmp !== "string") return res.status(400).json({ error: "Invalid upload" });
-    try {
-      fs.renameSync(tmp, dest);
-    } catch (err: any) {
-      if (err?.code === "EXDEV") {
-        fs.copyFileSync(tmp, dest);
-        fs.unlinkSync(tmp);
-      } else {
-        throw err;
-      }
-    }
-    const publicUrl = `/uploads/${filename}`;
-    return res.status(200).json({ ok: true, url: publicUrl });
-  } catch (e: any) {
-    console.error(e);
-    return res.status(500).json({ error: "Server error", detail: e?.message || "" });
-  }
+  const url = await persistUpload(file, { label: "image" });
+  const body: UploadResponse = { ok: true, url };
+  res.status(200).json(body);
 });
 
 export default handler;

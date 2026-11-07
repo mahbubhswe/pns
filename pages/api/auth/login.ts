@@ -1,73 +1,25 @@
-// pages/api/auth/login.ts
-import type { NextApiRequest, NextApiResponse } from "next";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import { serialize as serializeCookie } from "cookie";
-import { prisma } from "@/lib/prisma";
-import { createApiHandler } from "@/lib/server/handler";
+import { createApiHandler, parseBody, redirectSeeOther, wantsHtml } from "@/lib/server/http";
+import { setAuthCookie, signMemberToken } from "@/lib/server/auth";
+import { AUTH_COOKIES } from "@/lib/config/constants";
+import { authenticateMember, memberLoginSchema } from "@/features/membership";
+import type { MemberLoginResponse } from "@/types/api";
 
 const handler = createApiHandler(["POST"]);
 
-handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
-  try {
-    const { email, password } = req.body || {};
+handler.post(async (req, res) => {
+  const input = parseBody(memberLoginSchema, req.body);
+  const user = await authenticateMember(input);
 
-    const rawEmail = String(email || "")
-      .trim()
-      .toLowerCase();
-    const rawPassword = String(password || "").trim();
+  const token = signMemberToken({ sub: user.id, email: user.email });
+  setAuthCookie(req, res, AUTH_COOKIES.member, token);
 
-    if (!rawEmail || !rawPassword) {
-      return res.status(400).json({ error: "Email and password are required" });
-    }
+  if (wantsHtml(req)) return redirectSeeOther(res, "/profile");
 
-    const user = await prisma.user.findUnique({ where: { email: rawEmail } });
-    if (!user || !user.password) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    const ok = bcrypt.compareSync(rawPassword, user.password);
-    if (!ok) {
-      return res.status(401).json({ error: "Invalid email or password" });
-    }
-
-    const payload = {
-      id: user.id,
-      email: user.email,
-      name: user.ownerNameEnglish,
-      status: user.status,
-    };
-
-    const secret = process.env.JWT_SECRET || "dev-secret";
-    const token = jwt.sign({ sub: user.id, email: user.email }, secret, {
-      expiresIn: "7d",
-    });
-    const host = req.headers.host || "";
-    const isLocalhost = /^(localhost|127\.0\.0\.1)(:\\d+)?$/.test(host);
-    const cookie = serializeCookie("pns_token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      path: "/",
-      secure: !isLocalhost && process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-    res.setHeader("Set-Cookie", cookie);
-    const accepts = String(req.headers.accept || "");
-    const ctype = String((req.headers as any)["content-type"] || "");
-    const wantsHtml = accepts.includes("text/html") || ctype.includes("application/x-www-form-urlencoded");
-    if (wantsHtml) {
-      res.statusCode = 303;
-      res.setHeader("Location", "/profile");
-      return res.end();
-    }
-
-    return res.status(200).json({ ok: true, user: payload });
-  } catch (e: any) {
-    console.error(e);
-    return res
-      .status(500)
-      .json({ error: "Server error", detail: e?.message ?? String(e) });
-  }
+  const body: MemberLoginResponse = {
+    ok: true,
+    user: { id: user.id, email: user.email, name: user.ownerNameEnglish, status: user.status },
+  };
+  res.status(200).json(body);
 });
 
 export default handler;

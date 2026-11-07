@@ -124,3 +124,14 @@ model PreviewDocument {
   fileUrl   String
   createdAt DateTime @default(now())
 }
+
+/// Key/value store for admin-editable site configuration.
+/// `key` is a section name (site | payment | registration); `value` is that
+/// section's JSON object. Defaults live in lib/shared/settings.ts.
+model SiteSetting {
+  key         String   @id
+  value       Json
+  updatedById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

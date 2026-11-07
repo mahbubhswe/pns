@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import type { PostsListResponse as PostsResp } from "@/types/api";
 import useSWR from "swr";
 import { useRouter } from "next/router";
 import DashboardLayout from "@/components/dashboard/Layout";
@@ -8,10 +9,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { DataGrid, GridActionsCellItem, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import { getJSON } from "@/lib/api";
-import moment from "moment";
+import dayjs from "dayjs";
 
-type Post = { id: number; title: string; published: boolean; created: string };
-type PostsResp = { posts: Post[] };
 
 export default function PostsPage() {
   const router = useRouter();
@@ -41,7 +40,7 @@ export default function PostsPage() {
   const columns: GridColDef[] = [
     { field: "title", headerName: "Title", flex: 1, minWidth: 220 },
     { field: "published", headerName: "Status", minWidth: 120, renderCell: p => <Chip label={p.value ? "Published" : "Draft"} color={p.value ? "success" : "default"} size="small" /> },
-    { field: "created", headerName: "Created", minWidth: 160, renderCell: p => moment(p.value).isValid() ? moment(p.value).format("D, MMM YYYY") : "" },
+    { field: "created", headerName: "Created", minWidth: 160, renderCell: p => dayjs(p.value).isValid() ? dayjs(p.value).format("D, MMM YYYY") : "" },
     {
       field: "actions",
       type: "actions",

@@ -1,26 +1,13 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import type { NextHandler } from "next-connect";
-import { prisma } from "@/lib/prisma";
-import { ensureAdmin } from "@/lib/server/auth";
-import { createApiHandler } from "@/lib/server/handler";
+import { createApiHandler } from "@/lib/server/http";
+import { requireAdmin, type AdminRequest } from "@/lib/server/auth";
+import { getMembershipStats } from "@/features/membership";
 
-const handler = createApiHandler(["GET"]);
+const handler = createApiHandler<AdminRequest>(["GET"]);
 
-handler.use((req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
-  if (!ensureAdmin(req, res)) {
-    return;
-  }
-  next();
-});
+handler.use(requireAdmin);
 
-handler.get(async (_req: NextApiRequest, res: NextApiResponse) => {
-  const users = await prisma.user.findMany({ select: { status: true } });
-  const total = users.length;
-  const active = users.filter(u => (u as any).status === "APPROVED").length;
-  const pending = users.filter(u => (u as any).status === "PENDING").length;
-  const inactive = users.filter(u => (u as any).status === "REJECTED").length;
-  const byType: Record<string, number> = { standard: total };
-  res.status(200).json({ total, active, pending, inactive, byType });
+handler.get(async (_req, res) => {
+  res.status(200).json(await getMembershipStats());
 });
 
 export default handler;

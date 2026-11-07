@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   },
 });
 
-interface ApplicationData {
+export interface ApplicationData {
   sectorNumber: string;
   roadNumber: string;
   plotNumber: string;
@@ -70,9 +70,9 @@ interface ApplicationData {
   email: string;
   paymentMethod: string;
   membershipFee: number;
-  bkashTransactionId?: string;
-  bkashAccountNumber?: string;
-  bankAccountNumberFrom?: string;
+  bkashTransactionId?: string | null;
+  bkashAccountNumber?: string | null;
+  bankAccountNumberFrom?: string | null;
 }
 
 interface ApplicationPDFProps {

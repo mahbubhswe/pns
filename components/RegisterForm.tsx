@@ -71,24 +71,13 @@ const AnimatedTitle = styled.div`
   }
 `;
 
-// 🖼️ Hero background (internet image)
 import axios from "axios";
+import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/shared/settings";
 
 // 🖼️ Hero background (internet image)
 const HERO_IMG =
   "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg";
 
-// 🧾 Constants from the PDF instruction
-const MEMBERSHIP_FEE = 1020; // BDT (used for API, but display varies)
-const BKASH_FEE = 1020; // BDT
-const BANK_FEE = 1000; // BDT
-const BKASH_NUMBER = "01625358082"; // Send Money (personal)
-const BANK = {
-  name: "Sonali Bank Limited, Dhaka University Branch",
-  accountName: "Purbachal Newtown Society",
-  accountNumber: "4405702001730",
-  routingNumber: "200271750",
-};
 
 
 // 🔢 Types
@@ -486,7 +475,25 @@ function validateAll(v: FormState): Partial<Record<Key, string>> {
   return e;
 }
 
-export default function PnsMembershipForm() {
+export default function PnsMembershipForm({
+  settings = DEFAULT_SITE_SETTINGS,
+}: {
+  /** Admin-editable site settings (fees, payment details), loaded server-side. */
+  settings?: SiteSettings;
+}) {
+  // 🧾 Payment details come from the database (dashboard → Settings).
+  const BKASH_FEE = settings.payment.feeBkash; // BDT
+  const BANK_FEE = settings.payment.feeBank; // BDT
+  const BKASH_NUMBER = settings.payment.bkashNumber; // Send Money (personal)
+  const BANK = {
+    name: settings.payment.bankName,
+    accountName: settings.payment.bankAccountName,
+    accountNumber: settings.payment.bankAccountNumber,
+    routingNumber: settings.payment.bankRoutingNumber,
+  };
+  const SITE_NAME = settings.site.name;
+  const registrationOpen = settings.registration.open;
+
   const [v, setV] = useState<FormState>(initialState);
   const [errors, setErrors] = useState<Partial<Record<Key, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<Key, boolean>>>({});
@@ -605,8 +612,7 @@ export default function PnsMembershipForm() {
     if (data.ownerPhoto) fd.append("ownerPhoto", data.ownerPhoto);
     if (data.paymentReceipt) fd.append("paymentReceipt", data.paymentReceipt);
 
-    // Extras
-    fd.append("membershipFee", String(MEMBERSHIP_FEE));
+    // Extras (the fee itself is decided server-side from site settings)
     fd.append("agreeDataUse", String(data.agreeDataUse));
 
     return fd;
@@ -620,6 +626,10 @@ export default function PnsMembershipForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!registrationOpen) {
+      setToast({ open: true, msg: settings.registration.closedMessage, sev: "error" });
+      return;
+    }
     setSubmittedOnce(true);
 
     if (!validateBeforeSubmit()) {
@@ -732,12 +742,17 @@ export default function PnsMembershipForm() {
   return (
     <>
       <Head>
-        <title>Membership Registration | Purbachal Newtown Society</title>
+        <title>{`Membership Registration | ${SITE_NAME}`}</title>
         <meta
           name="description"
-          content="Register for Purbachal Newtown Society membership and submit your ownership details and payment receipt."
+          content={`Register for ${SITE_NAME} membership and submit your ownership details and payment receipt.`}
         />
       </Head>
+      {!registrationOpen && (
+        <Alert severity="warning" sx={{ borderRadius: 0, justifyContent: "center" }}>
+          {settings.registration.closedMessage}
+        </Alert>
+      )}
       {/* 🔹 HERO with overlay */}
       <Box
         sx={{
@@ -767,7 +782,7 @@ export default function PnsMembershipForm() {
         />
         <Container maxWidth="lg">
           <Stack spacing={1} sx={{ position: "relative", zIndex: 1 }}>
-            <AnimatedTitle>Purbachal Newtown Society</AnimatedTitle>
+            <AnimatedTitle>{SITE_NAME}</AnimatedTitle>
             <Typography
               variant="h6"
               sx={{

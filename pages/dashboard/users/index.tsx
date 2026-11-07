@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import type { ManagementUsersListResponse as UsersResp } from "@/types/api";
 import useSWR from "swr";
 import { useRouter } from "next/router";
 import DashboardLayout from "@/components/dashboard/Layout";
@@ -10,21 +11,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { DataGrid, GridActionsCellItem, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import { getJSON } from "@/lib/api";
-import moment from "moment";
+import dayjs from "dayjs";
 
-type MgmtUser = {
-  id: number;
-  photoUrl?: string | null;
-  name: string;
-  phone: string;
-  address?: string | null;
-  role: "ADMIN" | "EDITOR" | "VIEWER";
-  email: string;
-  title?: string | null;
-  created: string;
-};
-
-type UsersResp = { users: MgmtUser[] };
 
 export default function UsersPage() {
   const router = useRouter();
@@ -104,7 +92,7 @@ export default function UsersPage() {
       minWidth: 160,
       renderCell: (params) => {
         const v = params?.row?.created;
-        const d = moment(v);
+        const d = dayjs(v);
         return d.isValid() ? d.format("D, MMM YYYY") : "";
       },
       sortable: true,
