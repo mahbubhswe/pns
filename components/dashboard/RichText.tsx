@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useRef, useState } from "react";
 import { Box, IconButton, Stack, Tooltip, FormControl, InputLabel, Select, MenuItem, Divider } from "@mui/material";
 import FormatBoldIcon from "@mui/icons-material/FormatBold";

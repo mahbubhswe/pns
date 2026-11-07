@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useRef, useState } from "react";
 import { Button, CircularProgress, Tooltip } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";

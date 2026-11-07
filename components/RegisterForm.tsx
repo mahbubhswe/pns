@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -29,7 +31,6 @@ import {
   Chip,
 } from "@mui/material";
 import Link from "next/link";
-import Head from "next/head";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
@@ -741,13 +742,6 @@ export default function PnsMembershipForm({
 
   return (
     <>
-      <Head>
-        <title>{`Membership Registration | ${SITE_NAME}`}</title>
-        <meta
-          name="description"
-          content={`Register for ${SITE_NAME} membership and submit your ownership details and payment receipt.`}
-        />
-      </Head>
       {!registrationOpen && (
         <Alert severity="warning" sx={{ borderRadius: 0, justifyContent: "center" }}>
           {settings.registration.closedMessage}

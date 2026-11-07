@@ -1,5 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import type { NextHandler } from "next-connect";
+import { NextRequest, NextResponse } from "next/server";
 import { env } from "@/lib/config/env";
 
 function allowedOrigins(): string[] {
@@ -17,7 +16,7 @@ function allowedOrigins(): string[] {
     .filter(Boolean);
 }
 
-function resolveOrigin(requestOrigin: string | undefined): string {
+function resolveOrigin(requestOrigin: string | null): string {
   const allowed = allowedOrigins();
   const allowAny = allowed.length === 0 || allowed.includes("*");
   if (allowAny) return requestOrigin ?? "*";
@@ -25,17 +24,22 @@ function resolveOrigin(requestOrigin: string | undefined): string {
   return allowed[0] ?? requestOrigin ?? "*";
 }
 
-/**
- * CORS middleware for the few public endpoints that may be called from other
- * origins (e.g. the registration form embedded elsewhere).
- */
-export function cors(methods: string[] = ["POST", "OPTIONS"]) {
-  return (req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
-    res.setHeader("Access-Control-Allow-Origin", resolveOrigin(req.headers.origin));
-    res.setHeader("Access-Control-Allow-Methods", methods.join(","));
-    res.setHeader("Access-Control-Allow-Headers", env.CORS_ALLOW_HEADERS || "Content-Type, Authorization");
-    res.setHeader("Access-Control-Max-Age", "86400");
-    res.setHeader("Vary", "Origin");
-    return next();
+function corsHeaders(req: NextRequest, methods: string[]): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": resolveOrigin(req.headers.get("origin")),
+    "Access-Control-Allow-Methods": methods.join(","),
+    "Access-Control-Allow-Headers": env.CORS_ALLOW_HEADERS || "Content-Type, Authorization",
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
   };
+}
+
+/** Add CORS headers to an existing response (public endpoints only). */
+export function applyCors(req: NextRequest, res: Response, methods: string[]): void {
+  for (const [key, value] of Object.entries(corsHeaders(req, methods))) res.headers.set(key, value);
+}
+
+/** Response for a CORS preflight (`OPTIONS`) request. */
+export function corsPreflight(req: NextRequest, methods: string[]): NextResponse {
+  return new NextResponse(null, { status: 204, headers: corsHeaders(req, methods) });
 }

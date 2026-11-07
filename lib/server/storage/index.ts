@@ -3,7 +3,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import { env, isVercel } from "@/lib/config/env";
 import { UPLOAD_FOLDERS } from "@/lib/config/constants";
-import type { FormidableFile } from "@/lib/server/http/multipart";
+import type { UploadFile } from "@/lib/server/http/multipart";
 import { logger } from "@/lib/server/logger";
 
 /**
@@ -27,17 +27,15 @@ export type PersistOptions = {
   label: string;
 };
 
-/** Returns the public URL of the stored file. */
-export async function persistUpload(file: FormidableFile, options: PersistOptions): Promise<string> {
-  const tmpPath = file.filepath;
-  if (!tmpPath) throw new Error("Upload has no temporary path");
-
+/** Store an uploaded file and return its public URL. */
+export async function persistUpload(file: UploadFile, options: PersistOptions): Promise<string> {
   const folder = options.folder ?? "general";
-  const fileName = buildFileName(file, options.label);
-  const mimetype = file.mimetype || "application/octet-stream";
+  const fileName = buildFileName(file.name, options.label);
+  const mimetype = file.type || "application/octet-stream";
+  const bytes = Buffer.from(await file.arrayBuffer());
 
   if (env.BLOB_READ_WRITE_TOKEN) {
-    return uploadToBlob(tmpPath, blobPrefix(folder), fileName, mimetype);
+    return uploadToBlob(bytes, blobPrefix(folder), fileName, mimetype);
   }
 
   if (isVercel()) {
@@ -46,7 +44,7 @@ export async function persistUpload(file: FormidableFile, options: PersistOption
     );
   }
 
-  return moveToLocal(tmpPath, folder, fileName);
+  return writeLocal(bytes, folder, fileName);
 }
 
 /**
@@ -68,8 +66,8 @@ export function deleteUploadIfLocal(publicUrl: string | null | undefined): void 
 
 // ---------------------------------------------------------------------------
 
-function buildFileName(file: FormidableFile, label: string): string {
-  const original = file.originalFilename || "";
+function buildFileName(originalName: string, label: string): string {
+  const original = originalName || "";
   const ext = sanitiseExt(path.extname(original));
   const base = path
     .basename(original, path.extname(original))
@@ -91,10 +89,9 @@ function blobPrefix(folder: StorageFolder): string {
   return env.BLOB_UPLOAD_PREFIX;
 }
 
-async function uploadToBlob(tmpPath: string, prefix: string, fileName: string, mimetype: string): Promise<string> {
+async function uploadToBlob(bytes: Buffer, prefix: string, fileName: string, mimetype: string): Promise<string> {
   const base = env.BLOB_URL.replace(/\/$/, "");
   const uploadUrl = `${base}/${prefix}/${fileName}?access=${env.BLOB_ACCESS_LEVEL}`;
-  const body = Uint8Array.from(fs.readFileSync(tmpPath));
 
   const response = await fetch(uploadUrl, {
     method: "PUT",
@@ -102,7 +99,7 @@ async function uploadToBlob(tmpPath: string, prefix: string, fileName: string, m
       Authorization: `Bearer ${env.BLOB_READ_WRITE_TOKEN}`,
       "Content-Type": mimetype,
     },
-    body,
+    body: new Uint8Array(bytes),
   });
 
   if (!response.ok) {
@@ -111,35 +108,14 @@ async function uploadToBlob(tmpPath: string, prefix: string, fileName: string, m
   }
 
   const data = (await response.json()) as { url?: string };
-  safeUnlink(tmpPath);
   if (!data?.url) throw new Error("Blob upload did not return a URL");
   return data.url;
 }
 
-function moveToLocal(tmpPath: string, folder: StorageFolder, fileName: string): string {
+function writeLocal(bytes: Buffer, folder: StorageFolder, fileName: string): string {
   const relDir = UPLOAD_FOLDERS[folder];
   const absDir = path.join(process.cwd(), "public", relDir);
   fs.mkdirSync(absDir, { recursive: true });
-  const dest = path.join(absDir, fileName);
-
-  try {
-    fs.renameSync(tmpPath, dest);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException)?.code === "EXDEV") {
-      fs.copyFileSync(tmpPath, dest);
-      safeUnlink(tmpPath);
-    } else {
-      throw err;
-    }
-  }
-
+  fs.writeFileSync(path.join(absDir, fileName), bytes);
   return `/${relDir}/${fileName}`;
-}
-
-function safeUnlink(p: string) {
-  try {
-    fs.unlinkSync(p);
-  } catch {
-    // ignore cleanup errors
-  }
 }

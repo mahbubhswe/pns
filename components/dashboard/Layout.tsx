@@ -1,6 +1,8 @@
+"use client";
+
 import React, { PropsWithChildren } from "react";
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { usePathname } from "next/navigation";
 import {
   AppBar,
   Box,
@@ -43,7 +45,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   const theme = useTheme();
   const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const router = useRouter();
+  const pathname = usePathname();
 
   const handleDrawerToggle = () => setMobileOpen(prev => !prev);
 
@@ -57,7 +59,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
       <Divider />
       <List>
         {navItems.map(item => {
-          const selected = router.pathname === item.href || router.asPath === item.href;
+          const selected = pathname === item.href;
           return (
             <ListItem key={item.href} disablePadding>
               <Link href={item.href} style={{ width: "100%", textDecoration: "none", color: "inherit" }}>

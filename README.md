@@ -65,13 +65,14 @@ File uploads are stored under `public/uploads` locally, or in Vercel Blob when
 ## Project layout
 
 ```
-pages/            Routes (UI) and pages/api (HTTP controllers)
+app/              Routes (App Router): pages, layouts and app/api route handlers
 features/         Business logic per domain (schema, service, mapper)
 lib/server/       HTTP, auth, storage, mail, logger foundation
 lib/config/       Validated env + constants
 lib/shared/       Isomorphic business constants
 types/api.ts      API contracts shared by server and browser
 components/       React components
+proxy.ts          Edge redirects (cookie presence only)
 prisma/           Schema and migrations
 scripts/          One-off Node scripts (seed, legacy import)
 docs/             Architecture notes

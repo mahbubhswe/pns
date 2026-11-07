@@ -1,3 +1,5 @@
+"use client";
+
 // context/ThemeContext.tsx
 import { createContext, useContext, useMemo, useState, useEffect, ReactNode } from "react";
 import { ThemeProvider, createTheme, CssBaseline, useMediaQuery } from "@mui/material";

@@ -1,3 +1,5 @@
+"use client";
+
 // components/ThemeToggle.tsx
 import * as React from "react";
 import { IconButton, Tooltip, useTheme } from "@mui/material";

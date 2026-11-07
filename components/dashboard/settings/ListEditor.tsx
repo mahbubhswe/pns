@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Box, Button, IconButton, Paper, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
