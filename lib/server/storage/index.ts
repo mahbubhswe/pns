@@ -64,6 +64,36 @@ export function deleteUploadIfLocal(publicUrl: string | null | undefined): void 
   }
 }
 
+export type StoredFile = { body: ReadableStream<Uint8Array> | Uint8Array; contentType: string; size: number | null };
+
+/**
+ * Read back a file previously returned by `persistUpload`, so it can be served
+ * from our own origin. Needed for PDFs: Vercel Blob always sends them with
+ * `Content-Disposition: attachment`, which makes browsers download instead of
+ * preview. Returns null when the file does not exist.
+ */
+export async function readStoredFile(publicUrl: string): Promise<StoredFile | null> {
+  if (/^https:\/\//i.test(publicUrl)) {
+    const res = await fetch(publicUrl, { cache: "no-store" });
+    if (res.status === 404) return null;
+    if (!res.ok || !res.body) throw new Error(`Failed to fetch stored file (${res.status})`);
+    const length = Number(res.headers.get("content-length"));
+    return {
+      body: res.body,
+      contentType: res.headers.get("content-type") || "application/octet-stream",
+      size: Number.isFinite(length) && length > 0 ? length : null,
+    };
+  }
+
+  if (!publicUrl.startsWith("/uploads/")) return null;
+  const abs = path.join(process.cwd(), "public", publicUrl.replace(/^\/+/, ""));
+  const uploadsRoot = path.join(process.cwd(), "public", "uploads");
+  if (!abs.startsWith(uploadsRoot) || !fs.existsSync(abs)) return null; // never escape the uploads dir
+  const bytes = new Uint8Array(fs.readFileSync(abs));
+  const contentType = path.extname(abs).toLowerCase() === ".pdf" ? "application/pdf" : "application/octet-stream";
+  return { body: bytes, contentType, size: bytes.byteLength };
+}
+
 // ---------------------------------------------------------------------------
 
 function buildFileName(originalName: string, label: string): string {
