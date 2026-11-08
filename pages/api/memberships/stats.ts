@@ -1,17 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import type { NextHandler } from "next-connect";
 import { prisma } from "@/lib/prisma";
-import { ensureAdmin } from "@/lib/server/auth";
+import { requirePermissions } from "@/lib/server/rbac";
 import { createApiHandler } from "@/lib/server/handler";
 
 const handler = createApiHandler(["GET"]);
 
-handler.use((req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
-  if (!ensureAdmin(req, res)) {
-    return;
-  }
-  next();
-});
+handler.use(requirePermissions("members.view"));
 
 handler.get(async (_req: NextApiRequest, res: NextApiResponse) => {
   const users = await prisma.user.findMany({ select: { status: true } });

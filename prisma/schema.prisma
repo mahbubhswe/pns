@@ -79,6 +79,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   // Relations
+  vouchers Voucher[]
 }
 
 model Post {
@@ -106,16 +107,38 @@ model ManagementUser {
   name     String
   phone    String
   address  String?
-  role     ManagementRole
+  role     ManagementRole @default(VIEWER) // legacy enum, kept for compatibility; access comes from roleRef
   email    String   @unique
   password String
   title    String?
   created  DateTime @default(now())
 
+  // Role-based access
+  roleId      Int?
+  roleRef     Role?     @relation(fields: [roleId], references: [id], onDelete: SetNull)
+  isActive    Boolean   @default(true)
+  lastLoginAt DateTime?
+
   // Relations
-  posts Post[]
+  posts           Post[]
+  vouchersCreated Voucher[] @relation("VoucherCreatedBy")
+  vouchersVoided  Voucher[] @relation("VoucherVoidedBy")
 
   @@index([name, email])
+  @@index([roleId])
+}
+
+// Staff roles with a list of permission keys (see lib/permissions.ts). "*" = full access.
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  permissions String[] @default([])
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users ManagementUser[]
 }
 
 model PreviewDocument {
@@ -123,4 +146,99 @@ model PreviewDocument {
   title     String?
   fileUrl   String
   createdAt DateTime @default(now())
+}
+
+// ---- Accounting ----
+enum FundAccountType {
+  CASH
+  BANK
+  MOBILE_BANKING
+}
+
+enum LedgerHeadType {
+  INCOME
+  EXPENSE
+}
+
+enum VoucherType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum VoucherStatus {
+  POSTED
+  VOID
+}
+
+// Where money sits: cash box, bank account, bKash wallet.
+model FundAccount {
+  id             Int             @id @default(autoincrement())
+  name           String          @unique
+  type           FundAccountType
+  accountNumber  String?
+  institution    String?
+  branch         String?
+  openingBalance Decimal         @default(0) @db.Decimal(14, 2)
+  isActive       Boolean         @default(true)
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  vouchers         Voucher[] @relation("VoucherAccount")
+  incomingTransfer Voucher[] @relation("VoucherToAccount")
+}
+
+// Income / expense categories (chart of accounts heads).
+model LedgerHead {
+  id          Int            @id @default(autoincrement())
+  name        String
+  code        String?        @unique
+  type        LedgerHeadType
+  description String?
+  isActive    Boolean        @default(true)
+  isSystem    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  vouchers Voucher[]
+
+  @@unique([type, name])
+}
+
+// One money movement. INCOME/EXPENSE use headId + accountId; TRANSFER moves accountId -> toAccountId.
+model Voucher {
+  id            Int           @id @default(autoincrement())
+  voucherNo     String        @unique
+  type          VoucherType
+  status        VoucherStatus @default(POSTED)
+  date          DateTime
+  amount        Decimal       @db.Decimal(14, 2)
+  headId        Int?
+  head          LedgerHead?   @relation(fields: [headId], references: [id])
+  accountId     Int
+  account       FundAccount   @relation("VoucherAccount", fields: [accountId], references: [id])
+  toAccountId   Int?
+  toAccount     FundAccount?  @relation("VoucherToAccount", fields: [toAccountId], references: [id])
+  partyName     String?
+  reference     String?
+  description   String?
+  attachmentUrl String?
+  memberId      Int?
+  member        User?           @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  createdById   Int?
+  createdBy     ManagementUser? @relation("VoucherCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  voidReason    String?
+  voidedAt      DateTime?
+  voidedById    Int?
+  voidedBy      ManagementUser? @relation("VoucherVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([date])
+  @@index([type, date])
+  @@index([headId])
+  @@index([accountId])
+  @@index([toAccountId])
+  @@index([memberId])
 }

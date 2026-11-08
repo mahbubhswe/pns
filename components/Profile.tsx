@@ -23,10 +23,12 @@ import {
   Typography,
 } from "@mui/material";
 import Link from "next/link";
+import PublicHeader from "@/components/PublicHeader";
+import { SceneStage } from "@/components/AuthShell";
 
 const fetcher = (url: string) => axios.get(url).then(r => r.data);
-const HERO_IMG =
-  "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg";
+// /api/profile returns the DB enum (APPROVED | PENDING | REJECTED)
+const STATUS_LABEL: Record<string, string> = { APPROVED: "Approved", PENDING: "Pending review", REJECTED: "Not approved" };
 
 export default function Profile() {
   const { data, error, isLoading, mutate } = useSWR("/api/profile", fetcher);
@@ -78,55 +80,27 @@ export default function Profile() {
 
   return (
     <>
-      {/* Hero to match login/register pages */}
-      <Box
-        sx={{
-          position: "relative",
-          minHeight: { xs: 180, md: 240 },
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "common.white",
-          textAlign: "center",
-          backgroundImage: `linear-gradient( to bottom, rgba(0,0,0,.45), rgba(0,0,0,.55) ), url(${HERO_IMG})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          overflow: "hidden",
-        }}
-      >
-        <Container maxWidth="lg">
-          <Stack spacing={1} sx={{ position: "relative", zIndex: 1 }}>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: 800,
-                textShadow: "0 2px 12px rgba(0,0,0,.4)",
-                fontSize: { xs: 28, md: 36 },
-              }}
-            >
-              Your Profile
-            </Typography>
-            <Typography variant="h6" sx={{ opacity: 0.95, fontWeight: 500 }}>
-              Manage your membership details
-            </Typography>
-          </Stack>
+      <PublicHeader />
+      {/* Hero with a living neighbourhood scene */}
+      <Box sx={{ position: "relative", overflow: "hidden", minHeight: { xs: 240, md: 300 }, display: "flex", alignItems: "flex-end", color: "#fff", bgcolor: "#0B1A14" }}>
+        <Box sx={{ position: "absolute", inset: 0 }}>
+          <SceneStage index={7} />
+        </Box>
+        <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(8,20,16,.85) 0%, rgba(8,20,16,.45) 60%, rgba(8,20,16,.1) 100%)" }} />
+        <Container maxWidth="lg" sx={{ position: "relative", py: { xs: 4, md: 5 } }}>
+          <Typography variant="overline" sx={{ color: "#F4A62A" }}>
+            Member profile
+          </Typography>
+          <Typography variant="h3" sx={{ fontSize: { xs: 28, md: 40 } }}>
+            Hello, {String(p.ownerNameEnglish || "neighbour").split(" ")[0]}
+          </Typography>
+          <Typography sx={{ opacity: 0.9, mt: 0.5 }}>Update your photo and review your registration details below.</Typography>
         </Container>
       </Box>
 
-      {/* Floating helper card */}
-      <Container maxWidth="lg" sx={{ transform: "translateY(-24px)" }}>
-        <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 2 }}>
-          <CardContent sx={{ py: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              Update your photo and review your registration information below.
-            </Typography>
-          </CardContent>
-        </Card>
-      </Container>
-
       <Container maxWidth="lg" sx={{ pt: 2, pb: { xs: 4, md: 6 } }}>
         <Stack spacing={3}>
-          <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
+          <Card>
           <CardHeader
             avatar={
               p.ownerPhoto ? (
@@ -154,8 +128,8 @@ export default function Profile() {
               >
                 <Chip
                   size="small"
-                  label={p.status}
-                  color={p.status === "pending" ? "warning" : "success"}
+                  label={STATUS_LABEL[p.status] || p.status}
+                  color={p.status === "APPROVED" ? "success" : p.status === "REJECTED" ? "default" : "warning"}
                 />
                 <ChangePhoto mutate={mutate} />
                 <Button size="small" variant="outlined" onClick={onLogout}>

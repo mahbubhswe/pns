@@ -2,16 +2,24 @@ import React, { useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { useRouter } from "next/router";
 import {
+  Avatar,
   Box,
   Button,
-  Chip,
-  Paper,
   Stack,
+  Tab,
+  Tabs,
   Tooltip,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import DownloadRounded from "@mui/icons-material/DownloadRounded";
+import FilterAltOffRounded from "@mui/icons-material/FilterAltOffRounded";
+import { PageHeader, StatusChip } from "@/components/dashboard/ui";
+import { useAdmin } from "@/lib/useAdmin";
+import { initials } from "@/lib/format";
 import type { Dayjs } from "dayjs";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -99,7 +107,27 @@ export default function MembershipPage() {
   const { ready, parseFile } = useXlsx();
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const rows = useMemo(() => data?.members || [], [data?.members]);
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
+  const { can } = useAdmin();
+  const statusParam = typeof router.query.status === "string" ? router.query.status : "all";
+  const statusFilter = ["active", "pending", "inactive"].includes(statusParam) ? statusParam : "all";
+  const allRows = useMemo(() => data?.members || [], [data?.members]);
+  const rows = useMemo(
+    () => (statusFilter === "all" ? allRows : allRows.filter(r => r.status === statusFilter)),
+    [allRows, statusFilter]
+  );
+  const counts = useMemo(
+    () => ({
+      all: allRows.length,
+      pending: allRows.filter(r => r.status === "pending").length,
+      active: allRows.filter(r => r.status === "active").length,
+      inactive: allRows.filter(r => r.status === "inactive").length,
+    }),
+    [allRows]
+  );
+  const setStatus = (v: string) =>
+    router.replace({ pathname: router.pathname, query: v === "all" ? {} : { status: v } }, undefined, { shallow: true });
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -150,40 +178,67 @@ export default function MembershipPage() {
   };
 
   const columns: GridColDef[] = [
-    { field: "ownerNameEnglish", headerName: "Name", flex: 1, minWidth: 160 },
-    { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
+    {
+      field: "ownerNameEnglish",
+      headerName: "Member",
+      flex: 1.4,
+      minWidth: 230,
+      renderCell: (params: any) => (
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ height: "100%", minWidth: 0 }}>
+          <Avatar
+            src={params.row.ownerPhoto || undefined}
+            sx={{ width: 34, height: 34, fontSize: 13, bgcolor: alpha(theme.palette.primary.main, 0.14), color: "primary.main" }}
+          >
+            {initials(params.value)}
+          </Avatar>
+          <Box sx={{ minWidth: 0, lineHeight: 1.25 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 14 }} noWrap>
+              {params.value}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap component="div">
+              {params.row.email}
+            </Typography>
+          </Box>
+        </Stack>
+      ),
+    },
+    {
+      field: "plot",
+      headerName: "Plot",
+      minWidth: 170,
+      valueGetter: (_v: any, row: any) => `S-${row.sectorNumber} · R-${row.roadNumber} · P-${row.plotNumber}`,
+    },
     { field: "contactNumber", headerName: "Phone", minWidth: 140 },
-    { field: "ownershipProofType", headerName: "Proof Type", minWidth: 160 },
+    {
+      field: "paymentMethod",
+      headerName: "Paid via",
+      minWidth: 110,
+      valueFormatter: (v: any) => (v === "BKASH" ? "bKash" : v === "BANK" ? "Bank" : v),
+    },
     {
       field: "status",
       headerName: "Status",
-      minWidth: 120,
-      renderCell: (params: any) => (
-        <Chip
-          label={params.value}
-          color={params.value === "active" ? "success" : params.value === "pending" ? "warning" : "default"}
-          size="small"
-          sx={{ textTransform: "capitalize" }}
-        />
-      ),
+      minWidth: 150,
+      renderCell: (params: any) => <StatusChip status={params.value} />,
       sortable: true,
     },
     {
       field: "joinedAt",
-      headerName: "Joined",
-      minWidth: 160,
+      headerName: "Applied",
+      minWidth: 130,
       sortable: true,
       renderCell: (params: any) => {
         const v = params?.row?.joinedAt;
         if (!v) return "";
         const d = moment(v);
-        return d.isValid() ? d.format("D, MMM YYYY") : "";
+        return d.isValid() ? d.format("D MMM YYYY") : "";
       },
     },
     {
       field: "actions",
       type: "actions",
-      headerName: "Actions",
+      headerName: "",
+      width: 60,
       getActions: params => [
         <GridActionsCellItem
           key="view"
@@ -197,85 +252,86 @@ export default function MembershipPage() {
   ];
 
   return (
-    <DashboardLayout>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
-          Membership
-        </Typography>
-        <input ref={inputRef} hidden type="file" accept=".xlsx,.xls" onChange={handleImport} />
-        <Tooltip title={ready ? "Import from XLSX" : "Loading XLSX parser..."}>
-          <span>
-            <Button
-              variant="contained"
-              startIcon={<UploadFileIcon />}
-              disabled={!ready}
-              onClick={() => inputRef.current?.click()}
-            >
-              Import XLSX
+    <DashboardLayout title="Members" permission="members.view">
+      <PageHeader
+        eyebrow="Community"
+        title="Members & applications"
+        subtitle="Every plot owner who has applied online. Open a record to verify documents and approve or reject."
+        actions={
+          <>
+            <Button variant="outlined" startIcon={<DownloadRounded />} onClick={handleDownloadCsv} disabled={!rows.length}>
+              Export CSV
             </Button>
-          </span>
-        </Tooltip>
-      </Box>
+            {can("members.manage") && (
+              <>
+                <input ref={inputRef} hidden type="file" accept=".xlsx,.xls" onChange={handleImport} />
+                <Tooltip title={ready ? "Import from XLSX" : "Loading XLSX parser..."}>
+                  <span>
+                    <Button variant="contained" startIcon={<UploadFileIcon />} disabled={!ready} onClick={() => inputRef.current?.click()}>
+                      Import XLSX
+                    </Button>
+                  </span>
+                </Tooltip>
+              </>
+            )}
+          </>
+        }
+      />
 
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          alignItems="center"
-          sx={{ mb: 2, flexWrap: "wrap" }}
-        >
-          <DatePicker
-            label="Start date"
-            value={startDate}
-            onChange={value => setStartDate(value)}
-            slotProps={{
-              textField: {
-                sx: { minWidth: 200 },
-                InputLabelProps: { shrink: true },
-              },
-            }}
-          />
-          <DatePicker
-            label="End date"
-            value={endDate}
-            onChange={value => setEndDate(value)}
-            slotProps={{
-              textField: {
-                sx: { minWidth: 200 },
-                InputLabelProps: { shrink: true },
-              },
-            }}
-          />
-          <Button
-            variant="outlined"
-            onClick={() => {
-              setStartDate(null);
-              setEndDate(null);
-            }}
-            disabled={!startDate && !endDate}
-          >
-            Clear dates
-          </Button>
-          <Button variant="contained" onClick={handleDownloadCsv} disabled={!rows.length}>
-            Download CSV
-          </Button>
-        </Stack>
-      </LocalizationProvider>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ xs: "stretch", md: "center" }} justifyContent="space-between" sx={{ mb: 2 }}>
+        <Tabs value={statusFilter} onChange={(_, v) => setStatus(v)} variant="scrollable" allowScrollButtonsMobile sx={{ minHeight: 44 }}>
+          <Tab value="all" label={`All (${counts.all})`} />
+          <Tab value="pending" label={`Pending (${counts.pending})`} />
+          <Tab value="active" label={`Approved (${counts.active})`} />
+          <Tab value="inactive" label={`Rejected (${counts.inactive})`} />
+        </Tabs>
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ xs: "stretch", sm: "center" }}>
+            <DatePicker
+              label="Applied from"
+              value={startDate}
+              onChange={value => setStartDate(value)}
+              slotProps={{ textField: { size: "small", sx: { minWidth: 170 } } }}
+            />
+            <DatePicker
+              label="Applied until"
+              value={endDate}
+              onChange={value => setEndDate(value)}
+              slotProps={{ textField: { size: "small", sx: { minWidth: 170 } } }}
+            />
+            <Button
+              color="inherit"
+              startIcon={<FilterAltOffRounded />}
+              onClick={() => {
+                setStartDate(null);
+                setEndDate(null);
+              }}
+              disabled={!startDate && !endDate}
+            >
+              Clear
+            </Button>
+          </Stack>
+        </LocalizationProvider>
+      </Stack>
 
-      <Paper sx={{ height: 600, width: "100%" }}>
+      <Box sx={{ height: { xs: 560, md: 640 }, width: "100%" }}>
         <DataGrid
           rows={rows}
           columns={columns}
           loading={isLoading}
+          rowHeight={60}
           disableRowSelectionOnClick
+          onRowClick={p => router.push(`/dashboard/membership/${p.id}`)}
+          columnVisibilityModel={isPhone ? { contactNumber: false, paymentMethod: false, joinedAt: false, plot: false } : undefined}
           initialState={{
-            pagination: { paginationModel: { pageSize: 10, page: 0 } },
+            pagination: { paginationModel: { pageSize: 25, page: 0 } },
           }}
-          pageSizeOptions={[5, 10, 25, 50]}
+          pageSizeOptions={[10, 25, 50, 100]}
           slots={{ toolbar: GridToolbar }}
           slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 300 } } }}
+          sx={{ "& .MuiDataGrid-row": { cursor: "pointer" } }}
         />
-      </Paper>
+      </Box>
     </DashboardLayout>
   );
 }

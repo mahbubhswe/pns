@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import type { NextHandler } from "next-connect";
 import { prisma } from "@/lib/prisma";
-import { ensureAdmin } from "@/lib/server/auth";
+import { requirePermissions } from "@/lib/server/rbac";
 import { randomUUID } from "crypto";
 import bcrypt from "bcryptjs";
 import { createApiHandler } from "@/lib/server/handler";
@@ -82,12 +81,7 @@ function parseDateParam(value: string | string[] | undefined): Date | null {
 
 const handler = createApiHandler(["GET", "POST"]);
 
-handler.use((req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
-  if (!ensureAdmin(req, res)) {
-    return;
-  }
-  next();
-});
+handler.use(requirePermissions({ GET: "members.view", POST: "members.manage" }));
 
 handler.get(async (req: NextApiRequest, res: NextApiResponse) => {
   const startDate = parseDateParam(req.query.start);

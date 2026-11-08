@@ -2,30 +2,31 @@ import React, { useState } from "react";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   CircularProgress,
   Snackbar,
   Alert,
   Stack,
   TextField,
   Typography,
-  Container,
+  IconButton,
+  InputAdornment,
+  Divider,
 } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import axios from "axios";
+import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-
-const HERO_IMG =
-  "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg";
+import AuthShell from "@/components/AuthShell";
 
 export default function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [show, setShow] = useState(false);
   const [toast, setToast] = useState<{
     open: boolean;
     msg: string;
@@ -75,157 +76,77 @@ export default function LoginForm() {
 
   return (
     <>
-      {/* Hero to match register page */}
-      <Box
-        sx={{
-          position: "relative",
-          minHeight: { xs: 180, md: 240 },
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "common.white",
-          textAlign: "center",
-          backgroundImage: `linear-gradient( to bottom, rgba(0,0,0,.45), rgba(0,0,0,.55) ), url(${HERO_IMG})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          overflow: "hidden",
-        }}
+      <Head>
+        <title>Member login · Purbachal Newtown Society</title>
+      </Head>
+      <AuthShell
+        scene={1}
+        eyebrow="Members"
+        title="Welcome back, neighbour"
+        subtitle="Sign in to see your application, your plot details and updates from the committee."
       >
-        <Container maxWidth="lg">
-          <Stack spacing={1} sx={{ position: "relative", zIndex: 1 }}>
-            <Typography
-              variant="h3"
-              sx={{
-                fontWeight: 800,
-                textShadow: "0 2px 12px rgba(0,0,0,.4)",
-                fontSize: { xs: 28, md: 36 },
+        <Box component="form" onSubmit={onSubmit} action="/api/auth/login" method="post" noValidate>
+          <Stack spacing={2.25}>
+            <TextField
+              name="email"
+              label="Email address"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              error={!!email && !emailOk(email)}
+              helperText={!!email && !emailOk(email) ? "Enter a valid email" : " "}
+              autoComplete="username"
+              fullWidth
+              required
+            />
+            <TextField
+              name="password"
+              label="Password"
+              type={show ? "text" : "password"}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              helperText={password && password.length < 6 ? "Min 6 characters" : " "}
+              error={!!password && password.length < 6}
+              autoComplete="current-password"
+              fullWidth
+              required
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton aria-label="Show password" onClick={() => setShow(v => !v)} edge="end">
+                      {show ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
+            />
+            <Button
+              type="submit"
+              size="large"
+              variant="contained"
+              disabled={submitting || !emailOk(email) || password.length < 6}
+              startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
+              sx={{ py: 1.5 }}
             >
-              Purbachal Newtown Society
-            </Typography>
-            <Typography variant="h6" sx={{ opacity: 0.95, fontWeight: 500 }}>
-              Member Login
-            </Typography>
+              {submitting ? "Signing in…" : "Sign in"}
+            </Button>
           </Stack>
-        </Container>
-      </Box>
+        </Box>
+        <Divider sx={{ my: 3 }}>
+          <Typography variant="body2" color="text.secondary">
+            New to PNS?
+          </Typography>
+        </Divider>
+        <Button component={Link} href="/auth/register" variant="outlined" size="large" startIcon={<PersonAddIcon />} fullWidth>
+          Apply for membership
+        </Button>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: "center" }}>
+          Committee member? <Link href="/admin/login">Sign in to the management portal</Link>
+        </Typography>
+      </AuthShell>
 
-      {/* Floating helper card */}
-      <Container maxWidth="lg" sx={{ transform: "translateY(-24px)" }}>
-        <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 2 }}>
-          <CardContent sx={{ py: 2 }}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Typography variant="body2" color="text.secondary">
-                Enter your email and password to continue.
-              </Typography>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Typography variant="body2">Don’t have an account?</Typography>
-                <Button
-                  component={Link}
-                  href="/auth/register"
-                  variant="text"
-                  size="small"
-                  startIcon={<PersonAddIcon fontSize="small" />}
-                  sx={{ textDecoration: "none", color: "inherit" }}
-                >
-                  Register
-                </Button>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
-      </Container>
-
-      {/* Main login card */}
-      <Container maxWidth="sm" sx={{ pt: 2, pb: { xs: 4, md: 6 } }}>
-        <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
-          <CardHeader title="Login" subheader="Sign in to your account" />
-          <CardContent>
-            <Box
-              component="form"
-              onSubmit={onSubmit}
-              action="/api/auth/login"
-              method="post"
-              noValidate
-            >
-              <Stack spacing={2}>
-                <TextField
-                  name="email"
-                  label="Email"
-                  size="small"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  error={!!email && !emailOk(email)}
-                  helperText={
-                    !!email && !emailOk(email) ? "Enter a valid email" : " "
-                  }
-                  autoComplete="username"
-                  fullWidth
-                  required
-                />
-                <TextField
-                  name="password"
-                  label="Password"
-                  size="small"
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  helperText={
-                    password && password.length < 6 ? "Min 6 characters" : " "
-                  }
-                  error={!!password && password.length < 6}
-                  autoComplete="current-password"
-                  fullWidth
-                  required
-                />
-
-                <Button
-                  type="submit"
-                  variant="contained"
-                  disabled={
-                    submitting || !emailOk(email) || password.length < 6
-                  }
-                  startIcon={
-                    submitting ? <CircularProgress size={18} /> : undefined
-                  }
-                >
-                  {submitting ? "Signing in…" : "Login"}
-                </Button>
-                <Typography  >
-                  <Button
-                    component={Link}
-                    href="/auth/register"
-                    variant="text"
-                    size="small"
-                    startIcon={<PersonAddIcon fontSize="small" />}
-                    sx={{ textDecoration: "none", color: "inherit" }}
-                  >
-                    New Registration
-                  </Button>
-                </Typography>
-              </Stack>
-            </Box>
-          </CardContent>
-        </Card>
-      </Container>
-
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={3500}
-        onClose={() => setToast({ ...toast, open: false })}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setToast({ ...toast, open: false })}
-          severity={toast.sev}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
+      <Snackbar open={toast.open} autoHideDuration={3500} onClose={() => setToast({ ...toast, open: false })}>
+        <Alert onClose={() => setToast({ ...toast, open: false })} severity={toast.sev} variant="filled" sx={{ width: "100%" }}>
           {toast.msg}
         </Alert>
       </Snackbar>

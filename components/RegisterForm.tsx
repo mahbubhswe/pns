@@ -36,47 +36,10 @@ import CloseIcon from "@mui/icons-material/Close";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ImageIcon from "@mui/icons-material/Image";
-import styled from "@emotion/styled";
 
-// Animated title component with multiple color animation
-const AnimatedTitle = styled.div`
-  font-weight: 800;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-  font-size: 28px;
-  background: linear-gradient(
-    45deg,
-    #ff0000,
-    #ff7f00,
-    #ffff00,
-    #00ff00,
-    #0000ff,
-    #4b0082,
-    #9400d3
-  );
-  background-size: 400% 400%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: colorShift 6s linear infinite;
-  @keyframes colorShift {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
-`;
-
-// 🖼️ Hero background (internet image)
 import axios from "axios";
-
-// 🖼️ Hero background (internet image)
-const HERO_IMG =
-  "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg";
+import PublicHeader from "@/components/PublicHeader";
+import { SceneStage } from "@/components/AuthShell";
 
 // 🧾 Constants from the PDF instruction
 const MEMBERSHIP_FEE = 1020; // BDT (used for API, but display varies)
@@ -738,126 +701,47 @@ export default function PnsMembershipForm() {
           content="Register for Purbachal Newtown Society membership and submit your ownership details and payment receipt."
         />
       </Head>
-      {/* 🔹 HERO with overlay */}
-      <Box
-        sx={{
-          position: "relative",
-
-          py: { xs: 4, md: 6 },
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "common.white",
-          textAlign: "center",
-          backgroundImage: `linear-gradient( to bottom, rgba(0,0,0,.45), rgba(0,0,0,.55) ), url(${HERO_IMG})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          overflow: "hidden",
-        }}
-      >
-        {/* soft vignette bottom */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            pointerEvents: "none",
-            background:
-              "radial-gradient(120% 60% at 50% 100%, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 60%)",
-          }}
-        />
-        <Container maxWidth="lg">
-          <Stack spacing={1} sx={{ position: "relative", zIndex: 1 }}>
-            <AnimatedTitle>Purbachal Newtown Society</AnimatedTitle>
-            <Typography
-              variant="h6"
-              sx={{
-                opacity: 0.95,
-                fontWeight: 500,
-                letterSpacing: 0.2,
-                mb: 1,
-              }}
-            >
-              Membership Registration Form
-            </Typography>
-            <Stack
-              direction="row"
-              spacing={1.5}
-              justifyContent="center"
-              flexWrap="wrap"
-              sx={{ mt: 1 }}
-            >
-              <Chip
-                label={`bKash: ${BKASH_NUMBER}`}
-                variant="filled"
-                sx={{
-                  bgcolor: "#fde7f2",
-                  color: "#b31259",
-                  borderColor: "transparent",
-                }}
-              />
-              <Chip
-                label={`Bank: ${BANK.accountNumber}`}
-                variant="filled"
-                sx={{
-                  bgcolor: "#e8f0fe",
-                  color: "#0b3d91",
-                  borderColor: "transparent",
-                }}
-              />
-            </Stack>
-
-            {/* quick callouts */}
+      <PublicHeader />
+      {/* 🔹 Hero with a living neighbourhood scene */}
+      <Box sx={{ position: "relative", overflow: "hidden", minHeight: { xs: 280, md: 340 }, display: "flex", alignItems: "flex-end", color: "#fff", bgcolor: "#0B1A14" }}>
+        <Box sx={{ position: "absolute", inset: 0 }}>
+          <SceneStage index={3} />
+        </Box>
+        <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(8,20,16,.88) 0%, rgba(8,20,16,.55) 55%, rgba(8,20,16,.1) 100%)" }} />
+        <Container maxWidth="lg" sx={{ position: "relative", py: { xs: 4, md: 6 } }}>
+          <Typography variant="overline" sx={{ color: "#F4A62A" }}>
+            Membership application · সদস্যপদের আবেদন
+          </Typography>
+          <Typography variant="h3" sx={{ fontSize: { xs: 30, md: 44 }, mt: 0.5 }}>
+            Join Purbachal Newtown Society
+          </Typography>
+          <Typography sx={{ opacity: 0.9, mt: 1, maxWidth: 640 }}>
+            Fill in your plot and owner details, then upload your documents and payment proof. Your application PDF arrives by email the moment you submit.
+          </Typography>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 2.5 }}>
+            {[`bKash: ${BKASH_NUMBER}`, `Bank A/C: ${BANK.accountNumber}`].map(label => (
+              <Chip key={label} label={label} sx={{ bgcolor: "rgba(255,255,255,.14)", color: "#fff", border: "1px solid rgba(255,255,255,.3)", backdropFilter: "blur(6px)", fontWeight: 700 }} />
+            ))}
           </Stack>
         </Container>
       </Box>
 
-      <Container maxWidth="lg" sx={{ mt: 2 }}>
-        <Card
-          variant="outlined"
-          sx={{
-            borderRadius: 3,
-          }}
-        >
-          <CardContent>{paymentInfo}</CardContent>
-        </Card>
-      </Container>
-
-      {/* 🔹 Floating header card (overlaps hero bottom slightly) */}
-      <Container maxWidth="lg" sx={{ transform: "translateY(-32px)" }}>
-        <Card
-          variant="outlined"
-          sx={{
-            borderRadius: 3,
-            boxShadow: "0 12px 30px rgba(0,0,0,.15)",
-            backdropFilter: "blur(2px)",
-          }}
-        >
-          <CardContent sx={{ py: 2 }}>
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <Typography variant="body2" color="text.secondary">
-                Please fill in the form accurately. All fields marked with * are
-                mandatory.
-              </Typography>
-              <Stack direction="row" alignItems="center" spacing={1}>
-                <Typography variant="body2">Existing member?</Typography>
-                <Button
-                  component={Link}
-                  href="/auth/login"
-                  variant="text"
-                  size="small"
-                  startIcon={<AccountCircleIcon fontSize="small" />}
-                  sx={{ textDecoration: "none", color: "inherit" }}
-                >
-                  Login
-                </Button>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
+      <Container maxWidth="lg" sx={{ mt: 3 }}>
+        <Stack spacing={2}>
+          <Card>
+            <CardContent>{paymentInfo}</CardContent>
+          </Card>
+          <Alert
+            severity="info"
+            action={
+              <Button component={Link} href="/auth/login" size="small" color="inherit" startIcon={<AccountCircleIcon fontSize="small" />}>
+                Login
+              </Button>
+            }
+          >
+            Fields marked * are required. Already applied? Sign in to check your status.
+          </Alert>
+        </Stack>
       </Container>
 
       {/* 🔹 Main form */}
@@ -902,7 +786,7 @@ export default function PnsMembershipForm() {
           )}
           <Stack spacing={3} sx={{ opacity: locked ? 0.4 : 1 }}>
             {/* Plot Information */}
-            <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
+            <Card>
               <CardHeader
                 title="Plot Information"
                 subheader="Sector, Road, Plot, Size"
@@ -989,7 +873,7 @@ export default function PnsMembershipForm() {
             </Card>
 
             {/* Ownership Proof */}
-            <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
+            <Card>
               <CardHeader
                 title="Ownership Proof"
                 subheader="Attach exactly ONE document"
@@ -1040,7 +924,7 @@ export default function PnsMembershipForm() {
             </Card>
 
             {/* Owner Info */}
-            <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
+            <Card>
               <CardHeader title="Plot Owner’s Information" />
               <CardContent>
                 <Row>
@@ -1178,7 +1062,7 @@ export default function PnsMembershipForm() {
             </Card>
 
             {/* Payment */}
-            <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
+            <Card>
               <CardHeader
                 title="Payment"
                 subheader="Attach receipt and fill relevant fields"

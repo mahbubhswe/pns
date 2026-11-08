@@ -1,8 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import type { NextHandler } from "next-connect";
-import { ensureAdmin } from "@/lib/server/auth";
+import { requirePermissions, AdminRequest } from "@/lib/server/rbac";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 import { createApiHandler } from "@/lib/server/handler";
 
 type DbPost = {
@@ -27,54 +25,21 @@ function mapToUi(p: DbPost): UiPost {
   };
 }
 
-async function getDefaultAuthorId(): Promise<number> {
-  const first = await prisma.user.findFirst({ select: { id: true }, orderBy: { id: "asc" } });
-  if (first) return first.id;
-  const password = await bcrypt.hash("SystemAuthor#123", 10);
-  const u = await prisma.user.create({
-    data: {
-      sectorNumber: "NA",
-      roadNumber: "NA",
-      plotNumber: "NA",
-      plotSize: "NA",
-      ownershipProofType: "LD_TAX_RECEIPT" as any,
-      ownerNameEnglish: "System Author",
-      ownerNameBangla: "System Author",
-      contactNumber: "0000000000",
-      nidNumber: "NA",
-      presentAddress: "NA",
-      permanentAddress: "NA",
-      email: "system.author@example.com",
-      ownerPhoto: null,
-      password,
-      paymentMethod: "BKASH" as any,
-      membershipFee: 0,
-      agreeDataUse: false,
-      status: "APPROVED" as any,
-    },
-  });
-  return u.id;
-}
-
 const handler = createApiHandler(["GET", "POST"]);
 
-handler.use((req: NextApiRequest, res: NextApiResponse, next: NextHandler) => {
-  if (!ensureAdmin(req, res)) {
-    return;
-  }
-  next();
-});
+handler.use(requirePermissions({ GET: ["posts.view", "posts.manage"], POST: "posts.manage" }));
 
 handler.get(async (_req: NextApiRequest, res: NextApiResponse) => {
   const items = await prisma.post.findMany({ orderBy: { createdAt: "desc" } });
   return res.status(200).json({ posts: items.map(mapToUi) });
 });
 
-handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
+handler.post(async (req: AdminRequest, res: NextApiResponse) => {
   try {
     const { title, content, coverUrl, published } = req.body || {};
     if (!title || !content) return res.status(400).json({ error: "title and content are required" });
-    const authorId = await getDefaultAuthorId();
+    // Post.authorId references ManagementUser — use the signed-in staff member.
+    const authorId = req.admin!.id;
     const created = await prisma.post.create({
       data: {
         title: String(title),

@@ -3,7 +3,7 @@ import formidable, { File } from "formidable";
 import fs from "fs";
 import path from "path";
 import { prisma } from "@/lib/prisma";
-import { ensureAdmin } from "@/lib/server/auth";
+import { authorize } from "@/lib/server/rbac";
 
 export const config = {
   api: {
@@ -115,7 +115,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  if (!ensureAdmin(req, res)) {
+  if (!(await authorize(req, res, "guideline.manage"))) {
     return;
   }
 

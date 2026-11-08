@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import DashboardLayout from "@/components/dashboard/Layout";
+import { PageHeader } from "@/components/dashboard/ui";
 import { Box, Button, Card, CardContent, CardHeader, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
 import RichText from "@/components/dashboard/RichText";
 
@@ -41,11 +42,9 @@ export default function NewPostPage() {
   }
 
   return (
-    <DashboardLayout>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>Add Post</Typography>
-      </Box>
-      <Card variant="outlined" sx={{ borderRadius: 3 }}>
+    <DashboardLayout title="New post" permission="posts.manage">
+      <PageHeader crumbs={[{ label: "Posts", href: "/dashboard/posts" }, { label: "New" }]} title="Write a post" subtitle="Share news, notices or meeting minutes with the community." />
+      <Card>
         <CardHeader title="Post Details" subheader="Compose your content" />
         <CardContent>
           <Box component="form" onSubmit={onSubmit}>

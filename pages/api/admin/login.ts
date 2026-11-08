@@ -17,10 +17,13 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
     if (!rawEmail || !rawPassword)
       return res.status(400).json({ error: "Email and password are required" });
 
-    const admin = await prisma.managementUser.findUnique({ where: { email: rawEmail } });
+    const admin = await prisma.managementUser.findUnique({ where: { email: rawEmail }, include: { roleRef: true } });
     if (!admin) return res.status(401).json({ error: "Invalid email or password" });
     const ok = bcrypt.compareSync(rawPassword, (admin as any).password);
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
+    if (admin.isActive === false)
+      return res.status(403).json({ error: "This account has been deactivated. Please contact a Super Admin." });
+    await prisma.managementUser.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } });
 
     const secret = process.env.JWT_SECRET || "dev-secret";
     const token = jwt.sign({ sub: admin.id, email: admin.email, role: admin.role }, secret, { expiresIn: "7d" });
@@ -45,7 +48,7 @@ handler.post(async (req: NextApiRequest, res: NextApiResponse) => {
     }
     return res
       .status(200)
-      .json({ ok: true, admin: { id: admin.id, email: admin.email, name: (admin as any).name, role: admin.role } });
+      .json({ ok: true, admin: { id: admin.id, email: admin.email, name: (admin as any).name, role: admin.roleRef?.name || admin.role } });
   } catch (e: any) {
     console.error(e);
     return res.status(500).json({ error: "Server error", detail: e?.message || "" });

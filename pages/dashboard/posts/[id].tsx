@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import DashboardLayout from "@/components/dashboard/Layout";
+import { PageHeader } from "@/components/dashboard/ui";
 import { Box, Button, Card, CardContent, CardHeader, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
 import RichText from "@/components/dashboard/RichText";
 
@@ -63,11 +64,9 @@ export default function EditPostPage() {
   }
 
   return (
-    <DashboardLayout>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>Edit Post</Typography>
-      </Box>
-      <Card variant="outlined" sx={{ borderRadius: 3 }}>
+    <DashboardLayout title="Edit post" permission="posts.manage">
+      <PageHeader crumbs={[{ label: "Posts", href: "/dashboard/posts" }, { label: "Edit" }]} title="Edit post" subtitle="Update the story and choose whether it's visible." />
+      <Card>
         <CardHeader title="Post Details" subheader="Update your content" />
         <CardContent>
           <Box component="form" onSubmit={onSubmit}>

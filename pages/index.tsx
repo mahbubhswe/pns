@@ -1,596 +1,488 @@
-// pages/index.tsx
+// pages/index.tsx — public landing page
 import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import Image from "next/image";
+import React, { useState } from "react";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Box,
   Button,
-  Chip,
+  Card,
   Container,
-  Paper,
-  Stack,
-  Typography,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
+  Stack,
+  Tooltip,
+  Typography,
 } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import LoginIcon from "@mui/icons-material/Login";
-import PaymentsIcon from "@mui/icons-material/Payments";
-import SecurityIcon from "@mui/icons-material/Security";
-import ArticleIcon from "@mui/icons-material/Article";
-import InfoIcon from "@mui/icons-material/Info";
-import ArrowBackIosNew from "@mui/icons-material/ArrowBackIosNew";
-import ArrowForwardIos from "@mui/icons-material/ArrowForwardIos";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { keyframes } from "@mui/system";
+import { alpha, useTheme } from "@mui/material/styles";
+import { motion } from "framer-motion";
+import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
+import LoginRounded from "@mui/icons-material/LoginRounded";
+import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
+import ContentCopyRounded from "@mui/icons-material/ContentCopyRounded";
+import CheckRounded from "@mui/icons-material/CheckRounded";
+import MapRounded from "@mui/icons-material/MapRounded";
+import PlaceRounded from "@mui/icons-material/PlaceRounded";
+import AltRouteRounded from "@mui/icons-material/AltRouteRounded";
+import CampaignRounded from "@mui/icons-material/CampaignRounded";
+import NotificationsActiveRounded from "@mui/icons-material/NotificationsActiveRounded";
+import Diversity3Rounded from "@mui/icons-material/Diversity3Rounded";
+import ShieldRounded from "@mui/icons-material/ShieldRounded";
+import ParkRounded from "@mui/icons-material/ParkRounded";
+import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
+import FolderSharedRounded from "@mui/icons-material/FolderSharedRounded";
+import PaymentsRounded from "@mui/icons-material/PaymentsRounded";
+import EditNoteRounded from "@mui/icons-material/EditNoteRounded";
+import LockRounded from "@mui/icons-material/LockRounded";
+import PhoneIphoneRounded from "@mui/icons-material/PhoneIphoneRounded";
+import AccountBalanceRounded from "@mui/icons-material/AccountBalanceRounded";
+import HeroScenes from "@/components/landing/HeroScenes";
+import { SceneSvg } from "@/components/landing/scenes";
+import PublicHeader from "@/components/PublicHeader";
+import PublicFooter from "@/components/PublicFooter";
 
-type Slide = {
-  src: string;
-  alt: string;
+// --- Membership constants (also hardcoded in components/RegisterForm.tsx — change both) ---
+const MEMBERSHIP_FEE = 1020; // BDT via bKash
+const BANK_FEE = 1000; // BDT via bank
+const BKASH_NUMBER = "01625358082";
+const BANK = {
+  name: "Sonali Bank Limited, Dhaka University",
+  accountName: "Purbachal Newtown Society",
+  accountNumber: "4405702001730",
+  routingNumber: "200271750",
 };
 
-// ---------- HeroBanner-like animation tuning ----------
-const DRIFT_DURATION = 16;
-const ZOOM_DURATION = 6;
-const SCALE_MIN = 1.0;
-const SCALE_MAX = 1.06;
-const MASK =
-  "linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.50) 45%, rgba(0,0,0,0.16) 70%, rgba(0,0,0,0) 100%)";
+const reveal = {
+  initial: { opacity: 0, y: 24 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.2 },
+  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
+};
 
-const driftUp = keyframes`
-  from { transform: translateY(10px); }
-  to   { transform: translateY(-10px); }
-`;
-const zoomInOut = keyframes`
-  0%   { transform: scale(${SCALE_MIN}); }
-  50%  { transform: scale(${SCALE_MAX}); }
-  100% { transform: scale(${SCALE_MIN}); }
-`;
+function Highlight({ children }: { children: React.ReactNode }) {
+  return (
+    <Box
+      component="span"
+      sx={{
+        position: "relative",
+        whiteSpace: "nowrap",
+        zIndex: 0,
+        "&::after": {
+          content: '""',
+          position: "absolute",
+          left: "-2%",
+          right: "-2%",
+          bottom: "0.08em",
+          height: "0.34em",
+          bgcolor: "#F4A62A",
+          opacity: 0.85,
+          borderRadius: "4px",
+          zIndex: -1,
+          transform: "skewX(-8deg)",
+        },
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+function SectionTitle({ eyebrow, title, sub, center }: { eyebrow: string; title: React.ReactNode; sub?: React.ReactNode; center?: boolean }) {
+  return (
+    <Box sx={{ textAlign: center ? "center" : "left", maxWidth: center ? 760 : 640, mx: center ? "auto" : 0, mb: { xs: 4, md: 6 } }}>
+      <Typography variant="overline" color="secondary" sx={{ display: "block", mb: 1 }}>
+        {eyebrow}
+      </Typography>
+      <Typography variant="h2" sx={{ fontSize: { xs: 30, sm: 38, md: 46 } }}>
+        {title}
+      </Typography>
+      {sub && (
+        <Typography color="text.secondary" sx={{ mt: 2, fontSize: { md: 18 }, lineHeight: 1.7 }}>
+          {sub}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+function CopyLine({ label, value }: { label: string; value: string }) {
+  const [done, setDone] = useState(false);
+  return (
+    <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 1, borderBottom: t => `1px dashed ${t.palette.divider}`, "&:last-of-type": { borderBottom: 0 } }}>
+      <Typography variant="body2" color="text.secondary" sx={{ flex: "0 0 120px", fontWeight: 600 }}>
+        {label}
+      </Typography>
+      <Typography sx={{ flex: 1, fontWeight: 750, fontVariantNumeric: "tabular-nums", letterSpacing: ".02em", wordBreak: "break-word" }}>{value}</Typography>
+      <Tooltip title={done ? "Copied" : "Copy"}>
+        <IconButton
+          size="small"
+          aria-label={`Copy ${label}`}
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(value);
+              setDone(true);
+              setTimeout(() => setDone(false), 1600);
+            } catch {}
+          }}
+        >
+          {done ? <CheckRounded fontSize="small" color="success" /> : <ContentCopyRounded fontSize="small" />}
+        </IconButton>
+      </Tooltip>
+    </Stack>
+  );
+}
 
 export default function HomePage() {
-  const slides: Slide[] = useMemo(
-    () => [
-      {
-        src: "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-lake-road.jpg",
-        alt: "Purbachal Expressway, September 2024 (29)",
-      },
-      {
-        src: "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg",
-        alt: "Purbachal Expressway, September 2024 (25)",
-      },
-      {
-        src: "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-lake.jpg",
-        alt: "Purbachal Expressway (11)",
-      },
-    ],
-    []
-  );
+  const theme = useTheme();
+  const dark = theme.palette.mode === "dark";
 
-  // --- Membership constants ---
-  const MEMBERSHIP_FEE = 1020; // BDT
-  const BKASH_NUMBER = "01625358082";
-  const BANK = {
-    name: "Sonali Bank Limited, Dhaka University",
-    accountName: "Purbachal Newtown Society",
-    accountNumber: "4405702001730",
-    routingNumber: "200271750",
-  };
+  const benefits = [
+    { icon: <CampaignRounded />, title: "One united voice", body: "Plot owners speak to RAJUK and other authorities together, instead of one by one." },
+    { icon: <NotificationsActiveRounded />, title: "Stay in the loop", body: "Notices about roads, utilities, allotments and meetings — straight from the committee." },
+    { icon: <Diversity3Rounded />, title: "Know your neighbours", body: "Meet the families you'll share a street with long before the houses are built." },
+    { icon: <ShieldRounded />, title: "Safer together", body: "Coordinated security, lighting and maintenance for the sectors we live in." },
+    { icon: <ParkRounded />, title: "Greener township", body: "Push for parks, trees, lakes and footpaths that keep Purbachal liveable." },
+    { icon: <ReceiptLongRounded />, title: "Open accounts", body: "Every taka received and spent is recorded in the society's books." },
+  ];
 
-  // --- Slider state & autoplay ---
-  const [index, setIndex] = useState(0);
-  const [dir, setDir] = useState<1 | -1>(1);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const len = slides.length;
-  const reduce = useReducedMotion();
-
-  const go = useCallback(
-    (next: number, direction: 1 | -1) => {
-      setDir(direction);
-      setIndex(((next % len) + len) % len);
+  const steps = [
+    {
+      icon: <FolderSharedRounded />,
+      title: "Prepare your documents",
+      body: "One proof of land ownership — LD tax receipt with plot details, mutation paper or BDS khatian — plus the owner's NID number and a recent photo.",
     },
-    [len]
-  );
+    {
+      icon: <PaymentsRounded />,
+      title: `Pay the one-time fee`,
+      body: `BDT ${MEMBERSHIP_FEE.toLocaleString("en-IN")} by bKash Send Money to ${BKASH_NUMBER} (reference: your full name), or BDT ${BANK_FEE.toLocaleString("en-IN")} to the society's bank account.`,
+    },
+    {
+      icon: <EditNoteRounded />,
+      title: "Fill in the online form",
+      body: "Plot details, owner information and payment reference. Upload your documents — you'll get your application PDF by email right away.",
+    },
+  ];
 
-  useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => go(index + 1, 1), 4500);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [index, len, go]);
-
-  const pause = () => timerRef.current && clearInterval(timerRef.current);
-  const resume = () =>
-    (timerRef.current = setInterval(() => go(index + 1, 1), 4500));
-
-  // --- Page-wide reveal variants ---
-  const _reveal = {
-    hidden: { opacity: 0, y: 18 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
-  };
+  const faqs = [
+    { q: "Who can become a member?", a: "Any owner of a plot in Purbachal New Town can apply online with their plot details and one proof of ownership." },
+    { q: "What documents do I need?", a: "One ownership proof (LD tax receipt with plot details, mutation paper or BDS khatian), the owner's NID number, a recent photo and your payment receipt or transaction ID." },
+    { q: "How do I know my application was received?", a: "Right after you submit, we email you a PDF copy of your application. You can also log in to your member profile at any time to see whether it is pending or approved." },
+    { q: "Is PNS officially registered?", a: "PNS is in the process of obtaining legal registration and will launch its official website soon." },
+    { q: "How is my data handled?", a: "Your information is used only for membership registration, identity verification and administration, and is kept confidential and secure." },
+    { q: "Where does the membership fee go?", a: "Every fee is recorded as income in the society's books, alongside every expense, so the committee can prepare clear financial reports." },
+  ];
 
   return (
     <>
       <Head>
-        <title>Purbachal Newtown Society — Membership</title>
-        <meta
-          name="description"
-          content="Join PNS — a community of Purbachal New Town plot owners building a safer, better neighborhood."
-        />
+        <title>Purbachal Newtown Society — Join your neighbours</title>
+        <meta name="description" content="Join PNS — a community of Purbachal New Town plot owners building a safer, greener, better-planned neighbourhood together." />
+        <meta property="og:title" content="Purbachal Newtown Society" />
+        <meta property="og:description" content="A neighbourhood is built by its neighbours. Apply for membership online." />
       </Head>
 
-      {/* PAGE WRAPPER with initial fade-in */}
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.35 }}
-      >
-        {/* HERO SLIDER */}
-      <Box
-        sx={{
-          position: "relative",
-          height: { xs: "auto", md: 720 },
-          minHeight: { xs: 680, md: 720 },
-          overflow: "hidden",
-        }}
-      >
-          {/* Slide with HeroBanner-like drift + zoom + mask */}
-          <AnimatePresence initial={false} custom={dir}>
-            <motion.div
-              key={index}
-              custom={dir}
-              initial={{
-                opacity: 0,
-                scale: 1.04,
-                x: dir > 0 ? 40 : -40,
-              }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 1.02, x: dir > 0 ? -40 : 40 }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-              style={{
-                position: "absolute",
-                inset: 0,
-              }}
-              onMouseEnter={pause}
-              onMouseLeave={resume}
-            >
-              {/* MASK layer */}
-              <Box
-                aria-hidden
-                sx={{
-                  position: "absolute",
-                  inset: 0,
-                  WebkitMaskImage: MASK,
-                  maskImage: MASK,
-                  pointerEvents: "none",
-                }}
-              >
-                {/* DRIFT layer */}
-                <Box
-                  sx={{
-                    position: "absolute",
-                    inset: 0,
-                    transformOrigin: "center bottom",
-                    willChange: "transform",
-                    animation: reduce
-                      ? "none"
-                      : `${driftUp} ${DRIFT_DURATION}s ease-in-out infinite alternate`,
-                  }}
+      <PublicHeader overlay />
+
+      <main>
+        {/* HERO */}
+        <HeroScenes>
+          <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: { xs: "flex-end", md: "center" }, pb: { xs: 14, md: 16 }, pt: { xs: 9, md: 8 } }}>
+            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
+              <Box sx={{ maxWidth: 660, color: "#fff" }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  sx={{ display: "inline-flex", px: 1.5, py: 0.75, borderRadius: 999, bgcolor: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.25)", backdropFilter: "blur(10px)", mb: 2.5 }}
                 >
-                  {/* ZOOM layer */}
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      inset: 0,
-                      transformOrigin: "center 85%",
-                      willChange: "transform",
-                      animation: reduce
-                        ? "none"
-                        : `${zoomInOut} ${ZOOM_DURATION}s ease-in-out infinite`,
-                    }}
-                  >
-                    {/* The actual image */}
-                    <Image
-                      src={slides[index].src}
-                      alt={slides[index].alt}
-                      fill
-                      priority
-                      sizes="100vw"
-                      style={{ objectFit: "cover", filter: "brightness(0.85)" }}
-                    />
-                  </Box>
-                </Box>
-              </Box>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* overlay gradient for text readability */}
-          <Box
-            sx={{
-              position: "absolute",
-              inset: 0,
-              background:
-                "linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.55) 100%)",
-              pointerEvents: "none",
-            }}
-          />
-
-          {/* HERO CONTENT (glass) */}
-          <Container
-            maxWidth="lg"
-            sx={{ position: "relative", zIndex: 1, height: "100%" }}
-          >
-            <Stack
-              justifyContent="center"
-              alignItems="center"
-              sx={{ height: "100%" }}
-              spacing={2}
-            >
-              <Paper
-                elevation={0}
-                sx={{
-                  p: { xs: 3, md: 4 },
-                  maxWidth: 820,
-                  width: { xs: "calc(100% - 32px)", sm: "min(100%, 820px)" },
-                  boxSizing: "border-box",
-                  mx: { xs: "auto", sm: 0 },
-                  borderRadius: 3,
-                  bgcolor: "rgba(255,255,255,0.14)",
-                  color: "#fff",
-                  border: "1px solid rgba(255,255,255,0.28)",
-                  backdropFilter: "blur(10px)",
-                }}
-              >
-                <Typography
-                  variant="h3"
-                  fontWeight={800}
-                  lineHeight={1.1}
-                  gutterBottom
-                >
-                  Join the Purbachal Community
+                  <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#4ADE95", boxShadow: "0 0 0 0 rgba(74,222,149,.7)", animation: "pns-ping 1.8s infinite", "@keyframes pns-ping": { "70%": { boxShadow: "0 0 0 10px rgba(74,222,149,0)" }, "100%": { boxShadow: "0 0 0 0 rgba(74,222,149,0)" } } }} />
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 700 }}>
+                    Membership open
+                    <Box component="span" sx={{ fontFamily: '"Hind Siliguri", sans-serif', fontWeight: 600, opacity: 0.85, ml: 1 }}>
+                      · সদস্যপদ চলছে
+                    </Box>
+                  </Typography>
+                </Stack>
+                <Typography component="h1" sx={{ fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.02, fontSize: { xs: 36, sm: 54, md: 68 }, textShadow: "0 2px 30px rgba(0,0,0,.25)" }}>
+                  A neighbourhood is built by its <Highlight>neighbours.</Highlight>
                 </Typography>
-                <Typography variant="h6" sx={{ opacity: 0.95, mb: 2 }}>
-                  PNS is a volunteer-run community of Purbachal New Town plot
-                  owners. সদস্যপদ গ্রহণ করে উন্নয়নে অংশ নিন।
+                <Typography sx={{ mt: { xs: 1.5, md: 2.5 }, fontSize: { xs: 15, md: 19 }, lineHeight: 1.6, opacity: 0.92, maxWidth: 560 }}>
+                  Purbachal Newtown Society brings the plot owners of Purbachal New Town together — to speak with one voice, share news, and shape a safer, greener township.
                 </Typography>
-
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                  <Button
-                    component={Link}
-                    href="/auth/register"
-                    size="large"
-                    variant="contained"
-                    color="primary"
-                    startIcon={<CheckCircleOutlineIcon />}
-                  >
-                    Register Now
+                <Typography sx={{ mt: 1, fontFamily: '"Hind Siliguri", sans-serif', fontSize: { xs: 16, md: 18 }, opacity: 0.85 }}>
+                  পূর্বাচলের প্লট মালিকদের সংগঠন — সদস্য হয়ে উন্নয়নে অংশ নিন।
+                </Typography>
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ mt: { xs: 2.5, md: 4 } }}>
+                  <Button component={Link} href="/auth/register" size="large" variant="contained" color="warning" endIcon={<ArrowForwardRounded />} sx={{ color: "#2B1A00", px: 3.5, py: { xs: 1.25, md: 1.6 }, fontSize: 16.5 }}>
+                    Become a member
                   </Button>
                   <Button
                     component={Link}
                     href="/auth/login"
                     size="large"
                     variant="outlined"
-                    color="inherit"
-                    startIcon={<LoginIcon />}
+                    startIcon={<LoginRounded />}
+                    sx={{ color: "#fff", borderColor: "rgba(255,255,255,.55)", px: 3, py: { xs: 1.25, md: 1.6 }, fontSize: 16, backdropFilter: "blur(6px)", "&:hover": { borderColor: "#fff", bgcolor: "rgba(255,255,255,.08)" } }}
                   >
-                    Login
-                  </Button>
-
-                  <Button
-                    component="a"
-                    href="#about-purbachal"
-                    size="large"
-                    variant="outlined"
-                    color="inherit"
-                  >
-                    Learn about Purbachal
+                    Member login
                   </Button>
                 </Stack>
-
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  flexWrap="wrap"
-                  sx={{ mt: 2 }}
-                >
-                  <Chip
-                    icon={<PaymentsIcon />}
-                    label={`Membership Fee: BDT ${MEMBERSHIP_FEE}`}
-                  />
-                  <Chip
-                    icon={<SecurityIcon />}
-                    label="Your data stays private"
-                    variant="outlined"
-                  />
-                  <Chip
-                    icon={<ArticleIcon />}
-                    label="Simple paperwork"
-                    variant="outlined"
-                  />
+                <Stack direction="row" spacing={{ xs: 2, sm: 3 }} useFlexGap flexWrap="wrap" sx={{ mt: 3.5, opacity: 0.9, display: { xs: "none", sm: "flex" } }}>
+                  {[
+                    { i: <PaymentsRounded fontSize="small" />, t: `One-time fee ৳${MEMBERSHIP_FEE.toLocaleString("en-IN")}` },
+                    { i: <PhoneIphoneRounded fontSize="small" />, t: "Apply from your phone" },
+                    { i: <LockRounded fontSize="small" />, t: "Your data stays private" },
+                  ].map(x => (
+                    <Stack key={x.t} direction="row" spacing={0.75} alignItems="center">
+                      {x.i}
+                      <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{x.t}</Typography>
+                    </Stack>
+                  ))}
                 </Stack>
-              </Paper>
-            </Stack>
+              </Box>
+            </motion.div>
           </Container>
+        </HeroScenes>
 
-          {/* ARROWS */}
-          <IconButton
-            aria-label="Previous"
-            onClick={() => go(index - 1, -1)}
-            onMouseEnter={pause}
-            onMouseLeave={resume}
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: 12,
-              transform: "translateY(-50%)",
-              bgcolor: "rgba(0,0,0,0.35)",
-              color: "#fff",
-              "&:hover": { bgcolor: "rgba(0,0,0,0.55)" },
-              zIndex: 2,
-            }}
-          >
-            <ArrowBackIosNew fontSize="small" />
-          </IconButton>
-          <IconButton
-            aria-label="Next"
-            onClick={() => go(index + 1, 1)}
-            onMouseEnter={pause}
-            onMouseLeave={resume}
-            sx={{
-              position: "absolute",
-              top: "50%",
-              right: 12,
-              transform: "translateY(-50%)",
-              bgcolor: "rgba(0,0,0,0.35)",
-              color: "#fff",
-              "&:hover": { bgcolor: "rgba(0,0,0,0.55)" },
-              zIndex: 2,
-            }}
-          >
-            <ArrowForwardIos fontSize="small" />
-          </IconButton>
-
-          {/* DOTS */}
-          <Stack
-            direction="row"
-            spacing={1}
-            sx={{
-              position: "absolute",
-              bottom: 16,
-              left: "50%",
-              transform: "translateX(-50%)",
-              zIndex: 2,
-            }}
-          >
-            {slides.map((_, i) => (
-              <Box
-                key={i}
-                onClick={() => go(i, i > index ? 1 : -1)}
-                onMouseEnter={pause}
-                onMouseLeave={resume}
-                sx={{
-                  width: i === index ? 18 : 8,
-                  height: 8,
-                  borderRadius: 999,
-                  transition: "all .25s",
-                  cursor: "pointer",
-                  bgcolor:
-                    i === index
-                      ? "rgba(255,255,255,0.95)"
-                      : "rgba(255,255,255,0.5)",
-                }}
-              />
-            ))}
-          </Stack>
-        </Box>
-
-        {/* ABOUT PURBACHAL (scroll-reveal) */}
-        <Container
-          id="about-purbachal"
-          maxWidth="lg"
-          sx={{ py: { xs: 6, md: 8 } }}
-        >
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.25 }}
-          >
-            <Stack spacing={2} sx={{ mb: 1 }}>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <InfoIcon color="primary" />
-                <Typography variant="h5" fontWeight={800}>
-                  About Purbachal New Town
+        {/* STAT BAND */}
+        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 4, mt: { xs: 3, md: -6 } }}>
+          <Card sx={{ p: { xs: 1, md: 1.5 }, display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, boxShadow: dark ? "none" : "0 30px 60px -30px rgba(18,36,29,.35)" }}>
+            {[
+              { n: "30", l: "Planned sectors", s: "in Purbachal New Town" },
+              { n: `৳${MEMBERSHIP_FEE.toLocaleString("en-IN")}`, l: "One-time fee", s: "paid once when you apply" },
+              { n: "3", l: "Simple steps", s: "documents, payment, form" },
+              { n: "100%", l: "Online", s: "apply & track from anywhere" },
+            ].map((x, i) => (
+              <Box key={x.l} sx={{ p: { xs: 2, md: 3 }, borderLeft: { md: i ? `1px solid ${theme.palette.divider}` : 0 }, borderTop: { xs: i > 1 ? `1px solid ${theme.palette.divider}` : 0, md: 0 } }}>
+                <Typography sx={{ fontSize: { xs: 30, md: 40 }, fontWeight: 800, letterSpacing: "-0.03em", color: "primary.main", lineHeight: 1 }}>{x.n}</Typography>
+                <Typography sx={{ fontWeight: 750, mt: 1 }}>{x.l}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {x.s}
                 </Typography>
-              </Stack>
-              <Typography color="text.secondary">
-                Bangladesh’s largest planned township (by RAJUK), connected to
-                Dhaka via a ~12.5&nbsp;km expressway (aka “300&nbsp;ft /
-                July&nbsp;36 Expressway”).
-              </Typography>
-            </Stack>
-
-            <Paper
-              variant="outlined"
-              sx={{ p: { xs: 3, md: 4 }, borderRadius: 3 }}
-            >
-              <List dense>
-                <ListItem>
-                  <ListItemText
-                    primary="Scale & plan"
-                    secondary="Master-planned sectors and arterial roads; residential & mixed-use zones."
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Location"
-                    secondary="Northeast of Dhaka, spanning Rupganj (Narayanganj) & Kaliganj (Gazipur)."
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Connectivity"
-                    secondary="Fast link to Kuril Flyover and Kanchan Bridge."
-                  />
-                </ListItem>
-              </List>
-            </Paper>
-          </motion.div>
+              </Box>
+            ))}
+          </Card>
         </Container>
 
-        {/* HOW TO JOIN (scroll-reveal) */}
-        <Box
-          sx={{
-            backgroundColor: t => t.palette.background.paper,
-            py: { xs: 6, md: 8 },
-          }}
-        >
+        {/* ABOUT */}
+        <Box id="about" sx={{ py: { xs: 8, md: 13 }, scrollMarginTop: 80 }}>
           <Container maxWidth="lg">
-            <Stack spacing={4}>
-              {[
-                {
-                  title: "1) Prepare Required Documents",
-                  body: "Keep these ready: ONE proof of land ownership (LD tax receipt with plot details OR mutation paper OR BDS khatian) plus NID number and owner’s photo.",
-                },
-                {
-                  title: `2) Pay Membership Fee (BDT ${MEMBERSHIP_FEE})`,
-                  body: `bKash (Send Money) ${BKASH_NUMBER} — Reference: your full name. Or transfer to ${BANK.accountName}, A/C ${BANK.accountNumber}, Routing ${BANK.routingNumber} at ${BANK.name}.`,
-                },
-                {
-                  title: "3) Complete the Online Registration",
-                  body: "Fill plot details, owner info, NID, contacts & addresses; provide bKash Txn ID / bank details; upload documents and photo.",
-                },
-              ].map((sec, i) => (
-                <motion.div
-                  key={i}
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, amount: 0.25 }}
-                >
-                  <Paper
-                    variant="outlined"
-                    sx={{ p: { xs: 3, md: 4 }, borderRadius: 3 }}
-                  >
-                    <Typography variant="h6" fontWeight={700} gutterBottom>
-                      {sec.title}
+            <Box sx={{ display: "grid", gap: { xs: 5, md: 8 }, gridTemplateColumns: { xs: "1fr", md: "1fr 1.1fr" }, alignItems: "center" }}>
+              <motion.div {...reveal}>
+                <SectionTitle
+                  eyebrow="About Purbachal"
+                  title={
+                    <>
+                      Bangladesh&apos;s largest planned township — <Highlight>our future home.</Highlight>
+                    </>
+                  }
+                  sub="Planned by RAJUK to the northeast of Dhaka, Purbachal New Town is linked to the city by the ~12.5 km expressway many still call the “300 feet road” (July 36 Expressway)."
+                />
+                <Stack spacing={2.5}>
+                  {[
+                    { i: <MapRounded />, t: "Scale & plan", d: "Master-planned sectors and arterial roads, with residential and mixed-use zones." },
+                    { i: <PlaceRounded />, t: "Location", d: "Northeast of Dhaka, spanning Rupganj (Narayanganj) and Kaliganj (Gazipur)." },
+                    { i: <AltRouteRounded />, t: "Connectivity", d: "A fast link to Kuril Flyover on one side and Kanchan Bridge on the other." },
+                  ].map(f => (
+                    <Stack key={f.t} direction="row" spacing={2}>
+                      <Box sx={{ width: 48, height: 48, borderRadius: 3, display: "grid", placeItems: "center", bgcolor: alpha(theme.palette.primary.main, 0.1), color: "primary.main", flexShrink: 0 }}>{f.i}</Box>
+                      <Box>
+                        <Typography sx={{ fontWeight: 750, fontSize: 17 }}>{f.t}</Typography>
+                        <Typography color="text.secondary">{f.d}</Typography>
+                      </Box>
+                    </Stack>
+                  ))}
+                </Stack>
+              </motion.div>
+              <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}>
+                <Box sx={{ position: "relative" }}>
+                  <Box sx={{ borderRadius: 6, overflow: "hidden", aspectRatio: "16 / 11", boxShadow: "0 40px 80px -40px rgba(18,36,29,.55)", border: `1px solid ${theme.palette.divider}` }}>
+                    <SceneSvg index={18} />
+                  </Box>
+                  <Card sx={{ position: "absolute", left: { xs: 12, md: -28 }, bottom: { xs: -24, md: -28 }, p: 2, maxWidth: 260 }}>
+                    <Typography sx={{ fontWeight: 800 }}>Planned, not improvised</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Sectors, avenues, parks and lakes laid out before the first house goes up.
                     </Typography>
-                    <Typography color="text.secondary">{sec.body}</Typography>
-                    {i === 2 && (
-                      <Stack
-                        direction={{ xs: "column", sm: "row" }}
-                        spacing={2}
-                        sx={{ mt: 2 }}
-                      >
-                        <Button
-                          component={Link}
-                          href="/auth/register"
-                          variant="contained"
-                          size="large"
-                        >
-                          Go to Registration
-                        </Button>
-                        <Button
-                          component="a"
-                          href="#faq"
-                          variant="outlined"
-                          size="large"
-                        >
-                          Read FAQs
-                        </Button>
-                      </Stack>
-                    )}
-                  </Paper>
+                  </Card>
+                </Box>
+              </motion.div>
+            </Box>
+          </Container>
+        </Box>
+
+        {/* WHY JOIN */}
+        <Box id="why" sx={{ py: { xs: 8, md: 12 }, bgcolor: dark ? "#0E1C17" : "#EFEBE2", scrollMarginTop: 80 }}>
+          <Container maxWidth="lg">
+            <motion.div {...reveal}>
+              <SectionTitle center eyebrow="Why join PNS" title="Neighbours who look out for each other" sub="We're plot owners just like you — volunteers who want Purbachal to grow into the town we were promised." />
+            </motion.div>
+            <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" } }}>
+              {benefits.map((b, i) => (
+                <motion.div key={b.title} {...reveal} transition={{ ...reveal.transition, delay: i * 0.06 }}>
+                  <Card
+                    sx={{
+                      p: 3,
+                      height: "100%",
+                      transition: "transform .25s ease, box-shadow .25s ease, border-color .25s ease",
+                      "&:hover": { transform: "translateY(-4px)", borderColor: alpha(theme.palette.primary.main, 0.4), boxShadow: dark ? "none" : "0 24px 40px -24px rgba(18,36,29,.35)" },
+                    }}
+                  >
+                    <Box sx={{ width: 52, height: 52, borderRadius: 3.5, display: "grid", placeItems: "center", bgcolor: i % 2 ? alpha(theme.palette.secondary.main, 0.12) : alpha(theme.palette.primary.main, 0.12), color: i % 2 ? "secondary.main" : "primary.main", mb: 2 }}>
+                      {b.icon}
+                    </Box>
+                    <Typography sx={{ fontWeight: 800, fontSize: 19, mb: 0.75 }}>{b.title}</Typography>
+                    <Typography color="text.secondary" sx={{ lineHeight: 1.65 }}>
+                      {b.body}
+                    </Typography>
+                  </Card>
                 </motion.div>
               ))}
+            </Box>
+          </Container>
+        </Box>
+
+        {/* HOW TO JOIN */}
+        <Box id="join" sx={{ py: { xs: 8, md: 13 }, scrollMarginTop: 80 }}>
+          <Container maxWidth="lg">
+            <motion.div {...reveal}>
+              <SectionTitle eyebrow="How to join" title={<>Three <Highlight>simple</Highlight> steps.</>} sub="Have your documents and payment details ready and the online form takes care of the rest." />
+            </motion.div>
+            <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, position: "relative" }}>
+              <Box aria-hidden sx={{ display: { xs: "none", md: "block" }, position: "absolute", top: 34, left: "12%", right: "12%", height: 2, background: `repeating-linear-gradient(90deg, ${theme.palette.divider} 0 10px, transparent 10px 18px)` }} />
+              {steps.map((s, i) => (
+                <motion.div key={s.title} {...reveal} transition={{ ...reveal.transition, delay: i * 0.1 }}>
+                  <Box sx={{ position: "relative" }}>
+                    <Box sx={{ width: 68, height: 68, borderRadius: 5, display: "grid", placeItems: "center", bgcolor: "primary.main", color: "primary.contrastText", position: "relative", boxShadow: `0 14px 30px -14px ${theme.palette.primary.main}` }}>
+                      {s.icon}
+                      <Box sx={{ position: "absolute", top: -8, right: -8, width: 26, height: 26, borderRadius: "50%", bgcolor: "warning.main", color: "#2B1A00", fontWeight: 900, fontSize: 13, display: "grid", placeItems: "center", border: `3px solid ${theme.palette.background.default}` }}>{i + 1}</Box>
+                    </Box>
+                    <Typography sx={{ fontWeight: 800, fontSize: 20, mt: 2.5, mb: 1 }}>{s.title}</Typography>
+                    <Typography color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                      {s.body}
+                    </Typography>
+                  </Box>
+                </motion.div>
+              ))}
+            </Box>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 6 }}>
+              <Button component={Link} href="/auth/register" variant="contained" size="large" endIcon={<ArrowForwardRounded />}>
+                Start my application
+              </Button>
+              <Button component="a" href="#faq" variant="outlined" size="large">
+                Read the FAQ
+              </Button>
             </Stack>
           </Container>
         </Box>
 
-        {/* FAQ (scroll-reveal) */}
-        <Container id="faq" maxWidth="lg" sx={{ py: { xs: 6, md: 8 } }}>
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            <Stack spacing={3}>
-              <Typography variant="h5" fontWeight={800}>
-                Frequently Asked
-              </Typography>
-
-              <Paper
-                variant="outlined"
-                sx={{ p: { xs: 3, md: 4 }, borderRadius: 3 }}
-              >
-                <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                  Is PNS officially registered?
-                </Typography>
-                <Typography color="text.secondary">
-                  PNS is in the process of obtaining legal registration and will
-                  launch its official website soon.
-                </Typography>
-              </Paper>
-
-              <Paper
-                variant="outlined"
-                sx={{ p: { xs: 3, md: 4 }, borderRadius: 3 }}
-              >
-                <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-                  How is my data handled?
-                </Typography>
-                <Typography color="text.secondary">
-                  Your information is used only for membership registration,
-                  identity verification, and administration, and is kept
-                  confidential and secure.
-                </Typography>
-              </Paper>
-            </Stack>
-          </motion.div>
-        </Container>
-
-        {/* Final CTA */}
-        <Box
-          sx={{
-            py: { xs: 6, md: 10 },
-            backgroundColor: t => t.palette.background.paper,
-          }}
-        >
+        {/* FEES */}
+        <Box id="fees" sx={{ pb: { xs: 8, md: 12 }, scrollMarginTop: 80 }}>
           <Container maxWidth="lg">
-            <motion.div
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.2 }}
-            >
-              <Paper
-                variant="outlined"
-                sx={{
-                  p: { xs: 3, md: 5 },
-                  borderRadius: 4,
-                  textAlign: "center",
-                }}
-              >
-                <Typography variant="h5" fontWeight={800} gutterBottom>
-                  Ready to become a member?
-                </Typography>
-                <Typography color="text.secondary" sx={{ mb: 3 }}>
-                  Pay the fee, keep documents ready, and complete the quick
-                  online form.
-                </Typography>
-                <Button
-                  component={Link}
-                  href="/auth/register"
-                  size="large"
-                  variant="contained"
-                >
-                  Start Registration
-                </Button>
-              </Paper>
+            <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" } }}>
+              <motion.div {...reveal}>
+                <Card sx={{ p: { xs: 2.5, md: 3.5 }, height: "100%", position: "relative", overflow: "hidden" }}>
+                  <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, bgcolor: "#D12053" }} />
+                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+                    <Box sx={{ width: 48, height: 48, borderRadius: 3, display: "grid", placeItems: "center", bgcolor: alpha("#D12053", 0.12), color: "#D12053" }}>
+                      <PhoneIphoneRounded />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontWeight: 800, fontSize: 19 }}>Pay with bKash</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Send Money from any bKash account
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ ml: "auto !important", fontWeight: 900, fontSize: 26 }}>৳{MEMBERSHIP_FEE.toLocaleString("en-IN")}</Typography>
+                  </Stack>
+                  <CopyLine label="bKash number" value={BKASH_NUMBER} />
+                  <CopyLine label="Reference" value="Your full name" />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                    Keep the 10-character transaction ID from the bKash SMS — the form asks for it.
+                  </Typography>
+                </Card>
+              </motion.div>
+              <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}>
+                <Card sx={{ p: { xs: 2.5, md: 3.5 }, height: "100%", position: "relative", overflow: "hidden" }}>
+                  <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, bgcolor: "primary.main" }} />
+                  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
+                    <Box sx={{ width: 48, height: 48, borderRadius: 3, display: "grid", placeItems: "center", bgcolor: alpha(theme.palette.primary.main, 0.12), color: "primary.main" }}>
+                      <AccountBalanceRounded />
+                    </Box>
+                    <Box>
+                      <Typography sx={{ fontWeight: 800, fontSize: 19 }}>Bank deposit or transfer</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {BANK.name}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ ml: "auto !important", fontWeight: 900, fontSize: 26 }}>৳{BANK_FEE.toLocaleString("en-IN")}</Typography>
+                  </Stack>
+                  <CopyLine label="Account name" value={BANK.accountName} />
+                  <CopyLine label="Account no." value={BANK.accountNumber} />
+                  <CopyLine label="Routing no." value={BANK.routingNumber} />
+                </Card>
+              </motion.div>
+            </Box>
+          </Container>
+        </Box>
+
+        {/* FAQ */}
+        <Box id="faq" sx={{ py: { xs: 8, md: 12 }, bgcolor: dark ? "#0E1C17" : "#EFEBE2", scrollMarginTop: 80 }}>
+          <Container maxWidth="md">
+            <motion.div {...reveal}>
+              <SectionTitle center eyebrow="Questions" title="Things neighbours usually ask" />
+            </motion.div>
+            {faqs.map((f, i) => (
+              <motion.div key={f.q} {...reveal} transition={{ ...reveal.transition, delay: i * 0.04 }}>
+                <Accordion defaultExpanded={i === 0} sx={{ bgcolor: "background.paper" }}>
+                  <AccordionSummary expandIcon={<ExpandMoreRounded />} sx={{ px: 3, py: 0.5 }}>
+                    <Typography sx={{ fontWeight: 750, fontSize: 17 }}>{f.q}</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails sx={{ px: 3, pb: 3, pt: 0 }}>
+                    <Typography color="text.secondary" sx={{ lineHeight: 1.7 }}>
+                      {f.a}
+                    </Typography>
+                  </AccordionDetails>
+                </Accordion>
+              </motion.div>
+            ))}
+          </Container>
+        </Box>
+
+        {/* CTA */}
+        <Box sx={{ py: { xs: 8, md: 12 } }}>
+          <Container maxWidth="lg">
+            <motion.div {...reveal}>
+              <Card sx={{ position: "relative", overflow: "hidden", border: 0, minHeight: { xs: 420, md: 380 }, display: "flex", alignItems: "center" }}>
+                <Box sx={{ position: "absolute", inset: 0 }}>
+                  <SceneSvg index={17} />
+                </Box>
+                <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(8,20,16,.88) 0%, rgba(8,20,16,.6) 50%, rgba(8,20,16,.2) 100%)" }} />
+                <Box sx={{ position: "relative", p: { xs: 3, md: 7 }, color: "#fff", maxWidth: 640 }}>
+                  <Typography variant="h3" sx={{ fontSize: { xs: 30, md: 42 } }}>
+                    Ready to meet your neighbours?
+                  </Typography>
+                  <Typography sx={{ mt: 1.5, opacity: 0.9, fontSize: { md: 18 } }}>
+                    Pay the fee, keep your documents ready and complete the short online form. We&apos;ll take it from there.
+                  </Typography>
+                  <Typography sx={{ mt: 1, fontFamily: '"Hind Siliguri", sans-serif', opacity: 0.85 }}>আজই সদস্য হোন — একসাথে গড়ি আমাদের পূর্বাচল।</Typography>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 3.5 }}>
+                    <Button component={Link} href="/auth/register" variant="contained" color="warning" size="large" endIcon={<ArrowForwardRounded />} sx={{ color: "#2B1A00" }}>
+                      Start registration
+                    </Button>
+                    <Button component={Link} href="/auth/login" size="large" sx={{ color: "#fff" }}>
+                      I already applied
+                    </Button>
+                  </Stack>
+                </Box>
+              </Card>
             </motion.div>
           </Container>
         </Box>
-      </motion.main>
+      </main>
+
+      <PublicFooter />
     </>
   );
 }

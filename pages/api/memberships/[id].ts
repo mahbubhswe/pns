@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { NextHandler } from "next-connect";
 import { prisma } from "@/lib/prisma";
-import { ensureAdmin } from "@/lib/server/auth";
+import { requirePermissions } from "@/lib/server/rbac";
 import { createApiHandler } from "@/lib/server/handler";
 
 type MemberRequest = NextApiRequest & { memberId?: number };
@@ -38,12 +38,7 @@ function mapUserFull(m: any) {
 
 const handler = createApiHandler(["GET", "PATCH", "DELETE"]);
 
-handler.use((req: MemberRequest, res: NextApiResponse, next: NextHandler) => {
-  if (!ensureAdmin(req, res)) {
-    return;
-  }
-  next();
-});
+handler.use(requirePermissions({ GET: "members.view", PATCH: "members.manage", DELETE: "members.delete" }));
 
 handler.use((req: MemberRequest, res: NextApiResponse, next: NextHandler) => {
   const { id } = req.query;
@@ -57,7 +52,7 @@ handler.use((req: MemberRequest, res: NextApiResponse, next: NextHandler) => {
     return;
   }
   req.memberId = numericId;
-  next();
+  return next();
 });
 
 handler.get(async (req: MemberRequest, res: NextApiResponse) => {
@@ -90,10 +85,8 @@ handler.patch(async (req: MemberRequest, res: NextApiResponse) => {
 
 handler.delete(async (req: MemberRequest, res: NextApiResponse) => {
   try {
-    await prisma.$transaction([
-      prisma.post.deleteMany({ where: { authorId: req.memberId! } }),
-      prisma.user.delete({ where: { id: req.memberId! } }),
-    ]);
+    // Post.authorId points at ManagementUser, not members — only the member row is removed.
+    await prisma.user.delete({ where: { id: req.memberId! } });
     return res.status(200).json({ ok: true });
   } catch (e: any) {
     return res.status(500).json({ ok: false, error: e?.message || "Failed to delete" });

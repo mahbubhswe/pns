@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import type { NextHandler } from "next-connect";
-import { ensureAdmin } from "@/lib/server/auth";
+import { requirePermissions } from "@/lib/server/rbac";
 import { prisma } from "@/lib/prisma";
 import { createApiHandler } from "@/lib/server/handler";
 
@@ -19,12 +19,7 @@ function mapToUi(p: any) {
 
 const handler = createApiHandler(["GET", "PATCH", "DELETE"]);
 
-handler.use((req: PostRequest, res: NextApiResponse, next: NextHandler) => {
-  if (!ensureAdmin(req, res)) {
-    return;
-  }
-  next();
-});
+handler.use(requirePermissions({ GET: ["posts.view", "posts.manage"], PATCH: "posts.manage", DELETE: "posts.manage" }));
 
 handler.use((req: PostRequest, res: NextApiResponse, next: NextHandler) => {
   const { id } = req.query;

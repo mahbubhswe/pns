@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Seed an initial ManagementUser (ADMIN). Idempotent via upsert by email.
+  Seed an initial ManagementUser with the Super Admin role. Idempotent via upsert by email.
   Reads credentials from env vars with safe defaults for local dev.
 
   Env vars (optional):
@@ -29,10 +29,17 @@ async function main() {
   try {
     const hash = await bcrypt.hash(password, 10);
 
+    // The roles migration creates "Super Admin"; create it here too in case it was removed.
+    const superAdmin = await prisma.role.upsert({
+      where: { name: 'Super Admin' },
+      update: {},
+      create: { name: 'Super Admin', description: 'Full access to every part of the portal.', permissions: ['*'], isSystem: true },
+    });
+
     const user = await prisma.managementUser.upsert({
       where: { email },
-      update: { name, phone, title, password: hash, role: 'ADMIN' },
-      create: { name, phone, title, email, password: hash, role: 'ADMIN' },
+      update: { name, phone, title, password: hash, role: 'ADMIN', roleId: superAdmin.id, isActive: true },
+      create: { name, phone, title, email, password: hash, role: 'ADMIN', roleId: superAdmin.id },
     });
 
     console.log('Seeded admin user:', { id: user.id, email: user.email, name: user.name });

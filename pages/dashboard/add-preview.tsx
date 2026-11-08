@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import DashboardLayout from "@/components/dashboard/Layout";
+import { PageHeader } from "@/components/dashboard/ui";
 import {
   Alert,
   Box,
@@ -71,15 +72,13 @@ export default function AddPreviewPage() {
   };
 
   return (
-    <DashboardLayout>
-      <Typography variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
-        Simple Registration Form
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Upload the completed membership PDF so it’s stored alongside the other
-        application documents.
-      </Typography>
-      <Card variant="outlined" sx={{ borderRadius: 3 }}>
+    <DashboardLayout title="Registration guideline" permission="guideline.manage">
+      <PageHeader
+        eyebrow="Community"
+        title="Registration guideline"
+        subtitle="Upload the PDF applicants see when they tap “Show Guideline” on the registration form. The newest upload is the one shown."
+      />
+      <Card sx={{ maxWidth: 720 }}>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <Stack spacing={2}>
