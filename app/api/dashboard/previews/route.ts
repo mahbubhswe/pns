@@ -1,5 +1,5 @@
 import { assertFileSize, assertMimeType, isPdfMime, json, parseMultipart, requireFile, route } from "@/lib/server/http";
-import { requireAdmin } from "@/lib/server/auth";
+import { requirePermission } from "@/features/access";
 import { persistUpload } from "@/lib/server/storage";
 import { UPLOAD_LIMITS } from "@/lib/config/constants";
 import { createPreview, toPreviewDto } from "@/features/preview";
@@ -7,7 +7,7 @@ import type { PreviewCreatedResponse } from "@/types/api";
 
 /** Upload the guideline PDF shown on the public registration page. */
 export const POST = route(async req => {
-  requireAdmin(req);
+  await requirePermission(req, "guideline.manage");
   const { fields, files } = await parseMultipart(req);
   const pdf = requireFile(files, "file");
   assertMimeType(pdf, isPdfMime, "Only PDF files are allowed");

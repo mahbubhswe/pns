@@ -1,19 +1,17 @@
 import { z } from "zod";
-import { MANAGEMENT_ROLES } from "@/lib/shared/membership";
 
 const trimmed = z.string().trim();
 const nullableText = trimmed.transform(v => (v === "" ? null : v)).nullish();
-const role = z.preprocess(
-  v => (typeof v === "string" ? v.trim().toUpperCase() : v),
-  z.enum(MANAGEMENT_ROLES, { message: "Invalid role. Use ADMIN, EDITOR or VIEWER." })
-);
+/** Staff access comes from a Role row (see features/access). */
+const roleId = z.coerce.number({ message: "Choose a role" }).int().positive("Choose a role");
 
 export const createManagementUserSchema = z.object({
   name: trimmed.min(1, "name is required"),
   phone: trimmed.min(1, "phone is required"),
   email: trimmed.toLowerCase().email("A valid email is required"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role,
+  roleId,
+  isActive: z.boolean().optional(),
   photoUrl: nullableText,
   address: nullableText,
   title: nullableText,
@@ -31,7 +29,8 @@ export const updateManagementUserSchema = z
       .transform(v => (v === "" ? undefined : v))
       .pipe(z.string().min(6, "Password must be at least 6 characters").optional())
       .optional(),
-    role: role.optional(),
+    roleId: roleId.optional(),
+    isActive: z.boolean().optional(),
     photoUrl: nullableText,
     address: nullableText,
     title: nullableText,

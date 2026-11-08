@@ -2,68 +2,51 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Swal from "sweetalert2";
+import PageGate from "@/components/dashboard/PageGate";
 import UserForm, { ManagementUserInput } from "@/components/dashboard/UserForm";
-import { Box, Card, CardContent, Container, Typography } from "@mui/material";
+import { PageHeader } from "@/components/dashboard/ui";
+import { apiPost, apiPostForm, errorMessage } from "@/lib/api";
+import type { ManagementUserCreatedResponse, UploadResponse } from "@/types/api";
 
 export default function AddUserPage() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
-  const handleSubmit = async (
-    data: ManagementUserInput,
-    photoFile?: File | null
-  ) => {
+  const handleSubmit = async (data: ManagementUserInput, photoFile?: File | null) => {
     try {
       setBusy(true);
-      // Upload photo if provided
+      const payload: ManagementUserInput = { ...data };
       if (photoFile) {
         const fd = new FormData();
         fd.append("file", photoFile);
-        const up = await fetch("/api/admin/upload", {
-          method: "POST",
-          body: fd,
-        });
-        if (!up.ok) throw new Error(await up.text());
-        const { url } = await up.json();
-        data.photoUrl = url;
+        const { url } = await apiPostForm<UploadResponse>("/api/admin/upload", fd);
+        payload.photoUrl = url;
       }
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      await router.push("/dashboard/users");
-    } catch (e: any) {
-      alert(e?.message || "Failed to create user");
+      await apiPost<ManagementUserCreatedResponse>("/api/admin/users", payload);
+      router.push("/dashboard/users");
+    } catch (e) {
+      Swal.fire({ icon: "error", title: "Couldn't create the account", text: errorMessage(e, "Failed to create user") });
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <>
-      <Container maxWidth="md">
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Add User
-          </Typography>
-        </Box>
-        <Card variant="outlined" sx={{ borderRadius: 3, mb: 2 }}>
-          <CardContent>
-            <Typography variant="body2" color="text.secondary">
-              Fill in user details. Role and password are required.
-            </Typography>
-          </CardContent>
-        </Card>
-        <UserForm
-          title="New Management User"
-          subheader="Provide basic information and role"
-          submitLabel="Create"
-          onSubmit={handleSubmit}
-          busy={busy}
-        />
-      </Container>
-    </>
+    <PageGate title="Add staff" permission="users.manage">
+      <PageHeader
+        crumbs={[{ label: "Staff users", href: "/dashboard/users" }, { label: "Add staff" }]}
+        title="Add a staff member"
+        subtitle="Create a sign-in for a volunteer or employee and choose their role. Share the password with them privately."
+      />
+      <UserForm
+        mode="create"
+        title="New staff account"
+        subheader="Name, contact and role are required"
+        submitLabel="Create account"
+        onSubmit={handleSubmit}
+        busy={busy}
+      />
+    </PageGate>
   );
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
-  Optional: create or update an ADMIN management user from the command line.
+  Optional: create or update a Super Admin management user from the command line.
 
   The normal way to create the first admin is the first-run setup page: start
   the app with an empty database and open /admin/login — it redirects to
@@ -34,10 +34,22 @@ async function main() {
   try {
     const hash = await bcrypt.hash(password, 10);
 
+    // The roles migration creates "Super Admin"; create it here too in case it was removed.
+    const superAdmin = await prisma.role.upsert({
+      where: { name: "Super Admin" },
+      update: {},
+      create: {
+        name: "Super Admin",
+        description: "Full access to every part of the portal.",
+        permissions: ["*"],
+        isSystem: true,
+      },
+    });
+
     const user = await prisma.managementUser.upsert({
       where: { email },
-      update: { name, phone, title, password: hash, role: "ADMIN" },
-      create: { name, phone, title, email, password: hash, role: "ADMIN" },
+      update: { name, phone, title, password: hash, role: "ADMIN", roleId: superAdmin.id, isActive: true },
+      create: { name, phone, title, email, password: hash, role: "ADMIN", roleId: superAdmin.id },
     });
 
     console.log("Seeded admin user:", { id: user.id, email: user.email, name: user.name });

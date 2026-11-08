@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import PageGate from "@/components/dashboard/PageGate";
+import { PageHeader } from "@/components/dashboard/ui";
 import {
   Alert,
   Box,
@@ -17,6 +19,8 @@ import {
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CloseIcon from "@mui/icons-material/Close";
+import { apiPostForm, errorMessage } from "@/lib/api";
+import type { PreviewCreatedResponse } from "@/types/api";
 
 export default function AddPreviewPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -53,34 +57,25 @@ export default function AddPreviewPage() {
     formData.append("file", file, file.name);
 
     try {
-      const res = await fetch("/api/dashboard/previews", {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Upload failed" }));
-        throw new Error(err?.error || "Upload failed");
-      }
+      await apiPostForm<PreviewCreatedResponse>("/api/dashboard/previews", formData);
       setMessage({ type: "success", text: "Preview saved successfully." });
       setFile(null);
       setPreviewOpen(false);
     } catch (error) {
-      setMessage({ type: "error", text: (error as Error).message });
+      setMessage({ type: "error", text: errorMessage(error, "Upload failed") });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <Typography variant="h5" sx={{ mb: 1, fontWeight: 700 }}>
-        Simple Registration Form
-      </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Upload the completed membership PDF so it’s stored alongside the other
-        application documents.
-      </Typography>
-      <Card variant="outlined" sx={{ borderRadius: 3 }}>
+    <PageGate title="Registration guideline" permission="guideline.manage">
+      <PageHeader
+        eyebrow="Community"
+        title="Registration guideline"
+        subtitle="Upload the PDF applicants see when they tap “Show Guideline” on the registration form. The newest upload is the one shown."
+      />
+      <Card sx={{ maxWidth: 720 }}>
         <CardContent>
           <form onSubmit={handleSubmit}>
             <Stack spacing={2}>
@@ -182,6 +177,6 @@ export default function AddPreviewPage() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </PageGate>
   );
 }

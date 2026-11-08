@@ -20,7 +20,14 @@ import {
   Avatar,
   InputAdornment,
   Backdrop,
+  FormControlLabel,
+  Switch,
+  Alert,
 } from "@mui/material";
+import useSWR from "swr";
+import { getJSON } from "@/lib/api";
+import type { RolesListResponse } from "@/types/api";
+import PhotoCameraRounded from "@mui/icons-material/PhotoCameraRounded";
 import CloseIcon from "@mui/icons-material/Close";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -30,11 +37,13 @@ export type ManagementUserInput = {
   name: string;
   phone: string;
   address?: string | null;
-  role: "ADMIN" | "EDITOR" | "VIEWER";
+  roleId: number | "";
   email: string;
   title?: string | null;
-  password?: string; // only used on create or when changing
+  isActive?: boolean;
+  password?: string; // required on create; optional on edit (blank = keep current)
 };
+
 
 export default function UserForm({
   title = "Add User",
@@ -42,8 +51,10 @@ export default function UserForm({
   initial,
   submitLabel = "Create",
   busy = false,
+  mode = "create",
   onSubmit,
 }: {
+  mode?: "create" | "edit";
   title?: string;
   subheader?: string;
   initial?: Partial<ManagementUserInput>;
@@ -60,11 +71,15 @@ export default function UserForm({
     name: initial?.name ?? "",
     phone: initial?.phone ?? "",
     address: initial?.address ?? "",
-    role: (initial?.role as any) ?? "VIEWER",
+    roleId: initial?.roleId ?? "",
     email: initial?.email ?? "",
     title: initial?.title ?? "",
+    isActive: initial?.isActive ?? true,
     password: "",
   });
+  const { data: rolesData } = useSWR<RolesListResponse>("/api/admin/roles", getJSON);
+  const roles = rolesData?.roles || [];
+  const selectedRole = roles.find(r => r.id === Number(values.roleId));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirm, setConfirm] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
@@ -103,16 +118,19 @@ export default function UserForm({
     if (!values.name) e.name = "Required";
     if (!values.phone) e.phone = "Required";
     if (!values.email) e.email = "Required";
-    if (!values.role) e.role = "Required";
-    if (!values.password) {
-      e.password = "Password is required";
-    } else if (values.password.length < 6) {
-      e.password = "Min 6 characters";
-    }
-    if (!confirm) {
-      e.confirm = "Confirm password is required";
-    } else if (values.password && values.password !== confirm) {
-      e.confirm = "Passwords do not match";
+    if (!values.roleId) e.role = "Choose a role";
+    const needsPassword = mode === "create" || Boolean(values.password);
+    if (needsPassword) {
+      if (!values.password) {
+        e.password = "Password is required";
+      } else if (values.password.length < 6) {
+        e.password = "Min 6 characters";
+      }
+      if (!confirm) {
+        e.confirm = "Confirm password is required";
+      } else if (values.password && values.password !== confirm) {
+        e.confirm = "Passwords do not match";
+      }
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -135,7 +153,7 @@ export default function UserForm({
         photoUrl: values.photoUrl || null,
         address: values.address || null,
         title: values.title || null,
-      } as any;
+      };
       await onSubmit(payload, photoFile);
     } finally {
       setLoading(false);
@@ -151,9 +169,9 @@ export default function UserForm({
       >
         <CircularProgress color="inherit" />
       </Backdrop>
-      <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
-        <CardHeader title={title} subheader={subheader} />
-        <CardContent>
+      <Card>
+        <CardHeader title={title} subheader={subheader} sx={{ px: 3, pt: 3 }} />
+        <CardContent sx={{ px: 3, pb: 3 }}>
           <Box component="form" onSubmit={handleSubmit} noValidate>
             <Stack spacing={2}>
               <Stack
@@ -198,17 +216,24 @@ export default function UserForm({
                     select
                     fullWidth
                     label="Role"
-                    value={values.role}
-                    onChange={handleChange("role")}
+                    value={roles.length ? values.roleId : ""}
+                    onChange={e => setValues(prev => ({ ...prev, roleId: Number(e.target.value) }))}
+                    error={!!errors.role}
+                    helperText={errors.role || selectedRole?.description || "Decides what this person can see and do"}
+                    required
                   >
-                    <MenuItem value="ADMIN">ADMIN</MenuItem>
-                    <MenuItem value="EDITOR">EDITOR</MenuItem>
-                    <MenuItem value="VIEWER">VIEWER</MenuItem>
+                    {roles.map(r => (
+                      <MenuItem key={r.id} value={r.id}>
+                        {r.name}
+                      </MenuItem>
+                    ))}
                   </TextField>
-                  {errors.role && (
-                    <Typography variant="caption" color="error.main">
-                      {errors.role}
-                    </Typography>
+                  {selectedRole && (
+                    <Alert severity={selectedRole.permissions.includes("*") ? "warning" : "info"} sx={{ py: 0 }}>
+                      {selectedRole.permissions.includes("*")
+                        ? "Full access — this person can change everything, including other staff and roles."
+                        : `${selectedRole.permissions.length} permission${selectedRole.permissions.length === 1 ? "" : "s"} in this role.`}
+                    </Alert>
                   )}
                   <TextField
                     size="small"
@@ -227,7 +252,7 @@ export default function UserForm({
 
                   <Stack spacing={0.5}>
                     <Stack direction="row" spacing={1} alignItems="center">
-                      <Button variant="outlined" size="small" component="label">
+                      <Button variant="outlined" size="small" component="label" startIcon={<PhotoCameraRounded />}>
                         Choose Photo
                         <input
                           type="file"
@@ -267,8 +292,8 @@ export default function UserForm({
                     value={values.password || ""}
                     onChange={handleChange("password")}
                     error={!!errors.password}
-                    helperText={errors.password || "At least 6 characters"}
-                    required
+                    helperText={errors.password || (mode === "edit" ? "Leave blank to keep the current password" : "At least 6 characters")}
+                    required={mode === "create"}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
@@ -292,7 +317,7 @@ export default function UserForm({
                     onChange={e => setConfirm(e.target.value)}
                     error={!!errors.confirm}
                     helperText={errors.confirm || "Re-enter password"}
-                    required
+                    required={mode === "create"}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
@@ -322,6 +347,19 @@ export default function UserForm({
                   />
                   <Typography variant="body2" color="text.secondary">
                     Profile preview
+                  </Typography>
+                  <FormControlLabel
+                    sx={{ mt: 2 }}
+                    control={
+                      <Switch
+                        checked={values.isActive !== false}
+                        onChange={e => setValues(prev => ({ ...prev, isActive: e.target.checked }))}
+                      />
+                    }
+                    label={values.isActive !== false ? "Account active" : "Account deactivated"}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center", px: 2 }}>
+                    Deactivated staff can&apos;t sign in, but their history stays.
                   </Typography>
                 </Stack>
               </Stack>

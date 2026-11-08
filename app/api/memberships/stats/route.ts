@@ -1,8 +1,8 @@
 import { json, route } from "@/lib/server/http";
-import { requireAdmin } from "@/lib/server/auth";
+import { requirePermission } from "@/features/access";
 import { getMembershipStats } from "@/features/membership";
 
 export const GET = route(async req => {
-  requireAdmin(req);
+  await requirePermission(req, "members.view");
   return json(await getMembershipStats());
 });

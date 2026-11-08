@@ -2,8 +2,12 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import PageGate from "@/components/dashboard/PageGate";
+import { PageHeader } from "@/components/dashboard/ui";
 import { Box, Button, Card, CardContent, CardHeader, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
 import RichText from "@/components/dashboard/RichText";
+import { apiGet, apiPatch, apiPostForm, errorMessage } from "@/lib/api";
+import type { PostMutationResponse, PostResponse, UploadResponse } from "@/types/api";
 
 export default function EditPostPage() {
   const router = useRouter();
@@ -22,16 +26,13 @@ export default function EditPostPage() {
     if (!id || typeof id !== "string") return;
     (async () => {
       try {
-        const res = await fetch(`/api/admin/posts/${id}`);
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
-        const p = data.post;
+        const { post: p } = await apiGet<PostResponse>(`/api/admin/posts/${id}`);
         setTitle(p.title || "");
         setContent(p.content || "<p></p>");
         setCoverUrl(p.coverUrl || "");
         setPublished(Boolean(p.published));
-      } catch (e: any) {
-        alert(e?.message || "Failed to load post");
+      } catch (e) {
+        alert(errorMessage(e, "Failed to load post"));
       } finally {
         setLoading(false);
       }
@@ -48,27 +49,22 @@ export default function EditPostPage() {
       if (coverFile) {
         const fd = new FormData();
         fd.append("file", coverFile);
-        const up = await fetch("/api/admin/upload", { method: "POST", body: fd });
-        if (!up.ok) throw new Error(await up.text());
-        const { url } = await up.json();
+        const { url } = await apiPostForm<UploadResponse>("/api/admin/upload", fd);
         finalCover = url;
       }
-      const res = await fetch(`/api/admin/posts/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, content, coverUrl: finalCover, published }) });
-      if (!res.ok) throw new Error(await res.text());
-      await router.push("/dashboard/posts");
-    } catch (e: any) {
-      alert(e?.message || "Failed to update");
+      await apiPatch<PostMutationResponse>(`/api/admin/posts/${id}`, { title, content, coverUrl: finalCover, published });
+      router.push("/dashboard/posts");
+    } catch (e) {
+      alert(errorMessage(e, "Failed to update"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>Edit Post</Typography>
-      </Box>
-      <Card variant="outlined" sx={{ borderRadius: 3 }}>
+    <PageGate title="Edit post" permission="posts.manage">
+      <PageHeader crumbs={[{ label: "Posts", href: "/dashboard/posts" }, { label: "Edit" }]} title="Edit post" subtitle="Update the story and choose whether it's visible." />
+      <Card>
         <CardHeader title="Post Details" subheader="Update your content" />
         <CardContent>
           <Box component="form" onSubmit={onSubmit}>
@@ -129,6 +125,6 @@ export default function EditPostPage() {
           </CardContent>
         </Card>
       </Box>
-    </>
+    </PageGate>
   );
 }

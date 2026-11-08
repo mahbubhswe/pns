@@ -1,20 +1,20 @@
 import { json, parseBody, readBody, route } from "@/lib/server/http";
-import { requireAdmin, requireRole } from "@/lib/server/auth";
 import { getSettings, updateSettings, updateSiteSettingsSchema } from "@/features/settings";
 import type { SettingsResponse, SettingsUpdatedResponse } from "@/types/api";
+import { requirePermission } from "@/features/access";
 
-/** Any management user may read settings. */
+/** Any active staff member may read settings. */
 export const GET = route(async req => {
-  requireAdmin(req);
+  await requirePermission(req);
   const body: SettingsResponse = { settings: await getSettings() };
   return json(body);
 });
 
-/** Only ADMINs may change them. */
+/** Changing them needs settings.manage (Super Admin by default). */
 export const PATCH = route(async req => {
-  const admin = requireRole(req, "ADMIN");
+  const admin = await requirePermission(req, "settings.manage");
   const input = parseBody(updateSiteSettingsSchema, await readBody(req));
-  const settings = await updateSettings(input, admin.sub);
+  const settings = await updateSettings(input, admin.id);
   const body: SettingsUpdatedResponse = { ok: true, settings };
   return json(body);
 });
