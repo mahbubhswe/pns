@@ -51,9 +51,15 @@ import { SceneSvg } from "@/components/landing/scenes";
 import { SCENE_CSS, SceneDefs } from "@/components/landing/scene-kit";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
+import NewsCard from "@/components/news/NewsCard";
+import type { PublicPostDto } from "@/types/api";
 import { renderTemplate, stripStepNumber, visibleHomeSections, type HeroSlide, type SiteSettings } from "@/lib/shared/settings";
 
-type Props = { settings: SiteSettings };
+type Props = {
+  settings: SiteSettings;
+  /** Latest published PUBLIC posts (never members-only or staff-only). The section hides when empty. */
+  news?: PublicPostDto[];
+};
 
 const ABOUT_ICONS = [<MapRounded key="m" />, <PlaceRounded key="p" />, <AltRouteRounded key="a" />, <ApartmentRounded key="b" />];
 const BENEFIT_ICONS = [
@@ -260,7 +266,7 @@ function PhotoHero({ slides, fallbackAlt, children }: { slides: HeroSlide[]; fal
   );
 }
 
-export default function HomePage({ settings }: Props) {
+export default function HomePage({ settings, news = [] }: Props) {
   const theme = useTheme();
   const dark = theme.palette.mode === "dark";
   const { home, site, payment, registration } = settings;
@@ -548,6 +554,29 @@ export default function HomePage({ settings }: Props) {
                     </Card>
                   </motion.div>
                 )}
+              </Box>
+            </Container>
+          </Box>
+        )}
+
+        {/* LATEST NEWS (public posts only) */}
+        {news.length > 0 && (
+          <Box id="news" sx={{ py: { xs: 8, md: 12 }, scrollMarginTop: 80 }}>
+            <Container maxWidth="lg">
+              <motion.div {...reveal}>
+                <SectionTitle center eyebrow="News & notices" title="Latest from the society" />
+              </motion.div>
+              <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" } }}>
+                {news.map((post, i) => (
+                  <motion.div key={post.id} {...reveal} transition={{ ...reveal.transition, delay: i * 0.06 }}>
+                    <NewsCard post={post} />
+                  </motion.div>
+                ))}
+              </Box>
+              <Box sx={{ textAlign: "center", mt: 4 }}>
+                <Button component={Link} href="/news" variant="outlined" endIcon={<ArrowForwardRounded />}>
+                  All news
+                </Button>
               </Box>
             </Container>
           </Box>

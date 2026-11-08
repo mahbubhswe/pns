@@ -14,6 +14,7 @@ import type {
   PaymentMethod,
 } from "@/lib/shared/membership";
 import type { SiteSettings } from "@/lib/shared/settings";
+import type { PostAudience } from "@/lib/shared/posts";
 
 // ---------------------------------------------------------------------------
 // Generic envelopes
@@ -167,6 +168,20 @@ export type PostDto = {
   content: string | null;
   coverUrl: string | null;
   published: boolean;
+  audience: PostAudience;
+  created: string;
+};
+
+/** A post as the website shows it (never drafts or staff-only posts). */
+export type PublicPostDto = {
+  id: number;
+  title: string;
+  /** Plain-text summary. */
+  excerpt: string;
+  /** Sanitised HTML body; only on the detail page. */
+  contentHtml: string | null;
+  coverUrl: string | null;
+  membersOnly: boolean;
   created: string;
 };
 

@@ -229,6 +229,17 @@ volunteer society:
     still holds `users.impersonate`.
   - Every start/stop is logged (`impersonation.start` / `impersonation.stop`).
 
+## Posts and audiences
+
+Each post has `published` (draft or not) and `audience` (`lib/shared/posts.ts`):
+`PUBLIC` (landing page + `/news`), `MEMBERS` (logged-in members: `/news` and
+"Member notices" on `/profile`, never the landing page) and `STAFF` (dashboard
+only). Drafts are always dashboard-only. The website reads posts only through
+`listReadablePosts` / `listMemberNotices` / `getReadablePost` in
+`features/post`; staff-only posts and drafts return 404 exactly like missing
+ones. Post HTML is cleaned with `sanitize-html` on every write and again before
+display (`features/post/sanitize.ts`).
+
 ## File storage
 
 All uploads go through `persistUpload`. Locally files land in

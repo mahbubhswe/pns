@@ -13,6 +13,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import { DataGrid, GridActionsCellItem, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import { apiDelete, errorMessage, getJSON } from "@/lib/api";
 import dayjs from "dayjs";
+import { POST_AUDIENCE_LABELS, type PostAudience } from "@/lib/shared/posts";
 import type { PostDto as Post, PostsListResponse as PostsResp } from "@/types/api";
 
 export default function PostsPage() {
@@ -46,6 +47,19 @@ export default function PostsPage() {
   const columns: GridColDef<Post>[] = [
     { field: "title", headerName: "Title", flex: 1, minWidth: 220 },
     { field: "published", headerName: "Status", minWidth: 120, renderCell: p => <Chip label={p.value ? "Published" : "Draft"} color={p.value ? "success" : "default"} size="small" /> },
+    {
+      field: "audience",
+      headerName: "Audience",
+      minWidth: 140,
+      renderCell: p => (
+        <Chip
+          label={POST_AUDIENCE_LABELS[p.value as PostAudience]?.label ?? p.value}
+          color={p.value === "PUBLIC" ? "primary" : p.value === "MEMBERS" ? "secondary" : "default"}
+          variant="outlined"
+          size="small"
+        />
+      ),
+    },
     { field: "created", headerName: "Created", minWidth: 160, renderCell: p => dayjs(p.value).isValid() ? dayjs(p.value).format("D, MMM YYYY") : "" },
     {
       field: "actions",

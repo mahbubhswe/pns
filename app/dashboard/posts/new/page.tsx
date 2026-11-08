@@ -7,6 +7,8 @@ import PageGate from "@/components/dashboard/PageGate";
 import { PageHeader } from "@/components/dashboard/ui";
 import { Box, Button, Card, CardContent, CardHeader, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
 import RichText from "@/components/dashboard/RichText";
+import PostAudienceField from "@/components/dashboard/PostAudienceField";
+import type { PostAudience } from "@/lib/shared/posts";
 import { apiPost, apiPostForm, errorMessage } from "@/lib/api";
 import type { PostMutationResponse, UploadResponse } from "@/types/api";
 
@@ -19,6 +21,7 @@ export default function NewPostPage() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [published, setPublished] = useState<boolean>(false);
+  const [audience, setAudience] = useState<PostAudience>("PUBLIC");
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -33,7 +36,7 @@ export default function NewPostPage() {
         const { url } = await apiPostForm<UploadResponse>("/api/admin/upload", fd);
         finalCover = url;
       }
-      await apiPost<PostMutationResponse>("/api/admin/posts", { title, content, coverUrl: finalCover, published });
+      await apiPost<PostMutationResponse>("/api/admin/posts", { title, content, coverUrl: finalCover, published, audience });
       router.push("/dashboard/posts");
     } catch (e) {
       alert(errorMessage(e, "Failed to create"));
@@ -78,6 +81,7 @@ export default function NewPostPage() {
               </Stack>
               <RichText value={content} onChange={setContent} />
               <FormControlLabel control={<Checkbox checked={published} onChange={e => setPublished(e.target.checked)} />} label="Publish now" />
+              <PostAudienceField value={audience} onChange={setAudience} />
               <Box sx={{ display: "flex", gap: 1 }}>
                 <Button type="submit" variant="contained" disabled={busy}>Create</Button>
                 <Button variant="outlined" onClick={() => router.push("/dashboard/posts")}>Cancel</Button>

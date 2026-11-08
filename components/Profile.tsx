@@ -28,12 +28,17 @@ import PublicHeader from "@/components/PublicHeader";
 import type { HomeSection, SiteSettings } from "@/lib/shared/settings";
 import { SceneStage } from "@/components/AuthShell";
 import { apiGet, apiPost, apiPostForm, errorMessage, isApiClientError } from "@/lib/api";
-import type { ProfileResponse, UploadResponse } from "@/types/api";
+import type { ProfileResponse, PublicPostDto, UploadResponse } from "@/types/api";
+import NewsCard from "@/components/news/NewsCard";
 
 // `statusCode` is the DB enum (APPROVED | PENDING | REJECTED)
 const STATUS_LABEL: Record<string, string> = { APPROVED: "Approved", PENDING: "Pending review", REJECTED: "Not approved" };
 
-export default function Profile({ site, sections }: { site?: SiteSettings["site"]; sections?: HomeSection[] } = {}) {
+export default function Profile({
+  site,
+  sections,
+  notices = [],
+}: { site?: SiteSettings["site"]; sections?: HomeSection[]; notices?: PublicPostDto[] } = {}) {
   const { data, error, isLoading, mutate } = useSWR<ProfileResponse>("/api/profile", apiGet);
   async function onLogout() {
     try {
@@ -271,6 +276,24 @@ export default function Profile({ site, sections }: { site?: SiteSettings["site"
             </Stack>
           </CardContent>
         </Card>
+
+        {notices.length > 0 && (
+          <Box>
+            <Stack direction="row" alignItems="baseline" justifyContent="space-between" sx={{ mb: 1.5 }}>
+              <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                Member notices
+              </Typography>
+              <Button component={Link} href="/news" size="small">
+                All news
+              </Button>
+            </Stack>
+            <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" } }}>
+              {notices.map(n => (
+                <NewsCard key={n.id} post={n} />
+              ))}
+            </Box>
+          </Box>
+        )}
         </Stack>
       </Container>
     </>

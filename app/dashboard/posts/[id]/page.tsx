@@ -6,6 +6,8 @@ import PageGate from "@/components/dashboard/PageGate";
 import { PageHeader } from "@/components/dashboard/ui";
 import { Box, Button, Card, CardContent, CardHeader, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
 import RichText from "@/components/dashboard/RichText";
+import PostAudienceField from "@/components/dashboard/PostAudienceField";
+import type { PostAudience } from "@/lib/shared/posts";
 import { apiGet, apiPatch, apiPostForm, errorMessage } from "@/lib/api";
 import type { PostMutationResponse, PostResponse, UploadResponse } from "@/types/api";
 
@@ -19,6 +21,7 @@ export default function EditPostPage() {
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [published, setPublished] = useState<boolean>(false);
+  const [audience, setAudience] = useState<PostAudience>("PUBLIC");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +34,7 @@ export default function EditPostPage() {
         setContent(p.content || "<p></p>");
         setCoverUrl(p.coverUrl || "");
         setPublished(Boolean(p.published));
+        setAudience(p.audience || "PUBLIC");
       } catch (e) {
         alert(errorMessage(e, "Failed to load post"));
       } finally {
@@ -52,7 +56,7 @@ export default function EditPostPage() {
         const { url } = await apiPostForm<UploadResponse>("/api/admin/upload", fd);
         finalCover = url;
       }
-      await apiPatch<PostMutationResponse>(`/api/admin/posts/${id}`, { title, content, coverUrl: finalCover, published });
+      await apiPatch<PostMutationResponse>(`/api/admin/posts/${id}`, { title, content, coverUrl: finalCover, published, audience });
       router.push("/dashboard/posts");
     } catch (e) {
       alert(errorMessage(e, "Failed to update"));
@@ -98,6 +102,7 @@ export default function EditPostPage() {
               </Stack>
               <RichText value={content} onChange={setContent} />
               <FormControlLabel control={<Checkbox checked={published} onChange={e => setPublished(e.target.checked)} />} label="Published" />
+              <PostAudienceField value={audience} onChange={setAudience} />
               <Box sx={{ display: "flex", gap: 1 }}>
                 <Button type="submit" variant="contained" disabled={busy || loading}>Update</Button>
                 <Button variant="outlined" onClick={() => router.push("/dashboard/posts")}>Cancel</Button>

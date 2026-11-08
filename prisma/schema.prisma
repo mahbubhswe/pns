@@ -22,6 +22,13 @@ enum PaymentMethod {
   BANK
 }
 
+// Who can read a published post
+enum PostAudience {
+  PUBLIC
+  MEMBERS
+  STAFF
+}
+
 // Management roles
 enum ManagementRole {
   ADMIN
@@ -83,10 +90,12 @@ model User {
 }
 
 model Post {
-  id         Int     @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   title      String
   content    String?
-  published  Boolean @default(false)
+  published  Boolean      @default(false)
+  /// Who can read the post once published: everyone (landing page), logged-in members, or staff only.
+  audience   PostAudience @default(PUBLIC)
   coverImage String? // optional file path/URL
 
   // Relations
@@ -219,18 +228,18 @@ model LedgerHead {
 
 // One money movement. INCOME/EXPENSE use headId + accountId; TRANSFER moves accountId -> toAccountId.
 model Voucher {
-  id            Int           @id @default(autoincrement())
-  voucherNo     String        @unique
+  id            Int             @id @default(autoincrement())
+  voucherNo     String          @unique
   type          VoucherType
-  status        VoucherStatus @default(POSTED)
+  status        VoucherStatus   @default(POSTED)
   date          DateTime
-  amount        Decimal       @db.Decimal(14, 2)
+  amount        Decimal         @db.Decimal(14, 2)
   headId        Int?
-  head          LedgerHead?   @relation(fields: [headId], references: [id])
+  head          LedgerHead?     @relation(fields: [headId], references: [id])
   accountId     Int
-  account       FundAccount   @relation("VoucherAccount", fields: [accountId], references: [id])
+  account       FundAccount     @relation("VoucherAccount", fields: [accountId], references: [id])
   toAccountId   Int?
-  toAccount     FundAccount?  @relation("VoucherToAccount", fields: [toAccountId], references: [id])
+  toAccount     FundAccount?    @relation("VoucherToAccount", fields: [toAccountId], references: [id])
   partyName     String?
   reference     String?
   description   String?
