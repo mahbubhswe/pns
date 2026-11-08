@@ -33,6 +33,7 @@ import {
   type HeroSlide,
   type HeroStyle,
   type SiteSettings,
+  type StatItem,
   type TitledItem,
 } from "@/lib/shared/settings";
 import type { SettingsResponse, SettingsUpdatedResponse } from "@/types/api";
@@ -231,6 +232,26 @@ export default function SettingsPage() {
                       ]}
                     />
                   </Stack>
+                </CardContent>
+              </Card>
+
+              <Card variant="outlined" sx={{ borderRadius: 3 }}>
+                <CardHeader title="Figures under the hero" subheader="Up to six highlights, e.g. 30 · Planned sectors · in Purbachal New Town (hidden when the list is empty)" />
+                <CardContent>
+                  <ListEditor<StatItem>
+                    title="Figures"
+                    items={form.home.stats}
+                    onChange={update("home", "stats")}
+                    empty={{ value: "", label: "", note: "" }}
+                    addLabel="Add figure"
+                    max={6}
+                    helper="Placeholders work here too, e.g. ৳{fee} shows the current bKash fee."
+                    fields={[
+                      { key: "value", label: "Figure" },
+                      { key: "label", label: "Label" },
+                      { key: "note", label: "Small print" },
+                    ]}
+                  />
                 </CardContent>
               </Card>
 

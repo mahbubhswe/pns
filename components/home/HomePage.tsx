@@ -51,7 +51,7 @@ import { SceneSvg } from "@/components/landing/scenes";
 import { SCENE_CSS, SceneDefs } from "@/components/landing/scene-kit";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
-import { renderTemplate, stripStepNumber, type HeroSlide, type SiteSettings } from "@/lib/shared/settings";
+import { renderTemplate, stripStepNumber, visibleHomeSections, type HeroSlide, type SiteSettings } from "@/lib/shared/settings";
 
 type Props = { settings: SiteSettings };
 
@@ -343,18 +343,20 @@ export default function HomePage({ settings }: Props) {
     </Container>
   );
 
-  const stats = [
-    { n: "30", l: "Planned sectors", s: "in Purbachal New Town" },
-    { n: `৳${bdt(payment.feeBkash)}`, l: "One-time fee", s: "paid once when you apply" },
-    ...(home.steps.length ? [{ n: String(home.steps.length), l: "Simple steps", s: "documents, payment, form" }] : []),
-    { n: "100%", l: "Online", s: "apply & track from anywhere" },
-  ];
+  // Figures come from settings; long numbers get lakh-style grouping (৳1020 → ৳1,020).
+  const stats = home.stats.map(x => ({
+    n: t(x.value).replace(/\d{4,}/g, d => bdt(Number(d))),
+    l: t(x.label),
+    s: t(x.note),
+  }));
+  const sections = visibleHomeSections(settings);
+  const show = (s: (typeof sections)[number]) => sections.includes(s);
 
   const stepCols = Math.min(Math.max(home.steps.length, 1), 3);
 
   return (
     <>
-      <PublicHeader overlay site={site} registrationOpen={open} />
+      <PublicHeader overlay site={site} registrationOpen={open} sections={sections} />
 
       <main>
         {/* Scene CSS + gradients are supplied by HeroScenes; add them for the photo hero too. */}
@@ -375,10 +377,11 @@ export default function HomePage({ settings }: Props) {
         )}
 
         {/* STAT BAND */}
+        {stats.length > 0 && (
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 4, mt: { xs: 3, md: -6 } }}>
           <Card sx={{ p: { xs: 1, md: 1.5 }, display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: `repeat(${stats.length}, 1fr)` }, boxShadow: dark ? "none" : "0 30px 60px -30px rgba(18,36,29,.35)" }}>
             {stats.map((x, i) => (
-              <Box key={x.l} sx={{ p: { xs: 2, md: 3 }, borderLeft: { md: i ? `1px solid ${theme.palette.divider}` : 0 }, borderTop: { xs: i > 1 ? `1px solid ${theme.palette.divider}` : 0, md: 0 } }}>
+              <Box key={i} sx={{ p: { xs: 2, md: 3 }, borderLeft: { md: i ? `1px solid ${theme.palette.divider}` : 0 }, borderTop: { xs: i > 1 ? `1px solid ${theme.palette.divider}` : 0, md: 0 } }}>
                 <Typography sx={{ fontSize: { xs: 30, md: 40 }, fontWeight: 800, letterSpacing: "-0.03em", color: "primary.main", lineHeight: 1 }}>{x.n}</Typography>
                 <Typography sx={{ fontWeight: 750, mt: 1 }}>{x.l}</Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -388,9 +391,10 @@ export default function HomePage({ settings }: Props) {
             ))}
           </Card>
         </Container>
+        )}
 
         {/* ABOUT */}
-        {(home.aboutTitle || home.aboutIntro || home.aboutPoints.length > 0) && (
+        {show("about") && (
           <Box id="about" sx={{ py: { xs: 8, md: 13 }, scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
               <Box sx={{ display: "grid", gap: { xs: 5, md: 8 }, gridTemplateColumns: { xs: "1fr", md: "1fr 1.1fr" }, alignItems: "center" }}>
@@ -419,7 +423,7 @@ export default function HomePage({ settings }: Props) {
         )}
 
         {/* WHY JOIN */}
-        {home.benefits.length > 0 && (
+        {show("why") && (
           <Box id="why" sx={{ py: { xs: 8, md: 12 }, bgcolor: dark ? "#0E1C17" : "#EFEBE2", scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
               <motion.div {...reveal}>
@@ -452,7 +456,7 @@ export default function HomePage({ settings }: Props) {
         )}
 
         {/* HOW TO JOIN */}
-        {home.steps.length > 0 && (
+        {show("join") && (
           <Box id="join" sx={{ py: { xs: 8, md: 13 }, scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
               <motion.div {...reveal}>
@@ -494,7 +498,7 @@ export default function HomePage({ settings }: Props) {
         )}
 
         {/* FEES */}
-        {(hasBkash || hasBank) && (
+        {show("fees") && (
           <Box id="fees" sx={{ pb: { xs: 8, md: 12 }, pt: home.steps.length ? 0 : { xs: 8, md: 12 }, scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
               <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", md: hasBkash && hasBank ? "1fr 1fr" : "1fr" } }}>
@@ -550,7 +554,7 @@ export default function HomePage({ settings }: Props) {
         )}
 
         {/* FAQ */}
-        {home.faqs.length > 0 && (
+        {show("faq") && (
           <Box id="faq" sx={{ py: { xs: 8, md: 12 }, bgcolor: dark ? "#0E1C17" : "#EFEBE2", scrollMarginTop: 80 }}>
             <Container maxWidth="md">
               <motion.div {...reveal}>
@@ -613,7 +617,7 @@ export default function HomePage({ settings }: Props) {
         )}
       </main>
 
-      <PublicFooter site={site} />
+      <PublicFooter site={site} sections={sections} />
     </>
   );
 }

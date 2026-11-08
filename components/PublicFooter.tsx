@@ -8,9 +8,17 @@ import EmailRounded from "@mui/icons-material/EmailRounded";
 import PhoneRounded from "@mui/icons-material/PhoneRounded";
 import PlaceRounded from "@mui/icons-material/PlaceRounded";
 import BrandLogo from "@/components/BrandLogo";
-import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/shared/settings";
+import { DEFAULT_SITE_SETTINGS, type HomeSection, type SiteSettings } from "@/lib/shared/settings";
 
-export default function PublicFooter({ site = DEFAULT_SITE_SETTINGS.site }: { site?: SiteSettings["site"] }) {
+export default function PublicFooter({
+  site = DEFAULT_SITE_SETTINGS.site,
+  sections,
+}: {
+  site?: SiteSettings["site"];
+  /** Home-page sections that exist; links to hidden ones are left out. */
+  sections?: HomeSection[];
+}) {
+  const has = (s: HomeSection) => !sections || sections.includes(s);
   const contacts = [
     site.contactEmail && { icon: <EmailRounded fontSize="small" />, text: site.contactEmail, href: `mailto:${site.contactEmail}` },
     site.contactPhone && { icon: <PhoneRounded fontSize="small" />, text: site.contactPhone, href: `tel:${site.contactPhone.replace(/[^\d+]/g, "")}` },
@@ -50,14 +58,14 @@ export default function PublicFooter({ site = DEFAULT_SITE_SETTINGS.site }: { si
             <Typography sx={{ color: "#fff", fontWeight: 800, mb: 0.5 }}>Members</Typography>
             <FooterLink href="/auth/register">Apply for membership</FooterLink>
             <FooterLink href="/auth/login">Member login</FooterLink>
-            <FooterLink href="/#fees">Fees & payment</FooterLink>
-            <FooterLink href="/#faq">Questions</FooterLink>
+            {has("fees") && <FooterLink href="/#fees">Fees & payment</FooterLink>}
+            {has("faq") && <FooterLink href="/#faq">Questions</FooterLink>}
           </Stack>
           <Stack spacing={1}>
             <Typography sx={{ color: "#fff", fontWeight: 800, mb: 0.5 }}>Committee</Typography>
             <FooterLink href="/admin/login">Management portal</FooterLink>
-            <FooterLink href="/#about">About Purbachal</FooterLink>
-            <FooterLink href="/#why">Why join</FooterLink>
+            {has("about") && <FooterLink href="/#about">About Purbachal</FooterLink>}
+            {has("why") && <FooterLink href="/#why">Why join</FooterLink>}
           </Stack>
         </Box>
         <Box sx={{ borderTop: "1px solid rgba(255,255,255,.12)", mt: 5, pt: 3, display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "space-between" }}>

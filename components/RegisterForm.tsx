@@ -38,7 +38,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ImageIcon from "@mui/icons-material/Image";
 import axios from "axios";
-import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/shared/settings";
+import { DEFAULT_SITE_SETTINGS, visibleHomeSections, type SiteSettings } from "@/lib/shared/settings";
 import PublicHeader from "@/components/PublicHeader";
 import { SceneStage } from "@/components/AuthShell";
 
@@ -703,7 +703,7 @@ export default function PnsMembershipForm({
 
   return (
     <>
-      <PublicHeader site={settings.site} registrationOpen={registrationOpen} />
+      <PublicHeader site={settings.site} registrationOpen={registrationOpen} sections={visibleHomeSections(settings)} />
       {!registrationOpen && (
         <Alert severity="warning" sx={{ borderRadius: 0, justifyContent: "center" }}>
           {settings.registration.closedMessage}

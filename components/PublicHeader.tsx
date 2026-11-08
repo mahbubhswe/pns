@@ -9,14 +9,14 @@ import MenuRounded from "@mui/icons-material/MenuRounded";
 import CloseRounded from "@mui/icons-material/CloseRounded";
 import BrandLogo from "@/components/BrandLogo";
 import ThemeToggle from "@/components/ThemeToggle";
-import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/shared/settings";
+import { DEFAULT_SITE_SETTINGS, type HomeSection, type SiteSettings } from "@/lib/shared/settings";
 
-const LINKS = [
-  { label: "About Purbachal", href: "/#about" },
-  { label: "Why join", href: "/#why" },
-  { label: "How to join", href: "/#join" },
-  { label: "Fees", href: "/#fees" },
-  { label: "FAQ", href: "/#faq" },
+const ALL_LINKS: Array<{ label: string; href: string; section: HomeSection }> = [
+  { label: "About Purbachal", href: "/#about", section: "about" },
+  { label: "Why join", href: "/#why", section: "why" },
+  { label: "How to join", href: "/#join", section: "join" },
+  { label: "Fees", href: "/#fees", section: "fees" },
+  { label: "FAQ", href: "/#faq", section: "faq" },
 ];
 
 type Props = {
@@ -26,9 +26,12 @@ type Props = {
   site?: SiteSettings["site"];
   /** Hide the "Join" buttons while registration is closed. */
   registrationOpen?: boolean;
+  /** Home-page sections that exist (from `visibleHomeSections`); links to others are hidden. */
+  sections?: HomeSection[];
 };
 
-export default function PublicHeader({ overlay = false, site = DEFAULT_SITE_SETTINGS.site, registrationOpen = true }: Props) {
+export default function PublicHeader({ overlay = false, site = DEFAULT_SITE_SETTINGS.site, registrationOpen = true, sections }: Props) {
+  const LINKS = sections ? ALL_LINKS.filter(l => sections.includes(l.section)) : ALL_LINKS;
   const theme = useTheme();
   const [scrolled, setScrolled] = useState(!overlay);
   const [open, setOpen] = useState(false);

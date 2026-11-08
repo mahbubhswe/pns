@@ -25,6 +25,7 @@ import {
 } from "@mui/material";
 import Link from "next/link";
 import PublicHeader from "@/components/PublicHeader";
+import type { HomeSection, SiteSettings } from "@/lib/shared/settings";
 import { SceneStage } from "@/components/AuthShell";
 import { apiGet, apiPost, apiPostForm, errorMessage, isApiClientError } from "@/lib/api";
 import type { ProfileResponse, UploadResponse } from "@/types/api";
@@ -32,7 +33,7 @@ import type { ProfileResponse, UploadResponse } from "@/types/api";
 // `statusCode` is the DB enum (APPROVED | PENDING | REJECTED)
 const STATUS_LABEL: Record<string, string> = { APPROVED: "Approved", PENDING: "Pending review", REJECTED: "Not approved" };
 
-export default function Profile() {
+export default function Profile({ site, sections }: { site?: SiteSettings["site"]; sections?: HomeSection[] } = {}) {
   const { data, error, isLoading, mutate } = useSWR<ProfileResponse>("/api/profile", apiGet);
   async function onLogout() {
     try {
@@ -82,7 +83,7 @@ export default function Profile() {
 
   return (
     <>
-      <PublicHeader />
+      <PublicHeader site={site} sections={sections} />
       {/* Hero with a living neighbourhood scene */}
       <Box sx={{ position: "relative", overflow: "hidden", minHeight: { xs: 240, md: 300 }, display: "flex", alignItems: "flex-end", color: "#fff", bgcolor: "#0B1A14" }}>
         <Box sx={{ position: "absolute", inset: 0 }}>

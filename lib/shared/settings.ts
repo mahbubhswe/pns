@@ -13,6 +13,8 @@ export type HeroSlide = { src: string; alt: string };
 export type HeroStyle = "scenes" | "photos";
 export const HERO_STYLES: readonly HeroStyle[] = ["scenes", "photos"];
 export type TitledItem = { title: string; body: string };
+/** A figure in the band under the hero, e.g. { value: "30", label: "Planned sectors", note: "in Purbachal New Town" }. */
+export type StatItem = { value: string; label: string; note: string };
 export type FaqItem = { question: string; answer: string };
 
 export type SiteSettings = {
@@ -47,6 +49,8 @@ export type SiteSettings = {
     heroSubtitle: string;
     heroStyle: HeroStyle;
     slides: HeroSlide[];
+    /** Figures under the hero (hidden when empty). */
+    stats: StatItem[];
     aboutTitle: string;
     aboutIntro: string;
     aboutPoints: TitledItem[];
@@ -177,11 +181,32 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
           "Every fee is recorded as income in the society's books, alongside every expense, so the committee can prepare clear financial reports.",
       },
     ],
+    stats: [
+      { value: "30", label: "Planned sectors", note: "in Purbachal New Town" },
+      { value: "৳{fee}", label: "One-time fee", note: "paid once when you apply" },
+      { value: "3", label: "Simple steps", note: "documents, payment, form" },
+      { value: "100%", label: "Online", note: "apply & track from anywhere" },
+    ],
     ctaTitle: "Ready to meet your neighbours?",
     ctaBody:
       "Pay the fee, keep your documents ready and complete the short online form. We'll take it from there.\nআজই সদস্য হোন — একসাথে গড়ি আমাদের পূর্বাচল।",
   },
 };
+
+/** Landing-page sections that can be hidden from settings (anchor ids on the home page). */
+export type HomeSection = "about" | "why" | "join" | "fees" | "faq";
+
+/** Which home-page sections have content, so header/footer links never point at a hidden section. */
+export function visibleHomeSections(settings: SiteSettings): HomeSection[] {
+  const { home, payment } = settings;
+  const shown: HomeSection[] = [];
+  if (home.aboutTitle || home.aboutIntro || home.aboutPoints.length > 0) shown.push("about");
+  if (home.benefits.length > 0) shown.push("why");
+  if (home.steps.length > 0) shown.push("join");
+  if (payment.bkashNumber || payment.bankAccountNumber) shown.push("fees");
+  if (home.faqs.length > 0) shown.push("faq");
+  return shown;
+}
 
 export function feeForPaymentMethod(settings: SiteSettings, method: PaymentMethod): number {
   return method === "BANK" ? settings.payment.feeBank : settings.payment.feeBkash;

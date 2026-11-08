@@ -37,6 +37,7 @@ const imageUrl = z
 
 const slideSchema = z.object({ src: imageUrl, alt: text });
 const titledItemSchema = z.object({ title: text.min(1, "Title is required"), body: longText });
+const statSchema = z.object({ value: text.min(1, "Figure is required").max(20), label: text.min(1, "Label is required").max(60), note: text.max(80) });
 const faqSchema = z.object({ question: text.min(1, "Question is required"), answer: longText });
 
 export const homeSectionSchema = z.object({
@@ -44,6 +45,7 @@ export const homeSectionSchema = z.object({
   heroSubtitle: longText,
   heroStyle: z.enum(["scenes", "photos"], { message: "Choose scenes or photos" }),
   slides: z.array(slideSchema).min(1, "At least one slide is required").max(10),
+  stats: z.array(statSchema).max(6),
   aboutTitle: text,
   aboutIntro: longText,
   aboutPoints: z.array(titledItemSchema).max(20),
