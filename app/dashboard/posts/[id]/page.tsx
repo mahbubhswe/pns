@@ -94,7 +94,7 @@ export default function EditPostPage() {
                   <Typography variant="caption" color="text.secondary">JPG/PNG up to 10MB</Typography>
                 </Stack>
                 {(coverPreview || coverUrl) && (
-                  <Box sx={{ width: "100%", maxWidth: 560, height: 200, borderRadius: 2, overflow: "hidden", border: theme => `1px solid ${theme.palette.divider}` }}>
+                  <Box sx={{ position: "relative", width: "100%", maxWidth: 560, height: 200, borderRadius: 2, overflow: "hidden", border: theme => `1px solid ${theme.palette.divider}` }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={(coverPreview || coverUrl) as string} alt="cover preview" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                   </Box>
@@ -119,7 +119,7 @@ export default function EditPostPage() {
           <CardContent>
             <Stack spacing={2}>
               {(coverPreview || coverUrl) && (
-                <Box sx={{ width: "100%", maxWidth: 760, height: 260, borderRadius: 2, overflow: "hidden", border: theme => `1px solid ${theme.palette.divider}` }}>
+                <Box sx={{ position: "relative", width: "100%", maxWidth: 760, height: 260, borderRadius: 2, overflow: "hidden", border: theme => `1px solid ${theme.palette.divider}` }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={(coverPreview || coverUrl) as string} alt="cover preview" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 </Box>

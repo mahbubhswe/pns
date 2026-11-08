@@ -74,7 +74,7 @@ export default function NewPostPage() {
                   <Typography variant="caption" color="text.secondary">JPG/PNG up to 10MB</Typography>
                 </Stack>
                 {(coverPreview || coverUrl) && (
-                  <Box sx={{ width: "100%", maxWidth: 560, height: 200, borderRadius: 2, overflow: "hidden", border: theme => `1px solid ${theme.palette.divider}` }}>
+                  <Box sx={{ position: "relative", width: "100%", maxWidth: 560, height: 200, borderRadius: 2, overflow: "hidden", border: theme => `1px solid ${theme.palette.divider}` }}>
                     <Image src={(coverPreview || coverUrl) as string} alt="cover preview" fill style={{ objectFit: "cover" }} sizes="(max-width: 560px) 100vw, 560px" unoptimized />
                   </Box>
                 )}
@@ -98,7 +98,7 @@ export default function NewPostPage() {
           <CardContent>
             <Stack spacing={2}>
               {(coverPreview || coverUrl) && (
-                <Box sx={{ width: "100%", maxWidth: 760, height: 260, borderRadius: 2, overflow: "hidden", border: theme => `1px solid ${theme.palette.divider}` }}>
+                <Box sx={{ position: "relative", width: "100%", maxWidth: 760, height: 260, borderRadius: 2, overflow: "hidden", border: theme => `1px solid ${theme.palette.divider}` }}>
                   <Image src={(coverPreview || coverUrl) as string} alt="cover preview" fill style={{ objectFit: "cover" }} sizes="(max-width: 760px) 100vw, 760px" unoptimized />
                 </Box>
               )}
