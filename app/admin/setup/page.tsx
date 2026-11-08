@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import SetupForm from "@/components/admin/SetupForm";
 import { needsInitialSetup } from "@/features/management-user";
+import { getPublicSettings } from "@/features/settings";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Initial Setup" };
@@ -12,5 +13,6 @@ export const metadata: Metadata = { title: "Initial Setup" };
  */
 export default async function AdminSetupPage() {
   if (!(await needsInitialSetup())) redirect("/admin/login");
-  return <SetupForm />;
+  const { site } = await getPublicSettings();
+  return <SetupForm site={site} />;
 }

@@ -3,8 +3,12 @@
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import PageGate from "@/components/dashboard/PageGate";
+import { PageHeader } from "@/components/dashboard/ui";
 import { Box, Button, Card, CardContent, CardHeader, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
 import RichText from "@/components/dashboard/RichText";
+import { apiPost, apiPostForm, errorMessage } from "@/lib/api";
+import type { PostMutationResponse, UploadResponse } from "@/types/api";
 
 export default function NewPostPage() {
   const router = useRouter();
@@ -26,27 +30,22 @@ export default function NewPostPage() {
       if (coverFile) {
         const fd = new FormData();
         fd.append("file", coverFile);
-        const up = await fetch("/api/admin/upload", { method: "POST", body: fd });
-        if (!up.ok) throw new Error(await up.text());
-        const { url } = await up.json();
+        const { url } = await apiPostForm<UploadResponse>("/api/admin/upload", fd);
         finalCover = url;
       }
-      const res = await fetch("/api/admin/posts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, content, coverUrl: finalCover, published }) });
-      if (!res.ok) throw new Error(await res.text());
-      await router.push("/dashboard/posts");
-    } catch (e: any) {
-      alert(e?.message || "Failed to create");
+      await apiPost<PostMutationResponse>("/api/admin/posts", { title, content, coverUrl: finalCover, published });
+      router.push("/dashboard/posts");
+    } catch (e) {
+      alert(errorMessage(e, "Failed to create"));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>Add Post</Typography>
-      </Box>
-      <Card variant="outlined" sx={{ borderRadius: 3 }}>
+    <PageGate title="New post" permission="posts.manage">
+      <PageHeader crumbs={[{ label: "Posts", href: "/dashboard/posts" }, { label: "New" }]} title="Write a post" subtitle="Share news, notices or meeting minutes with the community." />
+      <Card>
         <CardHeader title="Post Details" subheader="Compose your content" />
         <CardContent>
           <Box component="form" onSubmit={onSubmit}>
@@ -105,6 +104,6 @@ export default function NewPostPage() {
           </CardContent>
         </Card>
       </Box>
-    </>
+    </PageGate>
   );
 }

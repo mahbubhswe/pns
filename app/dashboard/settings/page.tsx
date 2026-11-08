@@ -12,16 +12,18 @@ import {
   CircularProgress,
   Divider,
   FormControlLabel,
+  MenuItem,
   Snackbar,
   Stack,
   Switch,
   Tab,
   Tabs,
   TextField,
-  Typography,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import ListEditor from "@/components/dashboard/settings/ListEditor";
+import PageGate from "@/components/dashboard/PageGate";
+import { PageHeader } from "@/components/dashboard/ui";
 import ImageUploadButton from "@/components/dashboard/settings/ImageUploadButton";
 import { apiGet, apiPatch, errorMessage } from "@/lib/api";
 import {
@@ -29,6 +31,7 @@ import {
   HOME_PLACEHOLDERS,
   type FaqItem,
   type HeroSlide,
+  type HeroStyle,
   type SiteSettings,
   type TitledItem,
 } from "@/lib/shared/settings";
@@ -38,7 +41,7 @@ type Toast = { open: boolean; msg: string; sev: "success" | "error" };
 
 const TABS = ["Organisation", "Payment", "Registration", "Landing page"] as const;
 
-const placeholderHelp = `Placeholders you can use: ${HOME_PLACEHOLDERS.join(" ")}`;
+const placeholderHelp = `Placeholders you can use: ${HOME_PLACEHOLDERS.join(" ")}. Wrap words in *asterisks* to highlight them; start a new line for a second paragraph (for example the Bangla line).`;
 
 export default function SettingsPage() {
   const { data, error, isLoading, mutate } = useSWR<SettingsResponse>("/api/admin/settings", apiGet);
@@ -84,20 +87,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
-          Site Settings
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<SaveIcon />}
-          disabled={saving || isLoading}
-          onClick={onSave}
-        >
-          {saving ? "Saving…" : "Save all"}
-        </Button>
-      </Box>
+    <PageGate title="Site settings" permission="settings.manage">
+      <PageHeader
+        eyebrow="Administration"
+        title="Site settings"
+        subtitle="Organisation details, membership fees, registration and everything on the public home page."
+        actions={
+          <Button variant="contained" startIcon={<SaveIcon />} disabled={saving || isLoading} onClick={onSave}>
+            {saving ? "Saving…" : "Save all"}
+          </Button>
+        }
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -188,8 +188,30 @@ export default function SettingsPage() {
                 <CardHeader title="Hero" subheader="The full-width banner at the top of the home page" />
                 <CardContent>
                   <Stack spacing={2}>
-                    <TextField label="Headline" value={form.home.heroTitle} onChange={text("home", "heroTitle")} required fullWidth />
+                    <TextField
+                      label="Headline"
+                      value={form.home.heroTitle}
+                      onChange={text("home", "heroTitle")}
+                      required
+                      fullWidth
+                      helperText="The last word is highlighted unless you mark words with *asterisks*."
+                    />
                     <TextField label="Sub-headline" value={form.home.heroSubtitle} onChange={text("home", "heroSubtitle")} fullWidth multiline minRows={2} />
+                    <TextField
+                      select
+                      label="Hero background"
+                      value={form.home.heroStyle}
+                      onChange={e => update("home", "heroStyle")(e.target.value as HeroStyle)}
+                      fullWidth
+                      helperText={
+                        form.home.heroStyle === "photos"
+                          ? "The photo slides below fade one into the next."
+                          : "Twenty animated scenes of life in the township. The photo slides below are kept for later."
+                      }
+                    >
+                      <MenuItem value="scenes">Animated neighbourhood scenes</MenuItem>
+                      <MenuItem value="photos">Photo slides</MenuItem>
+                    </TextField>
                     <Divider />
                     <ListEditor<HeroSlide>
                       title="Background slides"
@@ -235,7 +257,29 @@ export default function SettingsPage() {
               </Card>
 
               <Card variant="outlined" sx={{ borderRadius: 3 }}>
-                <CardHeader title="How to join" subheader="Registration buttons are shown under the last step" />
+                <CardHeader title="Why join" subheader="Benefit cards shown after the About section (hidden when the list is empty)" />
+                <CardContent>
+                  <Stack spacing={2}>
+                    <TextField label="Section title" value={form.home.benefitsTitle} onChange={text("home", "benefitsTitle")} fullWidth />
+                    <TextField label="Intro paragraph" value={form.home.benefitsIntro} onChange={text("home", "benefitsIntro")} fullWidth multiline minRows={2} />
+                    <ListEditor<TitledItem>
+                      title="Benefits"
+                      items={form.home.benefits}
+                      onChange={update("home", "benefits")}
+                      empty={{ title: "", body: "" }}
+                      addLabel="Add benefit"
+                      max={20}
+                      fields={[
+                        { key: "title", label: "Title" },
+                        { key: "body", label: "Text", multiline: true },
+                      ]}
+                    />
+                  </Stack>
+                </CardContent>
+              </Card>
+
+              <Card variant="outlined" sx={{ borderRadius: 3 }}>
+                <CardHeader title="How to join" subheader="Steps are numbered automatically; registration buttons are shown under the steps" />
                 <CardContent>
                   <Stack spacing={2}>
                     <TextField label="Section title" value={form.home.stepsTitle} onChange={text("home", "stepsTitle")} fullWidth />
@@ -306,6 +350,6 @@ export default function SettingsPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
-    </>
+    </PageGate>
   );
 }

@@ -1,174 +1,271 @@
 "use client";
 
-import React, { useMemo } from "react";
-import type { ManagementUsersListResponse as UsersResp } from "@/types/api";
+import React, { useMemo, useState } from "react";
 import useSWR from "swr";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Box, Button, Chip, Paper, Typography } from "@mui/material";
-import AddIcon from "@mui/icons-material/Add";
-import EditIcon from "@mui/icons-material/Edit";
-import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
-import DeleteIcon from "@mui/icons-material/Delete";
+import {
+  Avatar,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+  useMediaQuery,
+} from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
+import PersonAddAlt1Rounded from "@mui/icons-material/PersonAddAlt1Rounded";
+import EditRounded from "@mui/icons-material/EditRounded";
+import ManageAccountsRounded from "@mui/icons-material/ManageAccountsRounded";
+import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
+import BlockRounded from "@mui/icons-material/BlockRounded";
+import CheckCircleOutlineRounded from "@mui/icons-material/CheckCircleOutlineRounded";
+import AdminPanelSettingsRounded from "@mui/icons-material/AdminPanelSettingsRounded";
 import { DataGrid, GridActionsCellItem, GridColDef, GridToolbar } from "@mui/x-data-grid";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
-import { getJSON } from "@/lib/api";
-import dayjs from "dayjs";
-
+import Swal from "sweetalert2";
+import PageGate from "@/components/dashboard/PageGate";
+import { PageHeader, StatCard, Grid } from "@/components/dashboard/ui";
+import { apiDelete, apiPatch, errorMessage, getJSON } from "@/lib/api";
+import { useAdmin } from "@/lib/useAdmin";
+import { initials, timeAgo } from "@/lib/format";
+import type { ManagementUserDto as Staff, ManagementUsersListResponse, RolesListResponse } from "@/types/api";
 
 export default function UsersPage() {
   const router = useRouter();
-  const { data, isLoading, mutate } = useSWR<UsersResp>("/api/admin/users", getJSON);
+  const theme = useTheme();
+  const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
+  const { admin, can } = useAdmin();
+  const manage = can("users.manage");
+  const { data, isLoading, mutate } = useSWR<ManagementUsersListResponse>("/api/admin/users", getJSON);
+  const { data: rolesData } = useSWR<RolesListResponse>("/api/admin/roles", getJSON);
   const rows = useMemo(() => data?.users || [], [data]);
+  const [now] = useState(() => Date.now());
+  const [roleUser, setRoleUser] = useState<Staff | null>(null);
+  const [roleValue, setRoleValue] = useState<number | "">("");
 
-  const [roleDlgOpen, setRoleDlgOpen] = React.useState(false);
-  const [roleUser, setRoleUser] = React.useState<{ id: number; name?: string; role: "ADMIN" | "EDITOR" | "VIEWER" } | null>(null);
-  const [roleValue, setRoleValue] = React.useState<"ADMIN" | "EDITOR" | "VIEWER">("VIEWER");
-
-  const openRoleDialog = (row: any) => {
-    const current = String(row.role || "VIEWER").toUpperCase() as any;
-    setRoleUser({ id: Number(row.id), name: row.name, role: current });
-    setRoleValue(current);
-    setRoleDlgOpen(true);
-  };
+  const counts = useMemo(
+    () => ({
+      total: rows.length,
+      active: rows.filter(r => r.isActive).length,
+      full: rows.filter(r => r.permissions?.includes("*") && r.isActive).length,
+      recent: rows.filter(r => r.lastLoginAt && now - new Date(r.lastLoginAt).getTime() < 7 * 864e5).length,
+    }),
+    [rows, now]
+  );
 
   const saveRole = async () => {
-    if (!roleUser) return;
+    if (!roleUser || !roleValue) return;
     try {
-      const res = await fetch(`/api/admin/users/${roleUser.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: roleValue }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setRoleDlgOpen(false);
+      await apiPatch(`/api/admin/users/${roleUser.id}`, { roleId: roleValue });
       setRoleUser(null);
       await mutate();
-    } catch (e: any) {
-      alert(e?.message || "Failed to update role");
+    } catch (e) {
+      Swal.fire({ icon: "error", title: "Couldn't change role", text: errorMessage(e) });
     }
   };
 
-  async function confirmAndDelete(id: number, name?: string) {
+  const toggleActive = async (u: Staff) => {
+    const next = !u.isActive;
+    const ok = await Swal.fire({
+      title: next ? `Reactivate ${u.name}?` : `Deactivate ${u.name}?`,
+      text: next ? "They will be able to sign in again." : "They won't be able to sign in. Their history stays intact.",
+      icon: next ? "question" : "warning",
+      showCancelButton: true,
+      confirmButtonText: next ? "Reactivate" : "Deactivate",
+      confirmButtonColor: next ? "#0F6E56" : "#D23B3B",
+    });
+    if (!ok.isConfirmed) return;
     try {
-      const Swal = (await import("sweetalert2")).default;
-      const result = await Swal.fire({
-        title: "Delete user?",
-        text: name ? `This will remove ${name}.` : "This action cannot be undone.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        confirmButtonText: "Yes, delete",
-        cancelButtonText: "Cancel",
-      });
-      if (!result.isConfirmed) return;
+      await apiPatch(`/api/admin/users/${u.id}`, { isActive: next });
+      await mutate();
+    } catch (e) {
+      Swal.fire({ icon: "error", title: "Couldn't update", text: errorMessage(e) });
+    }
+  };
 
-      const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(await res.text());
+  async function confirmAndDelete(u: Staff) {
+    const result = await Swal.fire({
+      title: `Delete ${u.name}?`,
+      text: "This removes the staff account permanently. Deactivating is usually the better choice.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#D23B3B",
+      confirmButtonText: "Yes, delete",
+    });
+    if (!result.isConfirmed) return;
+    try {
+      await apiDelete(`/api/admin/users/${u.id}`);
       await mutate();
       await Swal.fire({ icon: "success", title: "Deleted", timer: 1200, showConfirmButton: false });
-    } catch (e: any) {
-      const Swal = (await import("sweetalert2")).default;
-      await Swal.fire({ icon: "error", title: "Failed", text: e?.message || "Unable to delete" });
+    } catch (e) {
+      Swal.fire({ icon: "error", title: "Couldn't delete", text: errorMessage(e, "Unable to delete") });
     }
   }
 
-  const columns: GridColDef[] = [
-    { field: "name", headerName: "Name", flex: 1, minWidth: 160 },
-    { field: "email", headerName: "Email", flex: 1, minWidth: 220 },
-    { field: "phone", headerName: "Phone", minWidth: 140 },
-    { field: "title", headerName: "Title", minWidth: 140 },
+  const columns: GridColDef<Staff>[] = [
     {
-      field: "role",
+      field: "name",
+      headerName: "Person",
+      flex: 1.4,
+      minWidth: 240,
+      renderCell: p => (
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ height: "100%", minWidth: 0, opacity: p.row.isActive ? 1 : 0.55 }}>
+          <Avatar src={p.row.photoUrl || undefined} sx={{ width: 36, height: 36, fontSize: 13, bgcolor: alpha(theme.palette.primary.main, 0.14), color: "primary.main" }}>
+            {initials(p.row.name)}
+          </Avatar>
+          <Box sx={{ minWidth: 0, lineHeight: 1.25 }}>
+            <Typography component="div" sx={{ fontWeight: 700, fontSize: 14 }} noWrap>
+              {p.row.name} {admin?.id === p.row.id && <Chip label="You" size="small" sx={{ ml: 0.5, height: 18, fontSize: 10 }} />}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap component="div">
+              {p.row.title || p.row.email}
+            </Typography>
+          </Box>
+        </Stack>
+      ),
+    },
+    { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
+    { field: "phone", headerName: "Phone", minWidth: 130 },
+    {
+      field: "roleName",
       headerName: "Role",
-      minWidth: 120,
-      renderCell: (p) => {
-        const v = String(p.value || "").toUpperCase();
-        const color = v === "ADMIN" ? "primary" : v === "EDITOR" ? "warning" : "default";
-        return <Chip label={v} size="small" color={color as any} />;
-      },
+      minWidth: 150,
+      renderCell: p => (
+        <Chip
+          size="small"
+          icon={p.row.permissions?.includes("*") ? <AdminPanelSettingsRounded /> : undefined}
+          label={p.value}
+          color={p.row.permissions?.includes("*") ? "primary" : "default"}
+          variant={p.row.permissions?.includes("*") ? "filled" : "outlined"}
+        />
+      ),
     },
     {
-      field: "created",
-      headerName: "Created",
-      minWidth: 160,
-      renderCell: (params) => {
-        const v = params?.row?.created;
-        const d = dayjs(v);
-        return d.isValid() ? d.format("D, MMM YYYY") : "";
-      },
-      sortable: true,
+      field: "isActive",
+      headerName: "Status",
+      minWidth: 120,
+      renderCell: p => <Chip size="small" label={p.value ? "Active" : "Deactivated"} color={p.value ? "success" : "default"} variant={p.value ? "filled" : "outlined"} />,
+    },
+    {
+      field: "lastLoginAt",
+      headerName: "Last sign-in",
+      minWidth: 130,
+      valueFormatter: (v: string | null) => timeAgo(v),
     },
     {
       field: "actions",
       type: "actions",
-      headerName: "Actions",
-      getActions: params => [
-        <GridActionsCellItem
-          key="edit"
-          icon={<EditIcon fontSize="small" />}
-          label="Edit"
-          onClick={() => router.push(`/dashboard/users/${params.id}`)}
-          showInMenu={false}
-        />, 
-        <GridActionsCellItem
-          key="role"
-          icon={<ManageAccountsIcon fontSize="small" />}
-          label="Change role"
-          onClick={() => openRoleDialog(params.row)}
-          showInMenu={false}
-        />,
-        <GridActionsCellItem
-          key="delete"
-          icon={<DeleteIcon fontSize="small" />}
-          label="Delete"
-          onClick={() => confirmAndDelete(Number(params.id), (params.row as any)?.name)}
-          showInMenu={false}
-        />,
-      ],
+      headerName: "",
+      width: 150,
+      getActions: params =>
+        manage
+          ? [
+              <GridActionsCellItem key="edit" icon={<EditRounded fontSize="small" />} label="Edit" onClick={() => router.push(`/dashboard/users/${params.id}`)} />,
+              <GridActionsCellItem
+                key="role"
+                icon={<ManageAccountsRounded fontSize="small" />}
+                label="Change role"
+                onClick={() => {
+                  setRoleUser(params.row);
+                  setRoleValue(params.row.roleId || "");
+                }}
+              />,
+              <GridActionsCellItem
+                key="active"
+                icon={params.row.isActive ? <BlockRounded fontSize="small" /> : <CheckCircleOutlineRounded fontSize="small" />}
+                label={params.row.isActive ? "Deactivate" : "Reactivate"}
+                onClick={() => toggleActive(params.row)}
+                disabled={admin?.id === params.row.id}
+                showInMenu
+              />,
+              <GridActionsCellItem
+                key="delete"
+                icon={<DeleteOutlineRounded fontSize="small" />}
+                label="Delete"
+                onClick={() => confirmAndDelete(params.row)}
+                disabled={admin?.id === params.row.id}
+                showInMenu
+              />,
+            ]
+          : [],
     },
   ];
 
   return (
     <>
-    <>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2, flexWrap: "wrap" }}>
-        <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>Users</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => router.push("/dashboard/users/add-user")}>
-          Add User
-        </Button>
-      </Box>
-      <Paper sx={{ height: 600, width: "100%" }}>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          loading={isLoading}
-          disableRowSelectionOnClick
-          initialState={{
-            pagination: { paginationModel: { pageSize: 10, page: 0 } },
-          }}
-          pageSizeOptions={[5, 10, 25, 50]}
-          slots={{ toolbar: GridToolbar }}
-          slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 300 } } }}
+      <PageGate title="Staff users" permission={["users.view", "users.manage"]}>
+        <PageHeader
+          eyebrow="Administration"
+          title="Staff users"
+          subtitle="The volunteers and staff who run the portal. Each person gets a role that decides what they can see and change."
+          actions={
+            <>
+              {can("roles.manage") && (
+                <Button component={Link} href="/dashboard/roles" variant="outlined" startIcon={<AdminPanelSettingsRounded />}>
+                  Roles & permissions
+                </Button>
+              )}
+              {manage && (
+                <Button variant="contained" startIcon={<PersonAddAlt1Rounded />} onClick={() => router.push("/dashboard/users/add-user")}>
+                  Add staff
+                </Button>
+              )}
+            </>
+          }
         />
-      </Paper>
-    </>
-    <Dialog open={roleDlgOpen} onClose={() => setRoleDlgOpen(false)}>
-      <DialogTitle>Update Role {roleUser?.name ? `— ${roleUser.name}` : ""}</DialogTitle>
-      <DialogContent>
-        <FormControl fullWidth size="small" sx={{ mt: 1, minWidth: 220 }}>
-          <InputLabel id="role-select-label">Role</InputLabel>
-          <Select labelId="role-select-label" label="Role" value={roleValue} onChange={e => setRoleValue(e.target.value as any)}>
-            <MenuItem value="ADMIN">ADMIN</MenuItem>
-            <MenuItem value="EDITOR">EDITOR</MenuItem>
-            <MenuItem value="VIEWER">VIEWER</MenuItem>
-          </Select>
-        </FormControl>
-      </DialogContent>
-      <DialogActions>
-        <MuiButton onClick={() => setRoleDlgOpen(false)}>Cancel</MuiButton>
-        <MuiButton variant="contained" onClick={saveRole}>Save</MuiButton>
-      </DialogActions>
-    </Dialog>
+
+        <Grid min={200} sx={{ mb: 3 }}>
+          <StatCard label="Staff accounts" value={counts.total} />
+          <StatCard label="Active" value={counts.active} tone="success" />
+          <StatCard label="Full access" value={counts.full} tone="warning" hint="Super Admin level" />
+          <StatCard label="Signed in this week" value={counts.recent} tone="info" />
+        </Grid>
+
+        <Box sx={{ height: { xs: 520, md: 600 }, width: "100%" }}>
+          <DataGrid
+            rows={rows}
+            columns={columns}
+            loading={isLoading}
+            rowHeight={60}
+            disableRowSelectionOnClick
+            columnVisibilityModel={isPhone ? { email: false, phone: false, lastLoginAt: false } : undefined}
+            initialState={{ pagination: { paginationModel: { pageSize: 25, page: 0 } } }}
+            pageSizeOptions={[10, 25, 50]}
+            slots={{ toolbar: GridToolbar }}
+            slotProps={{ toolbar: { showQuickFilter: true, quickFilterProps: { debounceMs: 300 } } }}
+          />
+        </Box>
+      </PageGate>
+
+      <Dialog open={!!roleUser} onClose={() => setRoleUser(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Change role</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Choose what {roleUser?.name} can do in the portal. The change applies on their next click.
+          </Typography>
+          <TextField select fullWidth size="small" label="Role" value={roleValue} onChange={e => setRoleValue(Number(e.target.value))}>
+            {(rolesData?.roles || []).map(r => (
+              <MenuItem key={r.id} value={r.id}>
+                {r.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button color="inherit" onClick={() => setRoleUser(null)}>
+            Cancel
+          </Button>
+          <Button variant="contained" onClick={saveRole} disabled={!roleValue}>
+            Save role
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

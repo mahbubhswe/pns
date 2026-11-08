@@ -8,8 +8,15 @@ Guidance for AI assistants and new contributors working in this repository.
   route file; put it in `features/<domain>/service.ts`.
 - This is the Next.js App Router. API routes are `app/api/**/route.ts`
   wrapped with `route()`, validate input with Zod from the feature's
-  `schema.ts`, authenticate with `requireAdmin(req)` / `requireMember(req)`,
-  and return DTOs from `types/api.ts` via `json()`.
+  `schema.ts`, authenticate members with `requireMember(req)` and staff with
+  `await requirePermission(req, "<permission>")` from `features/access`, and
+  return DTOs from `types/api.ts` via `json()`.
+- Staff access is role-based. Permission keys live in
+  `lib/shared/permissions.ts`; every staff route must call
+  `requirePermission`. Dashboard pages wrap themselves in
+  `<PageGate title permission>` (UX only — the API is the real check).
+- Accounting vouchers are never deleted, only voided with a reason. Keep it
+  that way; reports depend on it.
 - Pages are server components that load data and pass it to `"use client"`
   components. Never import `lib/server` or `features` from a client file.
 - New environment variables go in `lib/config/env.ts` **and** `.env.example`.

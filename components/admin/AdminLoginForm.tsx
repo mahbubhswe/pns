@@ -4,26 +4,28 @@ import React, { useState } from "react";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
-  CardHeader,
   CircularProgress,
   Snackbar,
   Alert,
   Stack,
   TextField,
   Typography,
-  Container,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
-import axios from "axios";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import ShieldRounded from "@mui/icons-material/ShieldRounded";
+import AuthShell from "@/components/AuthShell";
+import { apiPost, errorMessage } from "@/lib/api";
+import { DEFAULT_SITE_SETTINGS, type SiteSettings } from "@/lib/shared/settings";
+import type { AdminLoginResponse } from "@/types/api";
 
-const HERO_IMG =
-  "https://www.hellopurbachal.com/wp-content/uploads/2022/08/Purbachal-300-ft-bridge.jpg";
-
-export default function AdminLoginForm() {
+export default function AdminLoginForm({ site = DEFAULT_SITE_SETTINGS.site }: { site?: SiteSettings["site"] }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [show, setShow] = useState(false);
   const [toast, setToast] = useState<{ open: boolean; msg: string; sev: "success" | "error" | "info" | "warning" }>({ open: false, msg: "", sev: "success" });
 
   const emailOk = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -36,16 +38,12 @@ export default function AdminLoginForm() {
     }
     try {
       setSubmitting(true);
-      const res = await axios.post("/api/admin/login", { email: email.trim(), password: password.trim() });
-      if (res.data?.ok) {
-        setToast({ open: true, msg: "Welcome", sev: "success" });
-        if (typeof window !== "undefined") window.location.assign("/dashboard");
-      } else {
-        throw new Error("Login failed");
-      }
-    } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.message || "Login failed";
-      setToast({ open: true, msg, sev: "error" });
+      const res = await apiPost<AdminLoginResponse>("/api/admin/login", { email: email.trim(), password: password.trim() });
+      if (!res?.ok) throw new Error("Login failed");
+      setToast({ open: true, msg: "Welcome", sev: "success" });
+      window.location.assign("/dashboard");
+    } catch (err) {
+      setToast({ open: true, msg: errorMessage(err, "Login failed"), sev: "error" });
     } finally {
       setSubmitting(false);
     }
@@ -53,71 +51,67 @@ export default function AdminLoginForm() {
 
   return (
     <>
-      <Box sx={{ position: "relative", minHeight: { xs: 180, md: 240 }, display: "flex", alignItems: "center", justifyContent: "center", color: "common.white", textAlign: "center", backgroundImage: `linear-gradient( to bottom, rgba(0,0,0,.45), rgba(0,0,0,.55) ), url(${HERO_IMG})`, backgroundSize: "cover", backgroundPosition: "center", overflow: "hidden" }}>
-        <Container maxWidth="lg">
-          <Stack spacing={1} sx={{ position: "relative", zIndex: 1 }}>
-            <Typography variant="h3" sx={{ fontWeight: 800, textShadow: "0 2px 12px rgba(0,0,0,.4)", fontSize: { xs: 28, md: 36 } }}>Purbachal Admin</Typography>
-            <Typography variant="h6" sx={{ opacity: 0.95, fontWeight: 500 }}>Management Login</Typography>
-          </Stack>
-        </Container>
-      </Box>
-
-      <Container maxWidth="lg" sx={{ transform: "translateY(-24px)" }}>
-        <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 2 }}>
-          <CardContent sx={{ py: 2 }}>
-            <Typography variant="body2" color="text.secondary">Use your management credentials to access the dashboard.</Typography>
-          </CardContent>
-        </Card>
-      </Container>
-
-      <Container maxWidth="sm" sx={{ pt: 2, pb: { xs: 4, md: 6 } }}>
-        <Card variant="outlined" sx={{ borderRadius: 3, boxShadow: 1 }}>
-          <CardHeader title="Management Login" subheader="Admins & staff" />
-          <CardContent>
-            <Box
-              component="form"
-              onSubmit={onSubmit}
-              action="/api/admin/login"
-              method="post"
-              noValidate
+      <AuthShell
+        site={site}
+        scene={14}
+        eyebrow="Management portal"
+        title="Committee sign-in"
+        subtitle={`For ${site.shortName} volunteers and staff. Your role decides what you can see once you're in.`}
+        quote="Every approval and every receipt here helps a neighbour."
+      >
+        <Box component="form" onSubmit={onSubmit} action="/api/admin/login" method="post" noValidate>
+          <Stack spacing={2.25}>
+            <TextField
+              name="email"
+              label="Work email"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              error={!!email && !emailOk(email)}
+              helperText={!!email && !emailOk(email) ? "Enter a valid email" : " "}
+              autoComplete="username"
+              fullWidth
+              required
+            />
+            <TextField
+              name="password"
+              label="Password"
+              type={show ? "text" : "password"}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              helperText={password && password.length < 6 ? "Min 6 characters" : " "}
+              error={!!password && password.length < 6}
+              autoComplete="current-password"
+              fullWidth
+              required
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton aria-label="Show password" onClick={() => setShow(v => !v)} edge="end">
+                      {show ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              type="submit"
+              size="large"
+              variant="contained"
+              disabled={submitting || !emailOk(email) || password.length < 6}
+              startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <ShieldRounded />}
+              sx={{ py: 1.5 }}
             >
-              <Stack spacing={2}>
-                <TextField
-                  name="email"
-                  label="Email"
-                  size="small"
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  error={!!email && !emailOk(email)}
-                  helperText={!!email && !emailOk(email) ? "Enter a valid email" : " "}
-                  autoComplete="username"
-                  fullWidth
-                  required
-                />
-                <TextField
-                  name="password"
-                  label="Password"
-                  size="small"
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  helperText={password && password.length < 6 ? "Min 6 characters" : " "}
-                  error={!!password && password.length < 6}
-                  autoComplete="current-password"
-                  fullWidth
-                  required
-                />
-                <Button type="submit" variant="contained" disabled={submitting || !emailOk(email) || password.length < 6} startIcon={submitting ? <CircularProgress size={18} /> : undefined}>
-                  {submitting ? "Signing in…" : "Login"}
-                </Button>
-              </Stack>
-            </Box>
-          </CardContent>
-        </Card>
-      </Container>
+              {submitting ? "Signing in…" : "Sign in securely"}
+            </Button>
+          </Stack>
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
+          Forgot your password or locked out? Ask a Super Admin to reset it from Staff users.
+        </Typography>
+      </AuthShell>
 
-      <Snackbar open={toast.open} autoHideDuration={3500} onClose={() => setToast({ ...toast, open: false })} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+      <Snackbar open={toast.open} autoHideDuration={3500} onClose={() => setToast({ ...toast, open: false })}>
         <Alert onClose={() => setToast({ ...toast, open: false })} severity={toast.sev} variant="filled" sx={{ width: "100%" }}>
           {toast.msg}
         </Alert>

@@ -27,7 +27,14 @@ export function isApiClientError(err: unknown): err is ApiClientError {
 
 /** Human-readable message from any thrown value (ApiClientError, Error, string). */
 export function errorMessage(err: unknown, fallback = "Something went wrong"): string {
-  if (isApiClientError(err)) return err.message;
+  if (isApiClientError(err)) {
+    // Zod failures come back as "Validation failed" + per-field issues; show the first one.
+    if (err.code === "VALIDATION_ERROR" && Array.isArray(err.details)) {
+      const first = err.details[0] as { message?: unknown } | undefined;
+      if (first && typeof first.message === "string" && first.message) return first.message;
+    }
+    return err.message;
+  }
   if (err instanceof Error && err.message) return err.message;
   if (typeof err === "string" && err) return err;
   return fallback;
