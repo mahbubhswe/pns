@@ -27,12 +27,14 @@ import DeleteOutlineRounded from "@mui/icons-material/DeleteOutlineRounded";
 import BlockRounded from "@mui/icons-material/BlockRounded";
 import CheckCircleOutlineRounded from "@mui/icons-material/CheckCircleOutlineRounded";
 import AdminPanelSettingsRounded from "@mui/icons-material/AdminPanelSettingsRounded";
+import LoginRounded from "@mui/icons-material/LoginRounded";
 import { DataGrid, GridActionsCellItem, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import Swal from "sweetalert2";
 import PageGate from "@/components/dashboard/PageGate";
 import { PageHeader, StatCard, Grid } from "@/components/dashboard/ui";
 import { apiDelete, apiPatch, errorMessage, getJSON } from "@/lib/api";
 import { useAdmin } from "@/lib/useAdmin";
+import { loginAsStaff } from "@/lib/impersonate";
 import { initials, timeAgo } from "@/lib/format";
 import type { ManagementUserDto as Staff, ManagementUsersListResponse, RolesListResponse } from "@/types/api";
 
@@ -42,6 +44,13 @@ export default function UsersPage() {
   const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
   const { admin, can } = useAdmin();
   const manage = can("users.manage");
+  // Mirrors the server rule: never yourself, a deactivated account, or someone with more access.
+  const canLoginAs = (u: Staff) =>
+    can("users.impersonate") &&
+    !admin?.impersonatedBy &&
+    u.id !== admin?.id &&
+    u.isActive &&
+    (admin?.permissions.includes("*") || (!u.permissions.includes("*") && u.permissions.every(p => admin?.permissions.includes(p))));
   const { data, isLoading, mutate } = useSWR<ManagementUsersListResponse>("/api/admin/users", getJSON);
   const { data: rolesData } = useSWR<RolesListResponse>("/api/admin/roles", getJSON);
   const rows = useMemo(() => data?.users || [], [data]);
@@ -163,8 +172,19 @@ export default function UsersPage() {
       type: "actions",
       headerName: "",
       width: 150,
-      getActions: params =>
-        manage
+      getActions: params => [
+        ...(canLoginAs(params.row)
+          ? [
+              <GridActionsCellItem
+                key="login-as"
+                icon={<LoginRounded fontSize="small" />}
+                label={`Log in as ${params.row.name}`}
+                onClick={() => loginAsStaff(params.row)}
+                showInMenu
+              />,
+            ]
+          : []),
+        ...(manage
           ? [
               <GridActionsCellItem key="edit" icon={<EditRounded fontSize="small" />} label="Edit" onClick={() => router.push(`/dashboard/users/${params.id}`)} />,
               <GridActionsCellItem
@@ -193,7 +213,8 @@ export default function UsersPage() {
                 showInMenu
               />,
             ]
-          : [],
+          : []),
+      ],
     },
   ];
 

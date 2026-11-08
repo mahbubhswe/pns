@@ -8,12 +8,17 @@ export const AUTH_COOKIES = {
   member: "pns_token",
   /** Logged-in management user (dashboard). */
   admin: "admin_token",
+  /** While a staff user is logged in as someone else: their own admin token, to return to. */
+  impersonator: "admin_impersonator",
 } as const;
 
 export type AuthCookieName = (typeof AUTH_COOKIES)[keyof typeof AUTH_COOKIES];
 
 /** JWT lifetime, in seconds. Cookie maxAge uses the same value. */
 export const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+/** "Log in as" sessions are short-lived: they end on their own after this. */
+export const IMPERSONATION_TTL_SECONDS = 60 * 60; // 1 hour
 
 export const BCRYPT_ROUNDS = 10;
 

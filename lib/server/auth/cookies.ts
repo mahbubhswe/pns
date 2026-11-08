@@ -21,8 +21,14 @@ function baseOptions(req: NextRequest) {
 }
 
 /** Attach an auth cookie to a response (JSON or redirect). */
-export function setAuthCookie(req: NextRequest, res: NextResponse, name: AuthCookieName, token: string): void {
-  res.cookies.set({ name, value: token, ...baseOptions(req), maxAge: TOKEN_TTL_SECONDS });
+export function setAuthCookie(
+  req: NextRequest,
+  res: NextResponse,
+  name: AuthCookieName,
+  token: string,
+  maxAge: number = TOKEN_TTL_SECONDS
+): void {
+  res.cookies.set({ name, value: token, ...baseOptions(req), maxAge });
 }
 
 export function clearAuthCookie(req: NextRequest, res: NextResponse, name: AuthCookieName): void {

@@ -87,7 +87,11 @@ export type MemberLoginResponse = OkResponse & {
   user: { id: number; email: string; name: string; status: MemberStatus };
 };
 
-export type ProfileResponse = OkResponse & { profile: MemberDto };
+export type ProfileResponse = OkResponse & {
+  profile: MemberDto;
+  /** Set when a staff user is viewing this profile via "log in as". */
+  impersonatedBy: ImpersonatorDto | null;
+};
 export type UploadResponse = OkResponse & { url: string };
 
 // ---------------------------------------------------------------------------
@@ -121,6 +125,8 @@ export type AdminMeDto = {
   roleId: number | null;
   roleName: string;
   permissions: string[];
+  /** Set when another staff user is logged in as this one via "log in as". */
+  impersonatedBy: ImpersonatorDto | null;
 };
 export type AdminMeResponse = { admin: AdminMeDto };
 
@@ -144,6 +150,13 @@ export type ManagementUserUpdatedResponse = OkResponse & { user: ManagementUserD
 export type AdminLoginResponse = OkResponse & {
   admin: { id: number; email: string; name: string; role: ManagementRole };
 };
+
+// ---------------------------------------------------------------------------
+// "Log in as" (impersonation)
+
+export type ImpersonatorDto = { id: number; name: string };
+/** Where the browser should go next (the target's home page). */
+export type ImpersonationResponse = OkResponse & { redirectTo: string };
 
 // ---------------------------------------------------------------------------
 // Posts

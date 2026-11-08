@@ -13,6 +13,7 @@ export const PERMISSIONS = [
   { key: "members.view", group: "Members", label: "View members & applications" },
   { key: "members.manage", group: "Members", label: "Approve, reject & import members" },
   { key: "members.delete", group: "Members", label: "Delete member records" },
+  { key: "members.impersonate", group: "Members", label: "Log in as a member (view their profile as they see it)" },
 
   { key: "posts.view", group: "Content", label: "View posts" },
   { key: "posts.manage", group: "Content", label: "Write, edit & delete posts" },
@@ -28,6 +29,7 @@ export const PERMISSIONS = [
   { key: "users.view", group: "Administration", label: "View staff users" },
   { key: "users.manage", group: "Administration", label: "Create, edit & deactivate staff users" },
   { key: "roles.manage", group: "Administration", label: "Create & edit roles and permissions" },
+  { key: "users.impersonate", group: "Administration", label: "Log in as another staff user (never one with more access)" },
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number]["key"];

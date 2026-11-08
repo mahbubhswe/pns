@@ -42,6 +42,14 @@ export default function Profile({ site, sections }: { site?: SiteSettings["site"
     if (typeof window !== "undefined") window.location.assign("/auth/login");
   }
 
+  /** Leave a staff "log in as" session: sign the member out and go back to their record. */
+  async function exitMemberView(memberId: number) {
+    try {
+      await apiPost("/api/auth/logout");
+    } catch {}
+    window.location.assign(`/dashboard/membership/${memberId}`);
+  }
+
   if (isLoading)
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -84,6 +92,19 @@ export default function Profile({ site, sections }: { site?: SiteSettings["site"
   return (
     <>
       <PublicHeader site={site} sections={sections} />
+      {data?.impersonatedBy && (
+        <Alert
+          severity="warning"
+          sx={{ borderRadius: 0, justifyContent: "center", alignItems: "center", fontWeight: 600 }}
+          action={
+            <Button color="inherit" size="small" variant="outlined" onClick={() => exitMemberView(p.id)} sx={{ fontWeight: 750 }}>
+              Exit member view
+            </Button>
+          }
+        >
+          Staff view: {data.impersonatedBy.name} is logged in as <b>{p.ownerNameEnglish}</b>. View only, ends after 1 hour.
+        </Alert>
+      )}
       {/* Hero with a living neighbourhood scene */}
       <Box sx={{ position: "relative", overflow: "hidden", minHeight: { xs: 240, md: 300 }, display: "flex", alignItems: "flex-end", color: "#fff", bgcolor: "#0B1A14" }}>
         <Box sx={{ position: "absolute", inset: 0 }}>

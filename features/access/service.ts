@@ -13,7 +13,7 @@ import {
 import type { AdminMeDto } from "@/types/api";
 import type { CreateRoleInput, UpdateRoleInput } from "./schema";
 
-export type AdminContext = AdminMeDto;
+export type AdminContext = Omit<AdminMeDto, "impersonatedBy">;
 
 /** Permissions a staff user holds: from their Role, or from the legacy enum for unmigrated accounts. */
 export function permissionsFor(user: { role: string; roleRef: Pick<Role, "permissions"> | null }): string[] {
@@ -47,6 +47,13 @@ export async function requirePermission(req: NextRequest, permission?: Permissio
   const claims = requireAdmin(req);
   const admin = await loadAdminContext(claims.sub);
   if (!admin) throw ApiError.unauthorized("Your session has ended. Please sign in again.");
+  if (claims.imp) {
+    // A "log in as" session only lives while the real staff user may still impersonate.
+    const actor = await loadAdminContext(claims.imp);
+    if (!actor || !hasPermission(actor.permissions, "users.impersonate")) {
+      throw ApiError.unauthorized("This 'log in as' session has ended. Please sign in again.");
+    }
+  }
   if (permission && !hasPermission(admin.permissions, permission)) {
     throw ApiError.forbidden("You don't have permission to do this.");
   }

@@ -215,6 +215,19 @@ volunteer society:
 - `proxy.ts` only checks cookie *presence* to redirect pages. Real
   verification happens in API guards and in `app/dashboard/layout.tsx`.
 - Passwords are bcrypt-hashed (`BCRYPT_ROUNDS`).
+- **"Log in as" (impersonation)**, `features/impersonation` +
+  `app/api/admin/impersonate/*`. A token minted for the target carries an `imp`
+  claim (the real staff user's id) and lives `IMPERSONATION_TTL_SECONDS` (1 h).
+  - Member: needs `members.impersonate`; sets only the member cookie, so the
+    dashboard stays signed in. The session is view-only: member write routes
+    must reject `member.imp` (see `api/profile/photo`).
+  - Staff: needs `users.impersonate`; the caller's own token is parked in
+    `admin_impersonator` and restored by `/api/admin/impersonate/stop`.
+    Never yourself, never a deactivated user, never a target with any
+    permission the caller lacks, and no chaining. `requirePermission`
+    re-checks on every request that the real staff user is still active and
+    still holds `users.impersonate`.
+  - Every start/stop is logged (`impersonation.start` / `impersonation.stop`).
 
 ## File storage
 

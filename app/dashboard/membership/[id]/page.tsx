@@ -27,10 +27,12 @@ import MailRounded from "@mui/icons-material/MailRounded";
 import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import AddRounded from "@mui/icons-material/AddRounded";
 import DescriptionRounded from "@mui/icons-material/DescriptionRounded";
+import LoginRounded from "@mui/icons-material/LoginRounded";
 import PageGate from "@/components/dashboard/PageGate";
 import { PageHeader, SectionCard, StatusChip } from "@/components/dashboard/ui";
 import { apiDelete, apiPatch, errorMessage, getJSON } from "@/lib/api";
 import { useAdmin } from "@/lib/useAdmin";
+import { loginAsMember } from "@/lib/impersonate";
 import { formatDate, initials, money } from "@/lib/format";
 import type { MemberDto as Member, MemberResponse, VouchersResponse } from "@/types/api";
 import type { MemberUiStatus } from "@/lib/shared/membership";
@@ -45,7 +47,7 @@ export default function MemberDetailPage() {
   const router = useRouter();
   const theme = useTheme();
   const { id } = useParams<{ id: string }>();
-  const { can } = useAdmin();
+  const { admin, can } = useAdmin();
   const { data, isLoading, error, mutate } = useSWR<MemberResponse>(id ? `/api/memberships/${id}` : null, getJSON);
   const p: Member | undefined = data?.member;
   // The DTO carries both: `status` (active/pending/inactive, what PATCH expects) and `statusCode` (DB enum).
@@ -105,6 +107,13 @@ export default function MemberDetailPage() {
         crumbs={[{ label: "Members", href: "/dashboard/membership" }, { label: p?.ownerNameEnglish || "Member" }]}
         title="Member profile"
         subtitle="Check the plot, documents and payment, then record your decision."
+        actions={
+          p && can("members.impersonate") && !admin?.impersonatedBy ? (
+            <Button variant="outlined" startIcon={<LoginRounded />} onClick={() => loginAsMember(p)}>
+              Log in as member
+            </Button>
+          ) : undefined
+        }
       />
       {isLoading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>

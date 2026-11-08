@@ -1,5 +1,5 @@
 import { json, parseBody, readBody, redirectSeeOther, route, wantsHtml } from "@/lib/server/http";
-import { setAuthCookie, signAdminToken } from "@/lib/server/auth";
+import { clearAuthCookie, setAuthCookie, signAdminToken } from "@/lib/server/auth";
 import { AUTH_COOKIES } from "@/lib/config/constants";
 import { adminLoginSchema, authenticateManagementUser } from "@/features/management-user";
 import type { AdminLoginResponse } from "@/types/api";
@@ -15,5 +15,6 @@ export const POST = route(async req => {
   };
   const res = wantsHtml(req) ? redirectSeeOther(req, "/dashboard") : json(body);
   setAuthCookie(req, res, AUTH_COOKIES.admin, token);
+  clearAuthCookie(req, res, AUTH_COOKIES.impersonator);
   return res;
 });

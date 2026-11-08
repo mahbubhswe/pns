@@ -19,8 +19,10 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DownloadRounded from "@mui/icons-material/DownloadRounded";
 import FilterAltOffRounded from "@mui/icons-material/FilterAltOffRounded";
+import LoginRounded from "@mui/icons-material/LoginRounded";
 import { PageHeader, StatusChip } from "@/components/dashboard/ui";
 import { useAdmin } from "@/lib/useAdmin";
+import { loginAsMember } from "@/lib/impersonate";
 import { initials } from "@/lib/format";
 import type { Dayjs } from "dayjs";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -94,7 +96,7 @@ function MembershipView() {
 
   const theme = useTheme();
   const isPhone = useMediaQuery(theme.breakpoints.down("sm"));
-  const { can } = useAdmin();
+  const { admin, can } = useAdmin();
   const statusParam = searchParams.get("status") || "all";
   const statusFilter = ["active", "pending", "inactive"].includes(statusParam) ? statusParam : "all";
   const allRows = useMemo(() => data?.members || [], [data?.members]);
@@ -222,7 +224,7 @@ function MembershipView() {
       field: "actions",
       type: "actions",
       headerName: "",
-      width: 60,
+      width: 90,
       getActions: params => [
         <GridActionsCellItem
           key="view"
@@ -231,6 +233,17 @@ function MembershipView() {
           onClick={() => router.push(`/dashboard/membership/${params.id}`)}
           showInMenu={false}
         />,
+        ...(can("members.impersonate") && !admin?.impersonatedBy
+          ? [
+              <GridActionsCellItem
+                key="login-as"
+                icon={<LoginRounded fontSize="small" />}
+                label="Log in as member"
+                onClick={() => loginAsMember(params.row)}
+                showInMenu
+              />,
+            ]
+          : []),
       ],
     },
   ];

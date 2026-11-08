@@ -6,6 +6,7 @@ import React, { PropsWithChildren, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Alert,
   AppBar,
   Avatar,
   Box,
@@ -44,11 +45,13 @@ import AdminPanelSettingsRounded from "@mui/icons-material/AdminPanelSettingsRou
 import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import OpenInNewRounded from "@mui/icons-material/OpenInNewRounded";
 import TuneRounded from "@mui/icons-material/TuneRounded";
+import SupervisorAccountRounded from "@mui/icons-material/SupervisorAccountRounded";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo, { BrandMark } from "@/components/BrandLogo";
 import { useAdmin } from "@/lib/useAdmin";
 import { initials } from "@/lib/format";
 import { apiPost } from "@/lib/api";
+import { returnToOwnAccount } from "@/lib/impersonate";
 import type { Permission } from "@/lib/shared/permissions";
 
 const DRAWER = 272;
@@ -353,6 +356,22 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
         }}
       >
         <Box sx={{ maxWidth: 1440, mx: "auto" }}>
+          {admin?.impersonatedBy && (
+            <Alert
+              severity="warning"
+              icon={<SupervisorAccountRounded />}
+              className="no-print"
+              sx={{ mb: 2.5, borderRadius: 3, alignItems: "center", fontWeight: 600 }}
+              action={
+                <Button color="inherit" size="small" variant="outlined" onClick={returnToOwnAccount} sx={{ fontWeight: 750 }}>
+                  Return to my account
+                </Button>
+              }
+            >
+              You ({admin.impersonatedBy.name}) are logged in as <b>{admin.name}</b> · {admin.roleName}. Everything you do is
+              done as them.
+            </Alert>
+          )}
           {children}
         </Box>
       </Box>
