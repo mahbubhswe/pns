@@ -147,6 +147,10 @@ export default function SettingsPage() {
                     <TextField label="Fee via bKash (BDT)" type="number" value={form.payment.feeBkash} onChange={number("payment", "feeBkash")} required fullWidth />
                     <TextField label="Fee via bank (BDT)" type="number" value={form.payment.feeBank} onChange={number("payment", "feeBank")} required fullWidth />
                   </Stack>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                    <TextField label="Associate fee via bKash (BDT)" type="number" value={form.payment.feeBkashAssociate} onChange={number("payment", "feeBkashAssociate")} required fullWidth helperText="Family member of a plot owner" />
+                    <TextField label="Associate fee via bank (BDT)" type="number" value={form.payment.feeBankAssociate} onChange={number("payment", "feeBankAssociate")} required fullWidth />
+                  </Stack>
                   <TextField label="bKash number (Send Money)" value={form.payment.bkashNumber} onChange={text("payment", "bkashNumber")} fullWidth />
                   <TextField label="Bank name & branch" value={form.payment.bankName} onChange={text("payment", "bankName")} fullWidth />
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>

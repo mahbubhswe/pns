@@ -11,11 +11,13 @@ import BrandLogo from "@/components/BrandLogo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { DEFAULT_SITE_SETTINGS, type HomeSection, type SiteSettings } from "@/lib/shared/settings";
 
-const ALL_LINKS: Array<{ label: string; href: string; section: HomeSection }> = [
-  { label: "About Purbachal", href: "/#about", section: "about" },
-  { label: "Why join", href: "/#why", section: "why" },
+/** `section` links point at a landing-page section and hide when it is empty; the rest are pages. */
+const ALL_LINKS: Array<{ label: string; href: string; section?: HomeSection }> = [
+  { label: "About", href: "/#about", section: "about" },
   { label: "How to join", href: "/#join", section: "join" },
-  { label: "Fees", href: "/#fees", section: "fees" },
+  { label: "Committee", href: "/committee" },
+  { label: "News", href: "/news" },
+  { label: "Documents", href: "/documents" },
   { label: "FAQ", href: "/#faq", section: "faq" },
 ];
 
@@ -31,7 +33,7 @@ type Props = {
 };
 
 export default function PublicHeader({ overlay = false, site = DEFAULT_SITE_SETTINGS.site, registrationOpen = true, sections }: Props) {
-  const LINKS = sections ? ALL_LINKS.filter(l => sections.includes(l.section)) : ALL_LINKS;
+  const LINKS = sections ? ALL_LINKS.filter(l => !l.section || sections.includes(l.section)) : ALL_LINKS;
   const theme = useTheme();
   const [scrolled, setScrolled] = useState(!overlay);
   const [open, setOpen] = useState(false);

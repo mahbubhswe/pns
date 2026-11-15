@@ -66,6 +66,9 @@ export default function PublicFooter({
             <FooterLink href="/admin/login">Management portal</FooterLink>
             {has("about") && <FooterLink href="/#about">About Purbachal</FooterLink>}
             {has("why") && <FooterLink href="/#why">Why join</FooterLink>}
+            <FooterLink href="/committee">Executive committee</FooterLink>
+            <FooterLink href="/news">News & notices</FooterLink>
+            <FooterLink href="/documents">Documents</FooterLink>
           </Stack>
         </Box>
         <Box sx={{ borderTop: "1px solid rgba(255,255,255,.12)", mt: 5, pt: 3, display: "flex", flexWrap: "wrap", gap: 1, justifyContent: "space-between" }}>

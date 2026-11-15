@@ -8,6 +8,11 @@ export function toMemberDto(user: User): MemberDto {
   const createdAt = iso(user.createdAt);
   return {
     id: user.id,
+    membershipType: user.membershipType,
+    relationToOwner: user.relationToOwner ?? null,
+    ownerPnsId: user.ownerPnsId ?? null,
+    applicationRef: user.applicationRef ?? null,
+    pnsId: user.pnsId ?? null,
     sectorNumber: user.sectorNumber,
     roadNumber: user.roadNumber,
     plotNumber: user.plotNumber,

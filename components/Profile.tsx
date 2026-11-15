@@ -30,6 +30,7 @@ import { SceneStage } from "@/components/AuthShell";
 import { apiGet, apiPost, apiPostForm, errorMessage, isApiClientError } from "@/lib/api";
 import type { ProfileResponse, PublicPostDto, UploadResponse } from "@/types/api";
 import NewsCard from "@/components/news/NewsCard";
+import { photoSrc } from "@/lib/format";
 
 // `statusCode` is the DB enum (APPROVED | PENDING | REJECTED)
 const STATUS_LABEL: Record<string, string> = { APPROVED: "Approved", PENDING: "Pending review", REJECTED: "Not approved" };
@@ -132,8 +133,8 @@ export default function Profile({
           <Card>
           <CardHeader
             avatar={
-              p.ownerPhoto ? (
-                <Avatar src={p.ownerPhoto} sx={{ width: 56, height: 56 }} />
+              photoSrc(p.ownerPhoto) ? (
+                <Avatar src={photoSrc(p.ownerPhoto)} sx={{ width: 56, height: 56 }} />
               ) : (
                 <Avatar sx={{ width: 56, height: 56 }}>
                   {p.ownerNameEnglish?.[0]?.toUpperCase() ||
@@ -170,6 +171,12 @@ export default function Profile({
           <CardContent>
             <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
               <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Section title="Membership">
+                  <KV label="Type" value={p.membershipType === "ASSOCIATE" ? "Associate" : "General"} />
+                  <KV label="PNS ID" value={p.pnsId || "Given after approval"} />
+                  <KV label="Reference no." value={p.applicationRef || "—"} />
+                  {p.membershipType === "ASSOCIATE" && <KV label="Relation" value={`${p.relationToOwner || "—"} of ${p.ownerPnsId || "—"}`} />}
+                </Section>
                 <Section title="Plot Information">
                   <KV label="Sector" value={p.sectorNumber} />
                   <KV label="Road" value={p.roadNumber} />

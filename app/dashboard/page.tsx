@@ -21,7 +21,7 @@ import { SectionCard, StatCard, StatusChip, EmptyState, Grid } from "@/component
 import { IncomeExpenseChart, SingleBarChart } from "@/components/dashboard/charts";
 import { getJSON } from "@/lib/api";
 import { useAdmin } from "@/lib/useAdmin";
-import { formatDate, greeting, initials, money, timeAgo } from "@/lib/format";
+import { formatDate, greeting, initials, money, photoSrc, timeAgo } from "@/lib/format";
 import type { AccountingSummary, DashboardStats } from "@/types/api";
 
 type Stats = DashboardStats;
@@ -139,7 +139,7 @@ export default function DashboardPage() {
                   href={`/dashboard/membership/${m.id}`}
                   sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1.5, borderRadius: 2.5, textDecoration: "none", color: "inherit", "&:hover": { bgcolor: "action.hover" } }}
                 >
-                  <Avatar src={m.ownerPhoto || undefined} sx={{ width: 40, height: 40, bgcolor: alpha(theme.palette.primary.main, 0.14), color: "primary.main" }}>
+                  <Avatar src={photoSrc(m.ownerPhoto)} sx={{ width: 40, height: 40, bgcolor: alpha(theme.palette.primary.main, 0.14), color: "primary.main" }}>
                     {initials(m.ownerNameEnglish)}
                   </Avatar>
                   <Box sx={{ flex: 1, minWidth: 0 }}>

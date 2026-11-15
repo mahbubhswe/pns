@@ -240,6 +240,22 @@ only). Drafts are always dashboard-only. The website reads posts only through
 ones. Post HTML is cleaned with `sanitize-html` on every write and again before
 display (`features/post/sanitize.ts`).
 
+## Membership IDs, committee and documents
+
+- Each application gets `applicationRef` (`APP-<year>-<id>`) on submit, shown
+  to the applicant, emailed and printed on the application PDF.
+- `pnsId` is the society membership ID: imported for existing members (Members
+  page → Import template), otherwise assigned as `PNS-<id>` on approval.
+- `membershipType` is `GENERAL` (plot owner) or `ASSOCIATE` (relative of a plot
+  owner, with `relationToOwner` + `ownerPnsId`). Associate fees are separate
+  settings (`payment.feeBkashAssociate` / `feeBankAssociate`); the fee is always
+  computed on the server by `feeForPaymentMethod`.
+- `/committee` lists active `CommitteeMember` rows (managed with
+  `committee.manage`).
+- `/documents` lists `SiteDocument` rows by audience (`documents.manage`). The
+  storage URL is never sent to the browser; files are streamed by
+  `/api/documents/[id]/file`, which re-checks the audience on every request.
+
 ## File storage
 
 All uploads go through `persistUpload`. Locally files land in

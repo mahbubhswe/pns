@@ -16,6 +16,8 @@ export const siteSectionSchema = z.object({
 export const paymentSectionSchema = z.object({
   feeBkash: money,
   feeBank: money,
+  feeBkashAssociate: money,
+  feeBankAssociate: money,
   bkashNumber: text,
   bankName: text,
   bankAccountName: text,

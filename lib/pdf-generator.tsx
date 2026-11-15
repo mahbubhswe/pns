@@ -56,6 +56,10 @@ const styles = StyleSheet.create({
 });
 
 export interface ApplicationData {
+  applicationRef: string;
+  membershipType: string;
+  relationToOwner?: string | null;
+  ownerPnsId?: string | null;
   sectorNumber: string;
   roadNumber: string;
   plotNumber: string;
@@ -85,6 +89,29 @@ const ApplicationPDF: React.FC<ApplicationPDFProps> = ({ data }) => (
       <View style={styles.section}>
         <Text style={styles.title}>Purbachal Newtown Society</Text>
         <Text style={styles.title}>Membership Application Form</Text>
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.field}>
+          <Text style={styles.label}>Reference No:</Text>
+          <Text style={styles.value}>{data.applicationRef}</Text>
+        </View>
+        <View style={styles.field}>
+          <Text style={styles.label}>Membership Type:</Text>
+          <Text style={styles.value}>{data.membershipType}</Text>
+        </View>
+        {data.relationToOwner ? (
+          <View style={styles.field}>
+            <Text style={styles.label}>Relation with Owner:</Text>
+            <Text style={styles.value}>{data.relationToOwner}</Text>
+          </View>
+        ) : null}
+        {data.ownerPnsId ? (
+          <View style={styles.field}>
+            <Text style={styles.label}>Owner&apos;s PNS ID:</Text>
+            <Text style={styles.value}>{data.ownerPnsId}</Text>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.section}>

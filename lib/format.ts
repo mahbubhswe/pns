@@ -124,3 +124,9 @@ export function amountInWords(value: number): string {
   if (paisa) words += ` and paisa ${belowThousand(paisa)}`;
   return `${words} only`;
 }
+
+/** A member photo URL usable as an <img>/<Avatar> src; PDFs (allowed for photos) return undefined. */
+export function photoSrc(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  return /\.pdf($|\?)/i.test(url) ? undefined : url;
+}

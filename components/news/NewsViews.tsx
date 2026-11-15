@@ -6,25 +6,12 @@ import dayjs from "dayjs";
 import { Alert, Box, Button, Chip, Container, Stack, Typography } from "@mui/material";
 import ArrowBackRounded from "@mui/icons-material/ArrowBackRounded";
 import LockRounded from "@mui/icons-material/LockRounded";
-import PublicHeader from "@/components/PublicHeader";
-import PublicFooter from "@/components/PublicFooter";
+import PublicShell, { type PublicChrome } from "@/components/PublicShell";
 import NewsCard from "@/components/news/NewsCard";
-import type { HomeSection, SiteSettings } from "@/lib/shared/settings";
 import type { PublicPostDto } from "@/types/api";
 
-type Chrome = { site: SiteSettings["site"]; sections: HomeSection[]; registrationOpen: boolean };
-
-function Shell({ site, sections, registrationOpen, children }: Chrome & { children: React.ReactNode }) {
-  return (
-    <>
-      <PublicHeader site={site} sections={sections} registrationOpen={registrationOpen} />
-      <Box component="main" sx={{ minHeight: "60vh", py: { xs: 5, md: 8 } }}>
-        {children}
-      </Box>
-      <PublicFooter site={site} sections={sections} />
-    </>
-  );
-}
+type Chrome = PublicChrome;
+const Shell = PublicShell;
 
 /** /news: public posts for everyone, plus members-only posts for a logged-in member. */
 export function NewsListView({ posts, isMember, ...chrome }: Chrome & { posts: PublicPostDto[]; isMember: boolean }) {

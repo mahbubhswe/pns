@@ -18,6 +18,8 @@ export const PERMISSIONS = [
   { key: "posts.view", group: "Content", label: "View posts" },
   { key: "posts.manage", group: "Content", label: "Write, edit & delete posts" },
   { key: "guideline.manage", group: "Content", label: "Upload registration guideline PDF" },
+  { key: "committee.manage", group: "Content", label: "Manage the executive committee page" },
+  { key: "documents.manage", group: "Content", label: "Upload & manage society documents" },
   { key: "settings.manage", group: "Content", label: "Edit site settings & landing page" },
 
   { key: "accounting.view", group: "Accounting", label: "View accounts overview & vouchers" },
@@ -61,7 +63,7 @@ export function sanitizePermissions(input: unknown): string[] {
 }
 
 const VIEWER: Permission[] = ["dashboard.view", "members.view", "posts.view", "accounting.view"];
-const EDITOR: Permission[] = [...VIEWER, "members.manage", "posts.manage", "guideline.manage"];
+const EDITOR: Permission[] = [...VIEWER, "members.manage", "posts.manage", "guideline.manage", "committee.manage", "documents.manage"];
 // Note: settings.manage is Super Admin only by default (it was ADMIN-only before roles existed).
 const ACCOUNTANT: Permission[] = [
   "dashboard.view",

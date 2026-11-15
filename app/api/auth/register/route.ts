@@ -2,7 +2,6 @@ import {
   ApiError,
   assertFileSize,
   assertMimeType,
-  isImageMime,
   isImageOrPdfMime,
   json,
   parseMultipart,
@@ -49,11 +48,11 @@ export const POST = route(
 
     const uploaded = {
       ownershipProofFile: await persistOptional(files, "ownershipProofFile", "ownershipProof", isImageOrPdfMime),
-      ownerPhoto: await persistOptional(files, "ownerPhoto", "ownerPhoto", isImageMime),
+      ownerPhoto: await persistOptional(files, "ownerPhoto", "ownerPhoto", isImageOrPdfMime),
       paymentReceipt: await persistOptional(files, "paymentReceipt", "paymentReceipt", isImageOrPdfMime),
     };
 
-    const membershipFee = feeForPaymentMethod(settings, input.paymentMethod);
+    const membershipFee = feeForPaymentMethod(settings, input.paymentMethod, input.membershipType);
     const user = await registerMember(input, uploaded, membershipFee);
     logger.info("Member registered", { userId: user.id });
 
@@ -62,10 +61,11 @@ export const POST = route(
     const body: RegisterMemberResponse = {
       ok: true,
       id: user.id,
+      applicationRef: user.applicationRef ?? "",
       emailSent,
       message: emailSent
-        ? "Registration completed successfully. Please check your email for the application PDF."
-        : "Registration completed successfully.",
+        ? `Application submitted. Your reference number is ${user.applicationRef}. A copy has been emailed to you.`
+        : `Application submitted. Your reference number is ${user.applicationRef}.`,
     };
     return json(body, 201);
   },

@@ -9,6 +9,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Card,
   CircularProgress,
   Divider,
@@ -33,7 +34,7 @@ import { PageHeader, SectionCard, StatusChip } from "@/components/dashboard/ui";
 import { apiDelete, apiPatch, errorMessage, getJSON } from "@/lib/api";
 import { useAdmin } from "@/lib/useAdmin";
 import { loginAsMember } from "@/lib/impersonate";
-import { formatDate, initials, money } from "@/lib/format";
+import { formatDate, initials, money, photoSrc } from "@/lib/format";
 import type { MemberDto as Member, MemberResponse, VouchersResponse } from "@/types/api";
 import type { MemberUiStatus } from "@/lib/shared/membership";
 
@@ -127,7 +128,7 @@ export default function MemberDetailPage() {
           <Card sx={{ p: { xs: 2, md: 3 } }}>
             <Stack direction={{ xs: "column", md: "row" }} spacing={3} alignItems={{ xs: "flex-start", md: "center" }}>
               <Avatar
-                src={p.ownerPhoto || undefined}
+                src={photoSrc(p.ownerPhoto)}
                 variant="rounded"
                 sx={{ width: 96, height: 96, borderRadius: 4, fontSize: 32, bgcolor: alpha(theme.palette.primary.main, 0.12), color: "primary.main" }}
               >
@@ -137,6 +138,24 @@ export default function MemberDetailPage() {
                 <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
                   <Typography variant="h5">{p.ownerNameEnglish}</Typography>
                   <StatusChip status={p.status} size="medium" />
+                  <Chip size="small" label={p.membershipType === "ASSOCIATE" ? "Associate" : "General"} color={p.membershipType === "ASSOCIATE" ? "secondary" : "default"} variant="outlined" />
+                </Stack>
+                <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                  {p.pnsId && (
+                    <Typography variant="body2">
+                      PNS ID: <b>{p.pnsId}</b>
+                    </Typography>
+                  )}
+                  {p.applicationRef && (
+                    <Typography variant="body2" color="text.secondary">
+                      Ref: <b>{p.applicationRef}</b>
+                    </Typography>
+                  )}
+                  {p.membershipType === "ASSOCIATE" && (
+                    <Typography variant="body2" color="text.secondary">
+                      {p.relationToOwner || "Relative"} of plot owner <b>{p.ownerPnsId || "—"}</b>
+                    </Typography>
+                  )}
                 </Stack>
                 {p.ownerNameBangla && (
                   <Typography sx={{ fontFamily: '"Hind Siliguri", sans-serif', fontSize: 18, mt: 0.25 }} color="text.secondary">

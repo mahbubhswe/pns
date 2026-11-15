@@ -14,6 +14,10 @@ function escapeHtml(value: unknown): string {
 
 function toApplicationData(user: User): ApplicationData {
   return {
+    applicationRef: user.applicationRef ?? "",
+    membershipType: user.membershipType === "ASSOCIATE" ? "Associate" : "General",
+    relationToOwner: user.relationToOwner,
+    ownerPnsId: user.ownerPnsId,
     sectorNumber: user.sectorNumber,
     roadNumber: user.roadNumber,
     plotNumber: user.plotNumber,
@@ -45,15 +49,17 @@ export async function sendApplicationEmail(user: User): Promise<boolean> {
     const name = escapeHtml(user.ownerNameEnglish);
     const { sent } = await sendMail({
       to: user.email,
-      subject: "PNS Membership Application Confirmation",
+      subject: `PNS Membership Application ${user.applicationRef ?? ""} - Confirmation`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Purbachal Newtown Society - Membership Application</h2>
           <p>Dear ${name},</p>
           <p>Thank you for submitting your membership application to Purbachal Newtown Society.</p>
           <p>Your application has been received and is being processed. Please find attached a PDF copy of your application form for your records.</p>
+          <p style="font-size:16px"><strong>Your reference number: ${escapeHtml(user.applicationRef)}</strong><br/>Please quote it in any query about your application.</p>
           <p><strong>Application Details:</strong></p>
           <ul>
+            <li>Membership type: ${user.membershipType === "ASSOCIATE" ? "Associate" : "General"}</li>
             <li>Name: ${name}</li>
             <li>Email: ${escapeHtml(user.email)}</li>
             <li>Plot: Sector ${escapeHtml(user.sectorNumber)}, Road ${escapeHtml(user.roadNumber)}, Plot ${escapeHtml(user.plotNumber)}</li>

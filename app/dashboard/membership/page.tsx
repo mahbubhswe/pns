@@ -23,13 +23,14 @@ import LoginRounded from "@mui/icons-material/LoginRounded";
 import { PageHeader, StatusChip } from "@/components/dashboard/ui";
 import { useAdmin } from "@/lib/useAdmin";
 import { loginAsMember } from "@/lib/impersonate";
-import { initials } from "@/lib/format";
+import { initials, photoSrc } from "@/lib/format";
 import type { Dayjs } from "dayjs";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import PageGate from "@/components/dashboard/PageGate";
-import { getJSON, postJSON } from "@/lib/api";
+import { errorMessage, getJSON, postJSON } from "@/lib/api";
+import Swal from "sweetalert2";
 import { useXlsx } from "@/lib/useXlsx";
 import {
   DataGrid,
@@ -38,10 +39,57 @@ import {
   GridActionsCellItem,
 } from "@mui/x-data-grid";
 import dayjs from "dayjs";
-import type { MemberDto as Member, MembersListResponse as MembersResp } from "@/types/api";
+import type { ImportMembersResponse, MemberDto as Member, MembersListResponse as MembersResp } from "@/types/api";
+
+/** Columns of the member import template, in order. */
+const IMPORT_COLUMNS: Array<{ key: string; header: string; example: string; aliases: string[] }> = [
+  { key: "pnsId", header: "PNS ID", example: "PNS-00001", aliases: ["pnsid", "memberid", "membershipid", "id"] },
+  { key: "name", header: "Name", example: "Md. Abdur Rahman", aliases: ["name", "nameenglish", "ownername", "membername"] },
+  { key: "nameBangla", header: "Name (Bangla)", example: "মো. আব্দুর রহমান", aliases: ["namebangla", "banglaname", "ownernamebangla"] },
+  { key: "phone", header: "Phone", example: "01711000000", aliases: ["phone", "mobile", "contact", "contactnumber"] },
+  { key: "email", header: "Email", example: "rahman@example.com", aliases: ["email", "emailaddress"] },
+  { key: "nid", header: "NID", example: "1234567890", aliases: ["nid", "nidnumber", "nationalid"] },
+  { key: "sector", header: "Sector", example: "5", aliases: ["sector", "sectornumber"] },
+  { key: "road", header: "Road", example: "12", aliases: ["road", "roadnumber"] },
+  { key: "plot", header: "Plot", example: "34", aliases: ["plot", "plotnumber", "plotno"] },
+  { key: "plotSize", header: "Plot Size (Katha)", example: "5", aliases: ["plotsize", "plotsizekatha", "size", "katha"] },
+  { key: "address", header: "Address", example: "House 1, Road 2, Dhaka", aliases: ["address", "presentaddress"] },
+  { key: "membershipType", header: "Type", example: "General", aliases: ["type", "membershiptype"] },
+  { key: "status", header: "Status", example: "active", aliases: ["status"] },
+  { key: "joinedAt", header: "Joined", example: "2020-01-15", aliases: ["joined", "joinedat", "joindate", "date"] },
+];
+
+/** Map a spreadsheet row with flexible headers ("PNS ID", "pns_id", "Mobile"…) to import fields. */
+function normalizeImportRow(raw: Record<string, unknown>): Record<string, string> {
+  const byAlias = new Map<string, unknown>();
+  for (const [k, v] of Object.entries(raw)) byAlias.set(k.toLowerCase().replace(/[^a-z0-9]/g, ""), v);
+  const out: Record<string, string> = {};
+  for (const c of IMPORT_COLUMNS) {
+    const hit = [c.key.toLowerCase(), ...c.aliases].find(a => byAlias.has(a));
+    out[c.key] = hit ? String(byAlias.get(hit) ?? "").trim() : "";
+  }
+  return out;
+}
+
+/** Download an Excel-compatible CSV template (UTF-8 BOM so Bangla shows correctly). */
+function downloadImportTemplate() {
+  const q = (s: string) => `"${s.replace(/"/g, '""')}"`;
+  const csv = [IMPORT_COLUMNS.map(c => q(c.header)).join(","), IMPORT_COLUMNS.map(c => q(c.example)).join(",")].join("\r\n");
+  const url = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "pns-member-import-template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const CSV_FIELDS: Array<{ key: keyof Member; label: string }> = [
   { key: "id", label: "ID" },
+  { key: "pnsId", label: "PNS ID" },
+  { key: "applicationRef", label: "Reference No" },
+  { key: "membershipType", label: "Membership Type" },
+  { key: "relationToOwner", label: "Relation with Owner" },
+  { key: "ownerPnsId", label: "Owner PNS ID" },
   { key: "ownerNameEnglish", label: "Name (English)" },
   { key: "ownerNameBangla", label: "Name (Bangla)" },
   { key: "email", label: "Email" },
@@ -119,21 +167,30 @@ function MembershipView() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const rows = await parseFile(file);
-      // Expect columns: name, email, phone, membershipType, status, joinedAt
-      const normalized = rows.map((r: Record<string, unknown>) => ({
-        name: String(r.name || r.Name || "").trim(),
-        email: String(r.email || r.Email || "").trim() || undefined,
-        phone: String(r.phone || r.Phone || "").trim() || undefined,
-        membershipType: String(r.membershipType || r.MembershipType || r.Type || "standard").trim(),
-        status: (String(r.status || r.Status || "active").toLowerCase() as Member["status"]) || "active",
-        joinedAt: String(r.joinedAt || r.JoinedAt || r.Joined || new Date().toISOString()),
-      }));
-      await postJSON("/api/memberships", normalized);
+      const rows = (await parseFile(file)).map(normalizeImportRow).filter(r => Object.values(r).some(v => v !== ""));
+      if (rows.length === 0) {
+        Swal.fire({ icon: "warning", title: "No rows found", text: "Use the template: the first row must be the column headers." });
+        return;
+      }
+      const ok = await Swal.fire({
+        icon: "question",
+        title: `Import ${rows.length} member${rows.length === 1 ? "" : "s"}?`,
+        text: "Rows whose PNS ID or email already exists are skipped, so re-importing the same file is safe.",
+        showCancelButton: true,
+        confirmButtonText: "Import",
+      });
+      if (!ok.isConfirmed) return;
+      const res = await postJSON<ImportMembersResponse>("/api/memberships", rows);
       await mutate();
+      const skippedHtml = res.skipped.length
+        ? `<p>${res.skipped.length} skipped:</p><ul style="text-align:left;max-height:180px;overflow:auto">${res.skipped
+            .slice(0, 50)
+            .map(s => `<li>Row ${s.row}: ${s.reason.replace(/</g, "&lt;")}</li>`)
+            .join("")}</ul>`
+        : "";
+      Swal.fire({ icon: res.skipped.length ? "info" : "success", title: `${res.count} member${res.count === 1 ? "" : "s"} imported`, html: skippedHtml });
     } catch (err) {
-      console.error(err);
-      alert("Failed to import. Ensure the file is a valid .xlsx with proper headers.");
+      Swal.fire({ icon: "error", title: "Import failed", text: errorMessage(err, "Make sure the file is an .xlsx or .csv made from the template.") });
     } finally {
       if (inputRef.current) inputRef.current.value = "";
     }
@@ -172,7 +229,7 @@ function MembershipView() {
       renderCell: params => (
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ height: "100%", minWidth: 0 }}>
           <Avatar
-            src={params.row.ownerPhoto || undefined}
+            src={photoSrc(params.row.ownerPhoto)}
             sx={{ width: 34, height: 34, fontSize: 13, bgcolor: alpha(theme.palette.primary.main, 0.14), color: "primary.main" }}
           >
             {initials(params.value)}
@@ -186,6 +243,21 @@ function MembershipView() {
             </Typography>
           </Box>
         </Stack>
+      ),
+    },
+    {
+      field: "pnsId",
+      headerName: "PNS ID / Ref",
+      minWidth: 150,
+      valueGetter: (_v, row) => row.pnsId || row.applicationRef || "",
+      renderCell: params => (
+        <Box sx={{ lineHeight: 1.25, py: 1 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: 13.5 }}>{params.row.pnsId || "—"}</Typography>
+          <Typography variant="caption" color="text.secondary">
+            {params.row.applicationRef}
+            {params.row.membershipType === "ASSOCIATE" ? " · Associate" : ""}
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -261,11 +333,16 @@ function MembershipView() {
             </Button>
             {can("members.manage") && (
               <>
-                <input ref={inputRef} hidden type="file" accept=".xlsx,.xls" onChange={handleImport} />
-                <Tooltip title={ready ? "Import from XLSX" : "Loading XLSX parser..."}>
+                <input ref={inputRef} hidden type="file" accept=".xlsx,.xls,.csv" onChange={handleImport} />
+                <Tooltip title="Excel-ready template with all supported columns">
+                  <Button startIcon={<DownloadRounded />} onClick={downloadImportTemplate}>
+                    Import template
+                  </Button>
+                </Tooltip>
+                <Tooltip title={ready ? "Import existing members from Excel (.xlsx) or CSV" : "Loading Excel reader…"}>
                   <span>
                     <Button variant="contained" startIcon={<UploadFileIcon />} disabled={!ready} onClick={() => inputRef.current?.click()}>
-                      Import XLSX
+                      Import members
                     </Button>
                   </span>
                 </Tooltip>

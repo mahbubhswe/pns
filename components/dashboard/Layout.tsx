@@ -46,6 +46,8 @@ import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import OpenInNewRounded from "@mui/icons-material/OpenInNewRounded";
 import TuneRounded from "@mui/icons-material/TuneRounded";
 import SupervisorAccountRounded from "@mui/icons-material/SupervisorAccountRounded";
+import Diversity3Rounded from "@mui/icons-material/Diversity3Rounded";
+import FolderRounded from "@mui/icons-material/FolderRounded";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo, { BrandMark } from "@/components/BrandLogo";
 import { useAdmin } from "@/lib/useAdmin";
@@ -69,6 +71,8 @@ export const navGroups: Array<{ title: string; items: NavItem[] }> = [
     items: [
       { label: "Members", href: "/dashboard/membership", icon: <Groups2Rounded />, perm: "members.view" },
       { label: "Posts", href: "/dashboard/posts", icon: <ArticleRounded />, perm: ["posts.view", "posts.manage"] },
+      { label: "Committee", href: "/dashboard/committee", icon: <Diversity3Rounded />, perm: "committee.manage" },
+      { label: "Documents", href: "/dashboard/documents", icon: <FolderRounded />, perm: "documents.manage" },
       { label: "Registration guideline", href: "/dashboard/add-preview", icon: <PictureAsPdfRounded />, perm: "guideline.manage" },
     ],
   },

@@ -29,6 +29,9 @@ import {
   TextField,
   Typography,
   Chip,
+  Autocomplete,
+  Radio,
+  RadioGroup,
 } from "@mui/material";
 import Link from "next/link";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -38,6 +41,9 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ImageIcon from "@mui/icons-material/Image";
 import axios from "axios";
+import ContentCopyRounded from "@mui/icons-material/ContentCopyRounded";
+import ApplicationReview, { FileThumb, type ReviewSection } from "@/components/register/ApplicationReview";
+import { MEMBER_TYPE_LABELS, OWNER_RELATIONS, isValidNid, type MemberType } from "@/lib/shared/membership";
 import { DEFAULT_SITE_SETTINGS, visibleHomeSections, type SiteSettings } from "@/lib/shared/settings";
 import PublicHeader from "@/components/PublicHeader";
 import { SceneStage } from "@/components/AuthShell";
@@ -46,6 +52,11 @@ import { SceneStage } from "@/components/AuthShell";
 type PaymentMethod = "BKASH" | "BANK";
 
 type FormState = {
+  // Membership type (asked first)
+  membershipType: MemberType;
+  relationToOwner: string; // Associate only
+  ownerPnsId: string; // Associate only
+
   // Plot info
   sectorNumber: string;
   roadNumber: string;
@@ -81,6 +92,9 @@ type FormState = {
 };
 
 const initialState: FormState = {
+  membershipType: "GENERAL",
+  relationToOwner: "",
+  ownerPnsId: "",
   sectorNumber: "",
   roadNumber: "",
   plotNumber: "",
@@ -111,8 +125,7 @@ const isImage = (f: File | null) => !!f && f.type.startsWith("image/");
 const nonEmpty = (s: string) => !!s && s.trim().length > 0;
 const emailOk = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const phoneOk = (s: string) => /^[0-9+\-\s]{11,}$/.test(s);
-const nidOk = (s: string) =>
-  /^[0-9]{13}$|^[0-9]{17}$/.test(s.replace(/\s/g, ""));
+const nidOk = (s: string) => isValidNid(s);
 function validateSize(f: File | null) {
   if (!f) return true;
   return f.size <= TEN_MB;
@@ -133,7 +146,7 @@ const Col: React.FC<ColProps> = ({ children, basis = 280 }) => (
   <Box sx={{ flex: `1 1 ${basis}px`, minWidth: basis }}>{children}</Box>
 );
 
-// ---------- FilePicker with PDF preview ----------
+// ---------- FilePicker with thumbnail + preview ----------
 function FilePicker({
   label,
   onChange,
@@ -151,136 +164,31 @@ function FilePicker({
   file: File | null;
   errorText?: string;
 }) {
-  const [localName, setLocalName] = useState<string>("");
-  const [open, setOpen] = useState(false);
-  const [url, setUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (file && (isPdf(file) || isImage(file))) {
-      const obj = URL.createObjectURL(file);
-      setUrl(obj);
-      return () => URL.revokeObjectURL(obj);
-    } else {
-      setUrl(null);
-    }
-  }, [file]);
-
   return (
     <Box>
-      <Stack direction="row" spacing={1} alignItems="center">
-        <Button
-          component="label"
-          variant="outlined"
-          startIcon={<UploadFileIcon />}
-          fullWidth
-          size="small"
-          sx={{ justifyContent: "flex-start" }}
-        >
-          {file ? `${label}: ${localName || file.name}` : label}
-          <input
-            type="file"
-            hidden
-            accept={accept}
-            onChange={e => {
-              const f = e.target.files?.[0] || null;
-              setLocalName(f?.name || "");
-              onChange(f);
-            }}
-          />
-        </Button>
-
-        {file && (isPdf(file) || isImage(file)) && url && (
-          <Button
-            onClick={() => setOpen(true)}
-            size="small"
-            variant="text"
-            sx={{ whiteSpace: "nowrap" }}
-          >
-            Preview File
-          </Button>
-        )}
-      </Stack>
-
+      <Button component="label" variant="outlined" startIcon={<UploadFileIcon />} fullWidth size="small" sx={{ justifyContent: "flex-start" }}>
+        {file ? "Change file" : label}
+        <input
+          type="file"
+          hidden
+          accept={accept}
+          onChange={e => {
+            onChange(e.target.files?.[0] || null);
+            e.currentTarget.value = "";
+          }}
+        />
+      </Button>
+      {file && (
+        <Box sx={{ mt: 1 }}>
+          <FileThumb label={label.replace(/^Upload\s+/i, "")} file={file} />
+        </Box>
+      )}
       {(helper || errorText) && (
         <FormHelperText error={!!errorText} sx={{ ml: 1, mt: 0.5 }}>
           {required ? "* " : ""}
           {errorText || helper}
         </FormHelperText>
       )}
-
-      {/* Preview dialog for PDF or Image */}
-      <Dialog
-        open={open}
-        onClose={() => setOpen(false)}
-        fullWidth
-        maxWidth="md"
-      >
-        <DialogTitle sx={{ pr: 6 }}>
-          {localName || file?.name || "Preview"}
-          <IconButton
-            onClick={() => setOpen(false)}
-            sx={{ position: "absolute", right: 8, top: 8 }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent
-          dividers
-          sx={{
-            p: 0,
-            height: "80vh",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          {url ? (
-            isPdf(file) ? (
-              <object
-                data={url}
-                type="application/pdf"
-                width="100%"
-                height="100%"
-              >
-                <Box p={2}>
-                  <Typography>
-                    PDF preview is not available in this browser. You can
-                    download and open it locally.
-                  </Typography>
-                  <Button
-                    href={url}
-                    target="_blank"
-                    rel="noopener"
-                    sx={{ mt: 1 }}
-                  >
-                    Open PDF in new tab
-                  </Button>
-                </Box>
-              </object>
-            ) : isImage(file) ? (
-              <Box sx={{ maxWidth: "100%", maxHeight: "100%" }}>
-                <img
-                  src={url}
-                  alt="File preview"
-                  style={{
-                    maxWidth: "100%",
-                    maxHeight: "100%",
-                    objectFit: "contain",
-                  }}
-                />
-              </Box>
-            ) : (
-              <Box p={2}>
-                <Typography>
-                  Preview not supported for this file type.
-                </Typography>
-              </Box>
-            )
-          ) : (
-            <Box p={2}>No preview available.</Box>
-          )}
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 }
@@ -288,6 +196,9 @@ function FilePicker({
 // ---------- Labels for error summary ----------
 type Key = keyof FormState;
 const LABELS: Record<Key, string> = {
+  membershipType: "Membership type",
+  relationToOwner: "Relation with the plot owner",
+  ownerPnsId: "PNS ID of the plot owner",
   sectorNumber: "Sector number",
   roadNumber: "Road number",
   plotNumber: "Plot number",
@@ -314,6 +225,10 @@ const LABELS: Record<Key, string> = {
 // ---------- Validation helpers (per-field + all) ----------
 function validateField(key: Key, v: FormState): string | undefined {
   switch (key) {
+    case "relationToOwner":
+    case "ownerPnsId":
+      if (v.membershipType === "ASSOCIATE" && !nonEmpty(v[key])) return `${LABELS[key]} is required`;
+      return;
     case "sectorNumber":
       if (!nonEmpty(v.sectorNumber)) return "Sector number is required";
       return;
@@ -348,7 +263,7 @@ function validateField(key: Key, v: FormState): string | undefined {
       return;
     case "nidNumber":
       if (!nonEmpty(v.nidNumber) || !nidOk(v.nidNumber))
-        return "Enter a valid numeric NID (13 or 17 digits)";
+        return "NID must be 10 (Smart Card), 13 or 17 digits";
       return;
     case "email":
       if (!nonEmpty(v.email) || !emailOk(v.email))
@@ -405,6 +320,8 @@ function validateField(key: Key, v: FormState): string | undefined {
 }
 
 const ALL_KEYS: Key[] = [
+  "relationToOwner",
+  "ownerPnsId",
   "sectorNumber",
   "roadNumber",
   "plotNumber",
@@ -444,8 +361,10 @@ export default function PnsMembershipForm({
   settings?: SiteSettings;
 }) {
   // 🧾 Payment details come from the database (dashboard → Settings).
-  const BKASH_FEE = settings.payment.feeBkash; // BDT
-  const BANK_FEE = settings.payment.feeBank; // BDT
+  const FEES = {
+    GENERAL: { BKASH: settings.payment.feeBkash, BANK: settings.payment.feeBank },
+    ASSOCIATE: { BKASH: settings.payment.feeBkashAssociate, BANK: settings.payment.feeBankAssociate },
+  } as const;
   const BKASH_NUMBER = settings.payment.bkashNumber; // Send Money (personal)
   const BANK = {
     name: settings.payment.bankName,
@@ -457,6 +376,11 @@ export default function PnsMembershipForm({
   const registrationOpen = settings.registration.open;
 
   const [v, setV] = useState<FormState>(initialState);
+  const BKASH_FEE = FEES[v.membershipType].BKASH; // BDT
+  const BANK_FEE = FEES[v.membershipType].BANK; // BDT
+  const isAssociate = v.membershipType === "ASSOCIATE";
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [applicationRef, setApplicationRef] = useState<string | null>(null);
   const [errors, setErrors] = useState<Partial<Record<Key, string>>>({});
   const [touched, setTouched] = useState<Partial<Record<Key, boolean>>>({});
   const [submittedOnce, setSubmittedOnce] = useState(false);
@@ -490,7 +414,7 @@ export default function PnsMembershipForm({
     setV(next);
     setTouched(t => ({ ...t, [key]: true }));
     // For dependent logic (e.g., switching payment method), revalidate all
-    if (key === "paymentMethod") {
+    if (key === "paymentMethod" || key === "membershipType") {
       setErrors(validateAll(next));
     } else {
       const msg = validateField(key, next);
@@ -498,40 +422,8 @@ export default function PnsMembershipForm({
     }
   }
 
-  // ✅ Lightweight readiness check (kept from your logic)
-  const canSubmit = useMemo(() => {
-    const baseOk =
-      nonEmpty(v.sectorNumber) &&
-      nonEmpty(v.roadNumber) &&
-      nonEmpty(v.plotNumber) &&
-      nonEmpty(v.plotSize) &&
-      v.ownershipProofFile &&
-      nonEmpty(v.ownerNameEnglish) &&
-      nonEmpty(v.ownerNameBangla) &&
-      nonEmpty(v.contactNumber) &&
-      phoneOk(v.contactNumber) &&
-      nonEmpty(v.nidNumber) &&
-      nidOk(v.nidNumber) &&
-      nonEmpty(v.presentAddress) &&
-      nonEmpty(v.permanentAddress) &&
-      nonEmpty(v.email) &&
-      emailOk(v.email) &&
-      nonEmpty(v.password) &&
-      v.password.length >= 8 &&
-      v.ownerPhoto &&
-      v.paymentReceipt &&
-      v.agreeDataUse &&
-      validateSize(v.ownershipProofFile) &&
-      validateSize(v.ownerPhoto) &&
-      validateSize(v.paymentReceipt);
-
-    const paymentOk =
-      v.paymentMethod === "BKASH"
-        ? nonEmpty(v.bkashTransactionId) && nonEmpty(v.bkashAccountNumber)
-        : nonEmpty(v.bankAccountNumberFrom) && !!v.paymentReceipt;
-
-    return Boolean(baseOk && paymentOk);
-  }, [v]);
+  // Ready to review when every field validates (same rules as the error summary).
+  const canSubmit = useMemo(() => Object.keys(validateAll(v)).length === 0, [v]);
 
   // Live “why disabled” reasons
   const liveErrors = validateAll(v);
@@ -544,6 +436,11 @@ export default function PnsMembershipForm({
   function toFormData(data: FormState): FormData {
     const fd = new FormData();
     fd.append("password", data.password.trim());
+    fd.append("membershipType", data.membershipType);
+    if (data.membershipType === "ASSOCIATE") {
+      fd.append("relationToOwner", data.relationToOwner.trim());
+      fd.append("ownerPnsId", data.ownerPnsId.trim());
+    }
 
     // Simple fields
     fd.append("sectorNumber", data.sectorNumber.trim());
@@ -555,7 +452,7 @@ export default function PnsMembershipForm({
     fd.append("ownerNameEnglish", data.ownerNameEnglish.trim());
     fd.append("ownerNameBangla", data.ownerNameBangla.trim());
     fd.append("contactNumber", data.contactNumber.trim());
-    fd.append("nidNumber", data.nidNumber.trim());
+    fd.append("nidNumber", data.nidNumber.replace(/[\s-]/g, ""));
     fd.append("presentAddress", data.presentAddress.trim());
     fd.append("permanentAddress", data.permanentAddress.trim());
     fd.append("email", data.email.trim());
@@ -606,7 +503,12 @@ export default function PnsMembershipForm({
     if (locked) {
       return;
     }
+    // Show everything for a final check; the actual POST happens on "Confirm & submit".
+    setReviewOpen(true);
+  }
 
+  async function confirmSubmit() {
+    if (locked || submitting) return;
     try {
       setSubmitting(true);
       const formData = toFormData(v);
@@ -616,6 +518,8 @@ export default function PnsMembershipForm({
       });
 
       const data = res.data ?? {};
+      setApplicationRef(data.applicationRef || null);
+      setReviewOpen(false);
       setToast({
         open: true,
         msg: data.message || "Submitted successfully.",
@@ -645,13 +549,66 @@ export default function PnsMembershipForm({
     }
   }
 
+  const PROOF_LABEL: Record<FormState["ownershipProofType"], string> = {
+    BDS_KHATIAN: "BDS Khatian",
+    MUTATION_PAPER: "Mutation paper (RAJUK/AC land)",
+  };
+  const reviewSections: ReviewSection[] = [
+    {
+      title: "Membership",
+      rows: [
+        ["Type", MEMBER_TYPE_LABELS[v.membershipType].label],
+        ...(isAssociate
+          ? ([
+              ["Relation with the plot owner", v.relationToOwner],
+              ["PNS ID of the plot owner", v.ownerPnsId],
+            ] as Array<[string, string]>)
+          : []),
+      ],
+    },
+    {
+      title: "Plot",
+      rows: [
+        ["Sector / Road / Plot", `${v.sectorNumber} / ${v.roadNumber} / ${v.plotNumber}`],
+        ["Plot size", v.plotSize ? `${v.plotSize} Katha` : ""],
+        ["Ownership proof", PROOF_LABEL[v.ownershipProofType]],
+      ],
+    },
+    {
+      title: isAssociate ? "Applicant" : "Plot owner",
+      rows: [
+        ["Name (English)", v.ownerNameEnglish],
+        ["নাম (বাংলা)", v.ownerNameBangla],
+        ["Contact number", v.contactNumber],
+        ["NID number", v.nidNumber],
+        ["Email", v.email],
+        ["Present address", v.presentAddress],
+        ["Permanent address", v.permanentAddress],
+      ],
+    },
+    {
+      title: "Payment",
+      rows: [
+        ["Method", v.paymentMethod === "BKASH" ? "bKash" : "Bank deposit/transfer"],
+        ["Fee", `BDT ${(v.paymentMethod === "BKASH" ? BKASH_FEE : BANK_FEE).toLocaleString("en-IN")}`],
+        ...(v.paymentMethod === "BKASH"
+          ? ([
+              ["bKash transaction ID", v.bkashTransactionId],
+              ["bKash number used", v.bkashAccountNumber],
+            ] as Array<[string, string]>)
+          : ([["Sender bank account", v.bankAccountNumberFrom]] as Array<[string, string]>)),
+      ],
+    },
+  ];
+
   const paymentInfo = (
     <Box sx={{ borderRadius: 2, p: 2 }}>
       <Typography variant="h6" sx={{ fontWeight: 700 }}>
         Membership Registration Fee
       </Typography>
       <Typography variant="body2">
-        BDT 1,020 via bKash / BDT 1,000 through bank deposit or bank transfer.
+        {MEMBER_TYPE_LABELS[v.membershipType].label} membership: BDT {BKASH_FEE.toLocaleString("en-IN")} via bKash / BDT{" "}
+        {BANK_FEE.toLocaleString("en-IN")} through bank deposit or bank transfer.
       </Typography>
     </Box>
   );
@@ -778,20 +735,123 @@ export default function PnsMembershipForm({
                 px: 2,
               })}
             >
+              <CheckCircleOutlineIcon color="success" sx={{ fontSize: 56 }} />
               <Typography variant="h5" fontWeight="bold">
-                Application Locked
+                Application submitted
               </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Your submission has been recorded and edits are no longer
-                allowed.
-              </Typography>
+              {applicationRef && (
+                <Box sx={{ my: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Your reference number
+                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                    <Typography sx={{ fontSize: 30, fontWeight: 900, letterSpacing: 1 }}>{applicationRef}</Typography>
+                    <IconButton
+                      aria-label="Copy reference number"
+                      onClick={() => navigator.clipboard?.writeText(applicationRef).catch(() => {})}
+                    >
+                      <ContentCopyRounded />
+                    </IconButton>
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary">
+                    Please keep it and quote it in any query. It is also in your confirmation email.
+                  </Typography>
+                </Box>
+              )}
               <Typography variant="body2" color="text.secondary">
-                Need to make a change? Contact the admin team with your
-                application details.
+                Need to make a change now? Contact the society with your reference number.
               </Typography>
+              <Button component={Link} href="/auth/login" variant="outlined" sx={{ mt: 1 }}>
+                Log in to check your status
+              </Button>
             </Box>
           )}
           <Stack spacing={3} sx={{ opacity: locked ? 0.4 : 1 }}>
+            {/* Membership type (asked first) */}
+            <Card>
+              <CardHeader title="Type of Membership" subheader="Choose one to begin" />
+              <CardContent>
+                <RadioGroup
+                  row
+                  value={v.membershipType}
+                  onChange={e => setField("membershipType", e.target.value as MemberType)}
+                  sx={{ gap: 2 }}
+                >
+                  {(["GENERAL", "ASSOCIATE"] as const).map((t, i) => (
+                    <Card
+                      key={t}
+                      variant="outlined"
+                      sx={{
+                        flex: "1 1 260px",
+                        p: 1.5,
+                        borderColor: v.membershipType === t ? "primary.main" : undefined,
+                        borderWidth: v.membershipType === t ? 2 : 1,
+                      }}
+                    >
+                      <FormControlLabel
+                        value={t}
+                        control={<Radio />}
+                        sx={{ alignItems: "flex-start", m: 0, width: "100%" }}
+                        label={
+                          <Box sx={{ pt: 0.75 }}>
+                            <Typography sx={{ fontWeight: 800 }}>
+                              {i + 1}. {MEMBER_TYPE_LABELS[t].label}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {MEMBER_TYPE_LABELS[t].hint}
+                            </Typography>
+                            <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                              Fee: BDT {FEES[t].BKASH.toLocaleString("en-IN")} (bKash) / {FEES[t].BANK.toLocaleString("en-IN")} (bank)
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                    </Card>
+                  ))}
+                </RadioGroup>
+
+                {isAssociate && (
+                  <Row gap={2}>
+                    <Box sx={{ width: "100%", mt: 2 }} />
+                    <Col>
+                      <Autocomplete
+                        freeSolo
+                        options={OWNER_RELATIONS}
+                        value={v.relationToOwner}
+                        onInputChange={(_, val) => setField("relationToOwner", val)}
+                        renderInput={params => (
+                          <TextField
+                            {...params}
+                            size="small"
+                            required
+                            label="Relation with the plot owner"
+                            placeholder="e.g. Spouse, Son, Daughter"
+                            onBlur={() => markTouched("relationToOwner")}
+                            error={!!showErr("relationToOwner")}
+                            helperText={showErr("relationToOwner")}
+                          />
+                        )}
+                      />
+                    </Col>
+                    <Col>
+                      <TextField
+                        size="small"
+                        required
+                        fullWidth
+                        label="PNS ID of the plot owner"
+                        placeholder="e.g. PNS-00042"
+                        value={v.ownerPnsId}
+                        onChange={e => setField("ownerPnsId", e.target.value)}
+                        onBlur={() => markTouched("ownerPnsId")}
+                        error={!!showErr("ownerPnsId")}
+                        helperText={showErr("ownerPnsId") || "The plot owner's membership ID"}
+                      />
+                    </Col>
+                  </Row>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Plot Information */}
             <Card>
               <CardHeader
@@ -932,14 +992,17 @@ export default function PnsMembershipForm({
 
             {/* Owner Info */}
             <Card>
-              <CardHeader title="Plot Owner’s Information" />
+              <CardHeader
+                title={isAssociate ? "Applicant’s Information" : "Plot Owner’s Information"}
+                subheader={isAssociate ? "Your own details as the associate member" : undefined}
+              />
               <CardContent>
                 <Row>
                   <Col>
                     <TextField
                       size="small"
                       required
-                      label="Owner's name (English) — As Recorded in the Land Documents"
+                      label={isAssociate ? "Applicant's name (English) — As in NID" : "Owner's name (English) — As Recorded in the Land Documents"}
                       value={v.ownerNameEnglish}
                       onChange={e =>
                         setField("ownerNameEnglish", e.target.value)
@@ -954,7 +1017,7 @@ export default function PnsMembershipForm({
                     <TextField
                       size="small"
                       required
-                      label="মালিকের নাম (বাংলা)"
+                      label={isAssociate ? "আবেদনকারীর নাম (বাংলা)" : "মালিকের নাম (বাংলা)"}
                       value={v.ownerNameBangla}
                       onChange={e =>
                         setField("ownerNameBangla", e.target.value)
@@ -984,7 +1047,7 @@ export default function PnsMembershipForm({
                       size="small"
                       required
                       label="NID number"
-                      type="number"
+                      inputProps={{ inputMode: "numeric" }}
                       value={v.nidNumber}
                       onChange={e => setField("nidNumber", e.target.value)}
                       onBlur={() => markTouched("nidNumber")}
@@ -1053,14 +1116,14 @@ export default function PnsMembershipForm({
                   <Col>
                     <FilePicker
                       required
-                      label="Upload owner's photo (JPG/PNG/PDF)"
+                      label={isAssociate ? "Upload applicant's photo (JPG/PNG/PDF)" : "Upload owner's photo (JPG/PNG/PDF)"}
                       accept="image/*,application/pdf"
                       file={v.ownerPhoto}
                       onChange={f => {
                         // setField already marks touched and validates
                         setField("ownerPhoto", f);
                       }}
-                      helper={"Clear passport-style photo preferred (≤10MB)."}
+                      helper={"Passport-style photo as JPG, PNG or PDF (≤10MB)."}
                       errorText={showErr("ownerPhoto")}
                     />
                   </Col>
@@ -1232,12 +1295,12 @@ export default function PnsMembershipForm({
                 disabled={submitting || !canSubmit || locked}
                 startIcon={<CheckCircleOutlineIcon />}
               >
-                {submitting ? "Submitting…" : "Submit Application"}
+                {submitting ? "Submitting…" : "Review & Submit"}
               </Button>
 
               {!canSubmit && (
                 <Typography variant="body2" color="text.secondary">
-                  {`Complete all required fields to submit. (${blocking.length} issues)`}
+                  {`Complete all required fields to continue. (${blocking.length} issues)`}
                 </Typography>
               )}
             </Stack>
@@ -1265,6 +1328,19 @@ export default function PnsMembershipForm({
               </Alert>
             )}
           </Stack>
+
+          <ApplicationReview
+            open={reviewOpen}
+            submitting={submitting}
+            onEdit={() => setReviewOpen(false)}
+            onConfirm={confirmSubmit}
+            sections={reviewSections}
+            files={[
+              { label: "Ownership proof", file: v.ownershipProofFile },
+              { label: isAssociate ? "Applicant's photo" : "Owner's photo", file: v.ownerPhoto },
+              { label: "Payment receipt", file: v.paymentReceipt },
+            ]}
+          />
 
           <Dialog
             open={showGuidelinePreview}

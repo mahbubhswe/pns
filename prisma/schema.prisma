@@ -22,7 +22,13 @@ enum PaymentMethod {
   BANK
 }
 
-// Who can read a published post
+// General = plot owner; Associate = a relative of a plot owner who is (or will be) a member
+enum MemberType {
+  GENERAL
+  ASSOCIATE
+}
+
+// Who can read a published post or document
 enum PostAudience {
   PUBLIC
   MEMBERS
@@ -46,6 +52,17 @@ enum UserStatus {
 // ---- Models ----
 model User {
   id Int @id @default(autoincrement())
+
+  // Membership
+  membershipType  MemberType @default(GENERAL)
+  /// Associate only: how the applicant is related to the plot owner.
+  relationToOwner String?
+  /// Associate only: the plot owner's PNS ID, as typed by the applicant.
+  ownerPnsId      String?
+  /// Given on submission, shared with the applicant for queries (e.g. APP-2026-00042).
+  applicationRef  String?    @unique
+  /// Society membership ID. Imported for existing members, assigned on approval otherwise.
+  pnsId           String?    @unique
 
   // Plot info
   sectorNumber String
@@ -261,4 +278,43 @@ model Voucher {
   @@index([accountId])
   @@index([toAccountId])
   @@index([memberId])
+}
+
+// ---------------------------------------------------------------------------
+// Executive committee shown on the public /committee page
+
+model CommitteeMember {
+  id        Int      @id @default(autoincrement())
+  name      String
+  position  String
+  bio       String?
+  photoUrl  String?
+  phone     String?
+  email     String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+// ---------------------------------------------------------------------------
+// Society documents (constitution, certificates, ...) on the /documents page
+
+model SiteDocument {
+  id           Int          @id @default(autoincrement())
+  title        String
+  description  String?
+  fileUrl      String
+  fileName     String?
+  mimeType     String?
+  audience     PostAudience @default(PUBLIC)
+  sortOrder    Int          @default(0)
+  /// ManagementUser.id of the uploader (kept as a plain id; no relation needed).
+  uploadedById Int?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([audience, sortOrder])
 }

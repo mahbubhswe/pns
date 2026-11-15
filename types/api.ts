@@ -9,6 +9,7 @@
 import type {
   ManagementRole,
   MemberStatus,
+  MemberType,
   MemberUiStatus,
   OwnershipProofType,
   PaymentMethod,
@@ -33,6 +34,13 @@ export type ApiErrorResponse = {
 
 export type MemberDto = {
   id: number;
+  membershipType: MemberType;
+  relationToOwner: string | null;
+  ownerPnsId: string | null;
+  /** Reference given on submission, e.g. APP-2026-00042. */
+  applicationRef: string | null;
+  /** Membership ID, e.g. PNS-00042 (imported or assigned on approval). */
+  pnsId: string | null;
   sectorNumber: string;
   roadNumber: string;
   plotNumber: string;
@@ -76,10 +84,16 @@ export type MembershipStats = {
   byType: Record<string, number>;
 };
 
-export type ImportMembersResponse = OkResponse & { count: number };
+export type ImportMembersResponse = OkResponse & {
+  count: number;
+  /** Rows not imported (spreadsheet row number + reason). */
+  skipped: Array<{ row: number; reason: string }>;
+};
 
 export type RegisterMemberResponse = OkResponse & {
   id: number;
+  /** Share with the applicant for queries. */
+  applicationRef: string;
   message: string;
   emailSent: boolean;
 };
@@ -391,3 +405,39 @@ export type ReportResponse =
   | { type: "balance-sheet"; period: ReportPeriod; data: BalanceSheetReport }
   | { type: "monthly-summary"; period: ReportPeriod; data: MonthlySummaryReport };
 export type ReportPeriod = { from: string | null; to: string };
+
+// ---------------------------------------------------------------------------
+// Executive committee
+
+export type CommitteeMemberDto = {
+  id: number;
+  name: string;
+  position: string;
+  bio: string | null;
+  photoUrl: string | null;
+  phone: string | null;
+  email: string | null;
+  sortOrder: number;
+  /** Hidden entries stay in the dashboard but not on the website. */
+  isActive: boolean;
+};
+export type CommitteeListResponse = { members: CommitteeMemberDto[] };
+export type CommitteeMutationResponse = OkResponse & { member: CommitteeMemberDto };
+
+// ---------------------------------------------------------------------------
+// Society documents
+
+export type SiteDocumentDto = {
+  id: number;
+  title: string;
+  description: string | null;
+  fileName: string | null;
+  isPdf: boolean;
+  audience: PostAudience;
+  sortOrder: number;
+  /** Access-checked inline view URL (the storage URL is never exposed). */
+  viewUrl: string;
+  createdAt: string;
+};
+export type DocumentsListResponse = { documents: SiteDocumentDto[] };
+export type DocumentMutationResponse = OkResponse & { document: SiteDocumentDto };

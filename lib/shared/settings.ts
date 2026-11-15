@@ -6,7 +6,7 @@
  * admin has saved anything; runtime values always come from the database via
  * `features/settings`.
  */
-import { MEMBERSHIP_FEE_BANK, MEMBERSHIP_FEE_BKASH, PAYMENT_DETAILS, type PaymentMethod } from "./membership";
+import { MEMBERSHIP_FEE_BANK, MEMBERSHIP_FEE_BKASH, PAYMENT_DETAILS, type MemberType, type PaymentMethod } from "./membership";
 
 export type HeroSlide = { src: string; alt: string };
 /** "scenes" = the 20 animated neighbourhood illustrations; "photos" = the slides below. */
@@ -29,6 +29,9 @@ export type SiteSettings = {
   payment: {
     feeBkash: number;
     feeBank: number;
+    /** Associate membership fees (a family member of a plot owner). */
+    feeBkashAssociate: number;
+    feeBankAssociate: number;
     bkashNumber: string;
     bankName: string;
     bankAccountName: string;
@@ -81,6 +84,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   payment: {
     feeBkash: MEMBERSHIP_FEE_BKASH,
     feeBank: MEMBERSHIP_FEE_BANK,
+    feeBkashAssociate: MEMBERSHIP_FEE_BKASH,
+    feeBankAssociate: MEMBERSHIP_FEE_BANK,
     bkashNumber: PAYMENT_DETAILS.bkashNumber,
     bankName: PAYMENT_DETAILS.bank.name,
     bankAccountName: PAYMENT_DETAILS.bank.accountName,
@@ -92,9 +97,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     closedMessage: "Membership registration is currently closed. Please check back later.",
   },
   home: {
-    heroTitle: "A neighbourhood is built by its *neighbours.*",
-    heroSubtitle:
-      "{siteName} brings the plot owners of Purbachal New Town together — to speak with one voice, share news, and shape a safer, greener township.\nপূর্বাচলের প্লট মালিকদের সংগঠন — সদস্য হয়ে উন্নয়নে অংশ নিন।",
+    heroTitle: "Welcome to *Purbachal Newtown Society*",
+    heroSubtitle: "Be United – Make your voice heard",
     heroStyle: "scenes",
     slides: [
       {
@@ -208,8 +212,10 @@ export function visibleHomeSections(settings: SiteSettings): HomeSection[] {
   return shown;
 }
 
-export function feeForPaymentMethod(settings: SiteSettings, method: PaymentMethod): number {
-  return method === "BANK" ? settings.payment.feeBank : settings.payment.feeBkash;
+export function feeForPaymentMethod(settings: SiteSettings, method: PaymentMethod, type: MemberType = "GENERAL"): number {
+  const p = settings.payment;
+  if (type === "ASSOCIATE") return method === "BANK" ? p.feeBankAssociate : p.feeBkashAssociate;
+  return method === "BANK" ? p.feeBank : p.feeBkash;
 }
 
 /** Placeholders admins may use in landing-page text. */

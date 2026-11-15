@@ -20,6 +20,30 @@ export const PAYMENT_DETAILS = {
   },
 } as const;
 
+export const MEMBER_TYPES = ["GENERAL", "ASSOCIATE"] as const;
+export type MemberType = (typeof MEMBER_TYPES)[number];
+export const MEMBER_TYPE_LABELS: Record<MemberType, { label: string; hint: string }> = {
+  GENERAL: { label: "General", hint: "For the owner of a plot in Purbachal New Town." },
+  ASSOCIATE: { label: "Associate", hint: "For a family member of a plot owner (spouse, son, daughter…)." },
+};
+/** Suggestions for an Associate applicant's relation to the plot owner (free text is allowed). */
+export const OWNER_RELATIONS = ["Spouse", "Son", "Daughter", "Father", "Mother", "Brother", "Sister", "Son-in-law", "Daughter-in-law"];
+
+/** Bangladeshi NID: old 13/17-digit numbers and the 10-digit Smart Card number. */
+export function isValidNid(value: string): boolean {
+  return /^(\d{10}|\d{13}|\d{17})$/.test(value.replace(/[\s-]/g, ""));
+}
+
+/** Reference shared with an applicant on submission, e.g. APP-2026-00042. */
+export function formatApplicationRef(id: number, createdAt: Date = new Date()): string {
+  return `APP-${createdAt.getFullYear()}-${String(id).padStart(5, "0")}`;
+}
+
+/** Membership ID assigned on approval when the member has none, e.g. PNS-00042. */
+export function formatPnsId(id: number): string {
+  return `PNS-${String(id).padStart(5, "0")}`;
+}
+
 export const OWNERSHIP_PROOF_TYPES = ["LD_TAX_RECEIPT", "MUTATION_PAPER", "BDS_KHATIAN"] as const;
 export type OwnershipProofType = (typeof OWNERSHIP_PROOF_TYPES)[number];
 

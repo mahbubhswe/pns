@@ -22,7 +22,7 @@ export const POST = route(async req => {
   await requirePermission(req, "members.manage");
   const parsed = parseBody(importMembersSchema, await readBody(req));
   const rows = Array.isArray(parsed) ? parsed : [parsed];
-  const count = await importMembers(rows);
-  const body: ImportMembersResponse = { ok: true, count };
+  const { created, skipped } = await importMembers(rows);
+  const body: ImportMembersResponse = { ok: true, count: created, skipped };
   return json(body);
 });
