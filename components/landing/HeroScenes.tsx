@@ -8,7 +8,7 @@ import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import PauseRounded from "@mui/icons-material/PauseRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { SCENES, SceneSvg } from "./scenes";
+import { SCENES, SceneSvg, preloadScene } from "./scenes";
 import { SCENE_CSS, SceneDefs } from "./scene-kit";
 
 const SLIDE_MS = 7500;
@@ -72,6 +72,16 @@ export default function HeroScenes({ children }: { children?: React.ReactNode })
   };
 
   const scene = SCENES[index];
+
+  // Only the visible scene's code is loaded; fetch the neighbours in the background
+  // so the next / previous slide is ready when it comes.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      preloadScene(index + 1);
+      preloadScene(index - 1);
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [index]);
 
   return (
     <Box

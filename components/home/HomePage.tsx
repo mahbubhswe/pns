@@ -6,10 +6,10 @@
 // starts a new paragraph (Bangla lines get the Bangla font automatically).
 import Link from "next/link";
 import Image from "next/image";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Box, Button, Card, Container, IconButton, Stack, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
-import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import LoginRounded from "@mui/icons-material/LoginRounded";
 import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
@@ -145,8 +145,6 @@ function PhotoHero({ slides, fallbackAlt, children }: { slides: HeroSlide[]; fal
 
 export default function HomePage({ settings, news = [], committee = [] }: Props) {
   const theme = useTheme();
-  const whyGridRef = useRef<HTMLDivElement>(null);
-  const whyInView = useInView(whyGridRef, { once: true, amount: 0.15 });
   const dark = theme.palette.mode === "dark";
   const { home, site, registration } = settings;
   const t = (text: string) => renderTemplate(text, settings);
@@ -279,64 +277,11 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
               <motion.div {...reveal}>
                 <SectionTitle center title={t(home.benefitsTitle)} />
               </motion.div>
-              {/*
-                Cards drop in from above, gather into a stack in the middle, then
-                spread out to their own places and keep floating gently.
-                The stack offsets apply only on the 3-column (md+) layout.
-              */}
-              <Box
-                ref={whyGridRef}
-                className={whyInView ? "is-in" : undefined}
-                sx={{
-                  display: "grid",
-                  gap: 2.5,
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
-                  perspective: "1400px",
-                  "& .pns-drop": {
-                    height: "100%",
-                    opacity: 0,
-                    transformStyle: "preserve-3d",
-                    transform: "translate3d(var(--entry-x), -420px, 380px) rotate(var(--entry-rotate)) scale(1.18)",
-                  },
-                  "&.is-in .pns-drop": {
-                    animation:
-                      "pns-stack-in 2s cubic-bezier(.2,.78,.2,1) var(--drop-delay) both, pns-card-float 7s ease-in-out calc(var(--drop-delay) + 2s) infinite",
-                  },
-                  "@keyframes pns-stack-in": {
-                    "0%": { opacity: 0, transform: "translate3d(var(--entry-x), -420px, 380px) rotate(var(--entry-rotate)) scale(1.18)" },
-                    "44%": { opacity: 1, transform: "translate3d(var(--stack-x), var(--stack-y), 60px) rotate(var(--stack-rotate)) scale(1.06)" },
-                    "66%": { opacity: 1, transform: "translate3d(var(--stack-x), var(--stack-y), 40px) rotate(var(--stack-rotate)) scale(1.03)" },
-                    "90%": { opacity: 1, transform: "translate3d(0, -7px, 0) rotate(0) scale(1.02)" },
-                    "100%": { opacity: 1, transform: "translate3d(0, 0, 0) rotate(0) scale(1)" },
-                  },
-                  "@keyframes pns-card-float": {
-                    "0%, 100%": { transform: "translateY(0) rotate(0)" },
-                    "35%": { transform: "translateY(-7px) rotate(-.45deg)" },
-                    "70%": { transform: "translateY(3px) rotate(.35deg)" },
-                  },
-                  "@media (prefers-reduced-motion: reduce)": {
-                    "& .pns-drop, &.is-in .pns-drop": { opacity: 1, transform: "none", animation: "none" },
-                  },
-                }}
-              >
+              {/* Cards in a plain grid; each fades in gently like the rest of the page. */}
+              <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" } }}>
                 {home.benefits.map((b, i) => {
-                  const rows = Math.ceil(home.benefits.length / 3);
-                  const col = i % 3;
-                  const row = Math.floor(i / 3);
                   return (
-                    <Box
-                      key={`${i}-${b.title}`}
-                      className="pns-drop"
-                      sx={{
-                        "--drop-delay": `${i * 0.08}s`,
-                        "--entry-x": i % 2 === 0 ? "-28vw" : "28vw",
-                        "--entry-rotate": `${i % 2 === 0 ? -14 - i : 14 + i}deg`,
-                        // Toward the middle card (one card ≈ 108% wide / 112% tall incl. gap).
-                        "--stack-x": { xs: "0%", md: `${(1 - col) * 108}%` },
-                        "--stack-y": { xs: "0%", md: `${((rows - 1) / 2 - row) * 112}%` },
-                        "--stack-rotate": `${(i - 2.5) * 2.4}deg`,
-                      }}
-                    >
+                    <motion.div key={`${i}-${b.title}`} {...reveal} transition={{ ...reveal.transition, delay: (i % 3) * 0.06 }} style={{ height: "100%" }}>
                       {/* Illustration on top (the site's own township scenes), then icon, title and one line. */}
                       <Card
                         sx={{
@@ -381,7 +326,7 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
                           <Typography color="text.secondary" sx={{ ...clamp2, lineHeight: 1.6 }}>{t(b.body)}</Typography>
                         </Box>
                       </Card>
-                    </Box>
+                    </motion.div>
                   );
                 })}
               </Box>
