@@ -46,7 +46,8 @@ export default function PublicFooter({
         pb: { xs: 4, md: 5 },
       }}
     >
-      {/* One soft, still illustration in the background (same in light and dark), fading out toward the top. */}
+      {/* One soft, still illustration in the background (same in light and dark). It fades out toward
+          the top, and a fade rising from the bottom keeps the bottom of the footer clean. */}
       <style>{SCENE_CSS}</style>
       <SceneDefs />
       <Box
@@ -57,8 +58,8 @@ export default function PublicFooter({
           zIndex: -1,
           opacity: dark ? 0.14 : 0.18,
           filter: "saturate(.7)",
-          maskImage: "linear-gradient(180deg, transparent 0%, #000 55%)",
-          WebkitMaskImage: "linear-gradient(180deg, transparent 0%, #000 55%)",
+          maskImage: "linear-gradient(180deg, transparent 0%, #000 40%, #000 58%, transparent 88%)",
+          WebkitMaskImage: "linear-gradient(180deg, transparent 0%, #000 40%, #000 58%, transparent 88%)",
           pointerEvents: "none",
           "& .pns-scene": { width: "100%", height: "100%" },
         }}
