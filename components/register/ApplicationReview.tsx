@@ -164,7 +164,7 @@ export default function ApplicationReview({
               ))}
             </Box>
           </Box>
-          <Alert severity="info">After you submit, you&apos;ll get a reference number. Keep it for any query about your application.</Alert>
+          <Alert severity="info">After you submit, you&apos;ll get a reference number and go to the payment page. Keep the number for any query about your application.</Alert>
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
@@ -172,7 +172,7 @@ export default function ApplicationReview({
           Edit
         </Button>
         <Button variant="contained" onClick={onConfirm} disabled={submitting} startIcon={<SendRounded />}>
-          {submitting ? "Submitting…" : "Confirm & submit"}
+          {submitting ? "Submitting…" : "Confirm & pay online"}
         </Button>
       </DialogActions>
     </Dialog>

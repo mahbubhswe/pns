@@ -27,7 +27,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="stylesheet" href={FONTS} />
       </head>
-      <body>
+      {/* Browser extensions (e.g. ColorZilla's cz-shortcut-listen) add attributes to <body>. */}
+      <body suppressHydrationWarning>
         <AppRouterCacheProvider options={{ enableCssLayer: false }}>
           <ThemeModeProvider>{children}</ThemeModeProvider>
         </AppRouterCacheProvider>

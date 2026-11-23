@@ -19,7 +19,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  ListSubheader,
   Menu,
   MenuItem,
   Toolbar,
@@ -45,7 +44,11 @@ import AdminPanelSettingsRounded from "@mui/icons-material/AdminPanelSettingsRou
 import LogoutRounded from "@mui/icons-material/LogoutRounded";
 import OpenInNewRounded from "@mui/icons-material/OpenInNewRounded";
 import TuneRounded from "@mui/icons-material/TuneRounded";
+import WebRounded from "@mui/icons-material/WebRounded";
 import SupervisorAccountRounded from "@mui/icons-material/SupervisorAccountRounded";
+import LanguageRounded from "@mui/icons-material/LanguageRounded";
+import SettingsRounded from "@mui/icons-material/SettingsRounded";
+import SidebarSection from "@/components/dashboard/SidebarSection";
 import Diversity3Rounded from "@mui/icons-material/Diversity3Rounded";
 import FolderRounded from "@mui/icons-material/FolderRounded";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -61,15 +64,27 @@ const MINI = 84;
 
 type NavItem = { label: string; href: string; icon: React.ReactNode; perm: Permission | Permission[]; exact?: boolean };
 
-export const navGroups: Array<{ title: string; items: NavItem[] }> = [
+/**
+ * Sidebar sections. A section with one visible page shows as a plain link; a
+ * section with several opens a flyout on hover (desktop) or expands in place
+ * (mobile). Items the user has no permission for are hidden.
+ */
+export const navGroups: Array<{ title: string; icon: React.ReactNode; items: NavItem[] }> = [
   {
-    title: "Overview",
+    title: "Dashboard",
+    icon: <SpaceDashboardRounded />,
     items: [{ label: "Dashboard", href: "/dashboard", icon: <SpaceDashboardRounded />, perm: "dashboard.view", exact: true }],
   },
   {
-    title: "Community",
+    title: "Members",
+    icon: <Groups2Rounded />,
+    items: [{ label: "Members", href: "/dashboard/membership", icon: <Groups2Rounded />, perm: "members.view" }],
+  },
+  {
+    title: "Website",
+    icon: <LanguageRounded />,
     items: [
-      { label: "Members", href: "/dashboard/membership", icon: <Groups2Rounded />, perm: "members.view" },
+      { label: "Landing page", href: "/dashboard/landing", icon: <WebRounded />, perm: "settings.manage" },
       { label: "Posts", href: "/dashboard/posts", icon: <ArticleRounded />, perm: ["posts.view", "posts.manage"] },
       { label: "Committee", href: "/dashboard/committee", icon: <Diversity3Rounded />, perm: "committee.manage" },
       { label: "Documents", href: "/dashboard/documents", icon: <FolderRounded />, perm: "documents.manage" },
@@ -77,7 +92,8 @@ export const navGroups: Array<{ title: string; items: NavItem[] }> = [
     ],
   },
   {
-    title: "Finance",
+    title: "Accounts",
+    icon: <AccountBalanceWalletRounded />,
     items: [
       { label: "Accounts overview", href: "/dashboard/accounting", icon: <AccountBalanceWalletRounded />, perm: ["accounting.view", "accounting.reports"], exact: true },
       { label: "Vouchers", href: "/dashboard/accounting/vouchers", icon: <ReceiptLongRounded />, perm: ["accounting.view", "accounting.entry"] },
@@ -88,6 +104,7 @@ export const navGroups: Array<{ title: string; items: NavItem[] }> = [
   },
   {
     title: "Administration",
+    icon: <SettingsRounded />,
     items: [
       { label: "Staff users", href: "/dashboard/users", icon: <BadgeRounded />, perm: ["users.view", "users.manage"] },
       { label: "Roles & permissions", href: "/dashboard/roles", icon: <AdminPanelSettingsRounded />, perm: "roles.manage" },
@@ -137,6 +154,40 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
   const isSelected = (item: NavItem) =>
     item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/");
 
+  // Sidebar accordion: one section open at a time. Resting state = the section of the current page.
+  const activeSection = groups.find(g => g.items.length > 1 && g.items.some(isSelected))?.title ?? null;
+  const [openSection, setOpenSection] = useState<string | null>(activeSection);
+  const navTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearNavTimer = () => {
+    if (navTimer.current) clearTimeout(navTimer.current);
+  };
+  // After navigating, rest on the new page's section.
+  useEffect(() => {
+    clearNavTimer();
+    setOpenSection(activeSection);
+  }, [activeSection]);
+  useEffect(() => clearNavTimer, []);
+  // Hover intent: open only if the pointer stays on the header a moment (passing over does nothing).
+  const hoverSection = (title: string) => {
+    if (!isDesktop) return;
+    clearNavTimer();
+    navTimer.current = setTimeout(() => setOpenSection(title), 140);
+  };
+  const leaveSectionHeader = () => {
+    if (!isDesktop) return;
+    clearNavTimer();
+  };
+  // Pointer left the whole menu: go back to the current page's section.
+  const leaveNav = () => {
+    if (!isDesktop) return;
+    clearNavTimer();
+    navTimer.current = setTimeout(() => setOpenSection(activeSection), 400);
+  };
+  const toggleSection = (title: string) => {
+    clearNavTimer();
+    setOpenSection(o => (o === title ? null : title));
+  };
+
   const logout = async () => {
     try {
       await apiPost("/api/admin/logout");
@@ -155,61 +206,67 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
             <CircularProgress size={22} />
           </Box>
         ) : (
-          groups.map(group => (
-            <List
-              key={group.title}
-              dense
-              subheader={
-                mini ? (
-                  <Divider sx={{ my: 1.25, mx: 1 }} />
-                ) : (
-                  <ListSubheader disableSticky sx={{ bgcolor: "transparent", lineHeight: "32px", mt: 1, fontSize: 11, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase", color: "text.secondary" }}>
-                    {group.title}
-                  </ListSubheader>
-                )
+          <List dense sx={{ pt: 1 }} onMouseEnter={clearNavTimer} onMouseLeave={leaveNav}>
+            {groups.map(group => {
+              // Several pages → a section with an inner menu.
+              if (group.items.length > 1) {
+                return (
+                  <SidebarSection
+                    key={group.title}
+                    title={group.title}
+                    icon={group.icon}
+                    hover={isDesktop}
+                    expanded={openSection === group.title}
+                    onHeaderEnter={() => hoverSection(group.title)}
+                    onHeaderLeave={leaveSectionHeader}
+                    onToggle={() => toggleSection(group.title)}
+                    mini={mini}
+                    onNavigate={() => setMobileOpen(false)}
+                    items={group.items.map(i => ({ label: i.label, href: i.href, icon: i.icon, selected: isSelected(i) }))}
+                  />
+                );
               }
-            >
-              {group.items.map(item => {
-                const selected = isSelected(item);
-                const btn = (
-                  <ListItemButton
-                    key={item.href}
-                    component={Link}
-                    href={item.href}
-                    selected={selected}
-                    onClick={() => setMobileOpen(false)}
-                    sx={{
-                      mb: 0.5,
-                      py: 1,
-                      px: mini ? 0 : 1.5,
-                      justifyContent: mini ? "center" : "flex-start",
-                      position: "relative",
-                      "&.Mui-selected::before": {
-                        content: '""',
-                        position: "absolute",
-                        left: -12,
-                        top: 8,
-                        bottom: 8,
-                        width: 4,
-                        borderRadius: 4,
-                        bgcolor: "primary.main",
-                      },
-                    }}
-                  >
-                    <ListItemIcon sx={{ minWidth: mini ? 0 : 38, color: selected ? "primary.main" : "text.secondary" }}>{item.icon}</ListItemIcon>
-                    {!mini && <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: selected ? 750 : 600, fontSize: 14.5 }} />}
-                  </ListItemButton>
-                );
-                return mini ? (
-                  <Tooltip key={item.href} title={item.label} placement="right" arrow>
-                    {btn}
-                  </Tooltip>
-                ) : (
-                  btn
-                );
-              })}
-            </List>
-          ))
+              // One page → a plain link.
+              const item = group.items[0];
+              const selected = isSelected(item);
+              const btn = (
+                <ListItemButton
+                  key={item.href}
+                  component={Link}
+                  href={item.href}
+                  selected={selected}
+                  onClick={() => setMobileOpen(false)}
+                  sx={{
+                    mb: 0.5,
+                    py: 1,
+                    px: mini ? 0 : 1.5,
+                    justifyContent: mini ? "center" : "flex-start",
+                    position: "relative",
+                    "&.Mui-selected::before": {
+                      content: '""',
+                      position: "absolute",
+                      left: -12,
+                      top: 8,
+                      bottom: 8,
+                      width: 4,
+                      borderRadius: 4,
+                      bgcolor: "primary.main",
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: mini ? 0 : 38, color: selected ? "primary.main" : "text.secondary" }}>{group.icon}</ListItemIcon>
+                  {!mini && <ListItemText primary={group.title} primaryTypographyProps={{ fontWeight: selected ? 750 : 600, fontSize: 14.5 }} />}
+                </ListItemButton>
+              );
+              return mini ? (
+                <Tooltip key={item.href} title={group.title} placement="right" arrow>
+                  {btn}
+                </Tooltip>
+              ) : (
+                btn
+              );
+            })}
+          </List>
         )}
       </Box>
       {!mini && admin && (

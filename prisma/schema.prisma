@@ -20,6 +20,14 @@ enum OwnershipProofType {
 enum PaymentMethod {
   BKASH
   BANK
+  /// Paid through the payment gateway (SSLCommerz).
+  ONLINE
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  FAILED
 }
 
 // General = plot owner; Associate = a relative of a plot owner who is (or will be) a member
@@ -96,6 +104,15 @@ model User {
   bankAccountNumberFrom String?
   paymentReceipt        String? // store file path/URL
   membershipFee         Int           @default(1020)
+  /// Online payments: UNPAID until the gateway confirms. Older (manual) rows are PAID.
+  paymentStatus         PaymentStatus @default(UNPAID)
+  /// Our transaction id sent to the gateway (one per attempt; the latest is kept).
+  paymentTranId         String?       @unique
+  /// Gateway's validation id for the successful payment.
+  paymentValId          String?
+  /// e.g. "BKASH-BKash", "VISA-Dutch Bangla"
+  paymentChannel        String?
+  paidAt                DateTime?
   agreeDataUse          Boolean       @default(false)
 
   // Meta

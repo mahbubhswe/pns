@@ -226,9 +226,13 @@ export function TypeChip({ type }: { type: string }) {
 }
 
 /** Responsive card grid; stat tiles sit two-up on phones. */
-export function Grid({ min = 240, gap = 2, phoneCols = 2, children, sx }: { min?: number; gap?: number; phoneCols?: 1 | 2; children: React.ReactNode; sx?: SxProps<Theme> }) {
+/**
+ * Responsive card grid. `fit` stretches the cards to fill the whole row
+ * (no empty column on wide screens); use it for a fixed set of stat cards.
+ */
+export function Grid({ min = 240, gap = 2, phoneCols = 2, fit = false, children, sx }: { min?: number; gap?: number; phoneCols?: 1 | 2; fit?: boolean; children: React.ReactNode; sx?: SxProps<Theme> }) {
   return (
-    <Box sx={[{ display: "grid", gap: { xs: 1.5, sm: gap }, gridTemplateColumns: { xs: `repeat(${phoneCols}, minmax(0, 1fr))`, sm: `repeat(auto-fill, minmax(${min}px, 1fr))` } }, ...(Array.isArray(sx) ? sx : [sx])]}>
+    <Box sx={[{ display: "grid", gap: { xs: 1.5, sm: gap }, gridTemplateColumns: { xs: `repeat(${phoneCols}, minmax(0, 1fr))`, sm: `repeat(${fit ? "auto-fit" : "auto-fill"}, minmax(${min}px, 1fr))` } }, ...(Array.isArray(sx) ? sx : [sx])]}>
       {children}
     </Box>
   );

@@ -103,6 +103,16 @@ export default function LoginForm({ site = DEFAULT_SITE_SETTINGS.site }: { site?
                 ),
               }}
             />
+            <Box sx={{ textAlign: "right", mt: "-12px !important" }}>
+              <Typography
+                component={Link}
+                href="/auth/forgot"
+                variant="body2"
+                sx={{ color: "primary.main", fontWeight: 650, textDecoration: "none", "&:hover": { textDecoration: "underline" } }}
+              >
+                Forgot password?
+              </Typography>
+            </Box>
             <Button
               type="submit"
               size="large"
@@ -124,6 +134,9 @@ export default function LoginForm({ site = DEFAULT_SITE_SETTINGS.site }: { site?
           Apply for membership
         </Button>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 3, textAlign: "center" }}>
+          Applied already? <Link href="/track">Track your application</Link>
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, textAlign: "center" }}>
           Committee member? <Link href="/admin/login">Sign in to the management portal</Link>
         </Typography>
       </AuthShell>

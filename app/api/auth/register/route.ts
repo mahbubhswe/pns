@@ -7,13 +7,15 @@ import {
   parseMultipart,
   pickFile,
   preflight,
+  publicOrigin,
   route,
   type ParsedMultipart,
 } from "@/lib/server/http";
 import { persistUpload } from "@/lib/server/storage";
 import { UPLOAD_LIMITS } from "@/lib/config/constants";
 import { logger } from "@/lib/server/logger";
-import { registerMember, registerMemberSchema, sendApplicationEmail } from "@/features/membership";
+import { registerMember, registerMemberSchema } from "@/features/membership";
+import { getActiveGateway, startPayment } from "@/features/payment";
 import { getSettings } from "@/features/settings";
 import { feeForPaymentMethod } from "@/lib/shared/settings";
 import type { RegisterMemberResponse } from "@/types/api";
@@ -35,11 +37,16 @@ async function persistOptional(
 
 export const OPTIONS = preflight(CORS_METHODS);
 
-/** Public membership registration (multipart form + document uploads). */
+/**
+ * Public membership registration (multipart form + document uploads).
+ * The application is saved as unpaid and the applicant is sent to the payment
+ * gateway; the confirmation email goes out once the payment is confirmed.
+ */
 export const POST = route(
   async req => {
     const settings = await getSettings();
     if (!settings.registration.open) throw ApiError.forbidden(settings.registration.closedMessage);
+    if (!(await getActiveGateway())) throw ApiError.forbidden("Online payment is not set up yet, so applications can't be taken right now. Please try again later.");
 
     const { fields, files } = await parseMultipart(req);
 
@@ -49,23 +56,21 @@ export const POST = route(
     const uploaded = {
       ownershipProofFile: await persistOptional(files, "ownershipProofFile", "ownershipProof", isImageOrPdfMime),
       ownerPhoto: await persistOptional(files, "ownerPhoto", "ownerPhoto", isImageOrPdfMime),
-      paymentReceipt: await persistOptional(files, "paymentReceipt", "paymentReceipt", isImageOrPdfMime),
     };
 
-    const membershipFee = feeForPaymentMethod(settings, input.paymentMethod, input.membershipType);
+    const membershipFee = feeForPaymentMethod(settings, "ONLINE", input.membershipType);
     const user = await registerMember(input, uploaded, membershipFee);
     logger.info("Member registered", { userId: user.id });
 
-    const emailSent = await sendApplicationEmail(user);
+    // If the gateway call fails the application is still saved; the applicant can pay later from /track.
+    const paymentUrl = await startPayment(user, publicOrigin(req), settings.site.name);
 
     const body: RegisterMemberResponse = {
       ok: true,
       id: user.id,
       applicationRef: user.applicationRef ?? "",
-      emailSent,
-      message: emailSent
-        ? `Application submitted. Your reference number is ${user.applicationRef}. A copy has been emailed to you.`
-        : `Application submitted. Your reference number is ${user.applicationRef}.`,
+      paymentUrl,
+      message: `Application saved. Your reference number is ${user.applicationRef}. Continue to pay the membership fee online.`,
     };
     return json(body, 201);
   },

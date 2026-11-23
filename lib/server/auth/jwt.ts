@@ -62,3 +62,28 @@ export function verifyToken<K extends Claims["kind"]>(
     return null;
   }
 }
+
+/**
+ * Password reset / set-up links. `fp` is a fingerprint of the current password
+ * hash, so a link stops working once the password changes (single use).
+ * The distinct `kind` means these tokens are never accepted as a session.
+ */
+export type PasswordResetClaims = { kind: "pwreset"; sub: number; fp: string };
+
+export function signPasswordResetToken(sub: number, fp: string, ttlSeconds: number): string {
+  const claims: PasswordResetClaims = { kind: "pwreset", sub, fp };
+  return jwt.sign(claims, env.JWT_SECRET, { expiresIn: ttlSeconds });
+}
+
+export function verifyPasswordResetToken(token: string): PasswordResetClaims | null {
+  try {
+    const payload = jwt.verify(token, env.JWT_SECRET);
+    if (!payload || typeof payload !== "object") return null;
+    const { kind, sub, fp } = payload as { kind?: unknown; sub?: unknown; fp?: unknown };
+    const id = Number(sub);
+    if (kind !== "pwreset" || !Number.isInteger(id) || id <= 0 || typeof fp !== "string") return null;
+    return { kind, sub: id, fp };
+  } catch {
+    return null;
+  }
+}

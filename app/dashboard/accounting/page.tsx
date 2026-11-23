@@ -144,7 +144,7 @@ export default function AccountingOverview() {
         </Stack>
       </Card>
 
-      <Grid min={210} sx={{ mb: 2.5 }}>
+      <Grid min={210} fit sx={{ mb: 2.5 }}>
         <StatCard label="Income this month" value={data ? money(data.month.income, { decimals: false }) : "—"} tone="success" icon={<TrendingUpRounded />} />
         <StatCard label="Expenses this month" value={data ? money(data.month.expense, { decimals: false }) : "—"} tone="secondary" icon={<TrendingDownRounded />} />
         <StatCard label={`Income in ${year}`} value={data ? money(data.year.income, { decimals: false }) : "—"} tone="primary" icon={<SavingsRounded />} />

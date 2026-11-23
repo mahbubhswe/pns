@@ -46,10 +46,10 @@ import ApplicationReview, { FileThumb, type ReviewSection } from "@/components/r
 import { MEMBER_TYPE_LABELS, OWNER_RELATIONS, isValidNid, type MemberType } from "@/lib/shared/membership";
 import { DEFAULT_SITE_SETTINGS, visibleHomeSections, type SiteSettings } from "@/lib/shared/settings";
 import PublicHeader from "@/components/PublicHeader";
+import { publicCards } from "@/components/home/parts";
 import { SceneStage } from "@/components/AuthShell";
 
 // 🔢 Types
-type PaymentMethod = "BKASH" | "BANK";
 
 type FormState = {
   // Membership type (asked first)
@@ -77,13 +77,6 @@ type FormState = {
   email: string;
   ownerPhoto: File | null;
 
-  // Payment
-  paymentMethod: PaymentMethod;
-  bkashTransactionId: string;
-  bkashAccountNumber: string;
-  bankAccountNumberFrom: string;
-  paymentReceipt: File | null; // bKash screenshot OR bank slip
-
   // 🔑 New field
   password: string;
 
@@ -109,11 +102,6 @@ const initialState: FormState = {
   permanentAddress: "",
   email: "",
   ownerPhoto: null,
-  paymentMethod: "BKASH",
-  bkashTransactionId: "",
-  bkashAccountNumber: "",
-  bankAccountNumberFrom: "",
-  paymentReceipt: null,
   password: "",
   agreeDataUse: false,
 };
@@ -213,11 +201,6 @@ const LABELS: Record<Key, string> = {
   permanentAddress: "Permanent address",
   email: "Email address",
   ownerPhoto: "Owner photo",
-  paymentMethod: "Payment method",
-  bkashTransactionId: "bKash transaction ID",
-  bkashAccountNumber: "bKash account number used",
-  bankAccountNumberFrom: "Bank account number (sender)",
-  paymentReceipt: "Payment receipt/screenshot",
   agreeDataUse: "Consent to data use",
   password: "Password",
 };
@@ -280,36 +263,9 @@ function validateField(key: Key, v: FormState): string | undefined {
       if (!isImage(v.ownerPhoto) && !isPdf(v.ownerPhoto))
         return "Photo must be an image or PDF file";
       return;
-    case "bkashTransactionId":
-      if (v.paymentMethod === "BKASH") {
-        if (!nonEmpty(v.bkashTransactionId))
-          return "bKash transaction ID is required";
-        if (!/^[a-zA-Z0-9]{10}$/.test(v.bkashTransactionId.trim()))
-          return "bKash transaction ID must be exactly 10 alphanumeric characters";
-      }
-      return;
-    case "bkashAccountNumber":
-      if (v.paymentMethod === "BKASH") {
-        if (!nonEmpty(v.bkashAccountNumber))
-          return "bKash account number used is required";
-        if (!/^[0-9]{11}$/.test(v.bkashAccountNumber.trim()))
-          return "bKash account number must be exactly 11 digits";
-      }
-      return;
-    case "bankAccountNumberFrom":
-      if (v.paymentMethod === "BANK" && !nonEmpty(v.bankAccountNumberFrom))
-        return "Bank account number (sender) is required";
-      return;
-    case "paymentReceipt":
-      if (v.paymentMethod === "BANK" && !v.paymentReceipt)
-        return "Payment receipt/screenshot is required";
-      if (v.paymentReceipt && !validateSize(v.paymentReceipt))
-        return "Receipt must be ≤ 10MB";
-      return;
     case "agreeDataUse":
       if (!v.agreeDataUse) return "You must agree to the data use notice";
       return;
-    case "paymentMethod":
     case "ownershipProofType":
       // Always valid as they have defaults, but we keep for completeness
       if (!v[key]) return `${LABELS[key]} is required`;
@@ -336,11 +292,6 @@ const ALL_KEYS: Key[] = [
   "permanentAddress",
   "email",
   "ownerPhoto",
-  "paymentMethod",
-  "bkashTransactionId",
-  "bkashAccountNumber",
-  "bankAccountNumberFrom",
-  "paymentReceipt",
   "agreeDataUse",
   "password",
 ];
@@ -356,28 +307,20 @@ function validateAll(v: FormState): Partial<Record<Key, string>> {
 
 export default function PnsMembershipForm({
   settings = DEFAULT_SITE_SETTINGS,
+  paymentReady = true,
 }: {
+  /** False while online payment (SSLCommerz) is switched off: applications can't be submitted. */
+  paymentReady?: boolean;
   /** Admin-editable site settings (fees, payment details), loaded server-side. */
   settings?: SiteSettings;
 }) {
-  // 🧾 Payment details come from the database (dashboard → Settings).
-  const FEES = {
-    GENERAL: { BKASH: settings.payment.feeBkash, BANK: settings.payment.feeBank },
-    ASSOCIATE: { BKASH: settings.payment.feeBkashAssociate, BANK: settings.payment.feeBankAssociate },
-  } as const;
-  const BKASH_NUMBER = settings.payment.bkashNumber; // Send Money (personal)
-  const BANK = {
-    name: settings.payment.bankName,
-    accountName: settings.payment.bankAccountName,
-    accountNumber: settings.payment.bankAccountNumber,
-    routingNumber: settings.payment.bankRoutingNumber,
-  };
+  // 🧾 Fees come from the database (dashboard → Site settings → Payment). Paid online after submitting.
+  const FEES = { GENERAL: settings.payment.feeBkash, ASSOCIATE: settings.payment.feeBkashAssociate } as const;
   const SITE_NAME = settings.site.name;
-  const registrationOpen = settings.registration.open;
+  const registrationOpen = settings.registration.open && paymentReady;
 
   const [v, setV] = useState<FormState>(initialState);
-  const BKASH_FEE = FEES[v.membershipType].BKASH; // BDT
-  const BANK_FEE = FEES[v.membershipType].BANK; // BDT
+  const FEE = FEES[v.membershipType]; // BDT
   const isAssociate = v.membershipType === "ASSOCIATE";
   const [reviewOpen, setReviewOpen] = useState(false);
   const [applicationRef, setApplicationRef] = useState<string | null>(null);
@@ -413,8 +356,8 @@ export default function PnsMembershipForm({
     const next = { ...v, [key]: value } as FormState;
     setV(next);
     setTouched(t => ({ ...t, [key]: true }));
-    // For dependent logic (e.g., switching payment method), revalidate all
-    if (key === "paymentMethod" || key === "membershipType") {
+    // Dependent fields (associate details) are revalidated when the type changes.
+    if (key === "membershipType") {
       setErrors(validateAll(next));
     } else {
       const msg = validateField(key, next);
@@ -457,19 +400,10 @@ export default function PnsMembershipForm({
     fd.append("permanentAddress", data.permanentAddress.trim());
     fd.append("email", data.email.trim());
 
-    fd.append("paymentMethod", data.paymentMethod);
-    if (data.paymentMethod === "BKASH") {
-      fd.append("bkashTransactionId", data.bkashTransactionId.trim());
-      fd.append("bkashAccountNumber", data.bkashAccountNumber.trim());
-    } else {
-      fd.append("bankAccountNumberFrom", data.bankAccountNumberFrom.trim());
-    }
-
     // Files
     if (data.ownershipProofFile)
       fd.append("ownershipProofFile", data.ownershipProofFile);
     if (data.ownerPhoto) fd.append("ownerPhoto", data.ownerPhoto);
-    if (data.paymentReceipt) fd.append("paymentReceipt", data.paymentReceipt);
 
     // Extras (the fee itself is decided server-side from site settings)
     fd.append("agreeDataUse", String(data.agreeDataUse));
@@ -486,7 +420,7 @@ export default function PnsMembershipForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!registrationOpen) {
-      setToast({ open: true, msg: settings.registration.closedMessage, sev: "error" });
+      setToast({ open: true, msg: settings.registration.open ? "Online payment is not set up yet. Please try again later." : settings.registration.closedMessage, sev: "error" });
       return;
     }
     setSubmittedOnce(true);
@@ -520,11 +454,13 @@ export default function PnsMembershipForm({
       const data = res.data ?? {};
       setApplicationRef(data.applicationRef || null);
       setReviewOpen(false);
-      setToast({
-        open: true,
-        msg: data.message || "Submitted successfully.",
-        sev: "success",
-      });
+      if (data.paymentUrl) {
+        // Application saved; continue to the payment gateway (keep the reference shown meanwhile).
+        setToast({ open: true, msg: "Application saved. Taking you to the payment page…", sev: "success" });
+        window.location.assign(data.paymentUrl);
+      } else {
+        setToast({ open: true, msg: data.message || "Submitted successfully.", sev: "success" });
+      }
 
       setErrors({});
       setTouched({});
@@ -589,14 +525,8 @@ export default function PnsMembershipForm({
     {
       title: "Payment",
       rows: [
-        ["Method", v.paymentMethod === "BKASH" ? "bKash" : "Bank deposit/transfer"],
-        ["Fee", `BDT ${(v.paymentMethod === "BKASH" ? BKASH_FEE : BANK_FEE).toLocaleString("en-IN")}`],
-        ...(v.paymentMethod === "BKASH"
-          ? ([
-              ["bKash transaction ID", v.bkashTransactionId],
-              ["bKash number used", v.bkashAccountNumber],
-            ] as Array<[string, string]>)
-          : ([["Sender bank account", v.bankAccountNumberFrom]] as Array<[string, string]>)),
+        ["Membership fee", `BDT ${FEE.toLocaleString("en-IN")}`],
+        ["How", "Online, right after you submit (bKash, Nagad, Rocket or card)"],
       ],
     },
   ];
@@ -607,8 +537,7 @@ export default function PnsMembershipForm({
         Membership Registration Fee
       </Typography>
       <Typography variant="body2">
-        {MEMBER_TYPE_LABELS[v.membershipType].label} membership: BDT {BKASH_FEE.toLocaleString("en-IN")} via bKash / BDT{" "}
-        {BANK_FEE.toLocaleString("en-IN")} through bank deposit or bank transfer.
+        {MEMBER_TYPE_LABELS[v.membershipType].label} membership: BDT {FEE.toLocaleString("en-IN")}, paid online after you submit — bKash, Nagad, Rocket or card.
       </Typography>
     </Box>
   );
@@ -663,7 +592,7 @@ export default function PnsMembershipForm({
       <PublicHeader site={settings.site} registrationOpen={registrationOpen} sections={visibleHomeSections(settings)} />
       {!registrationOpen && (
         <Alert severity="warning" sx={{ borderRadius: 0, justifyContent: "center" }}>
-          {settings.registration.closedMessage}
+          {settings.registration.open ? "Online payment is not set up yet, so applications can't be submitted right now. Please check back soon." : settings.registration.closedMessage}
         </Alert>
       )}
       {/* 🔹 Hero with a living neighbourhood scene */}
@@ -680,10 +609,10 @@ export default function PnsMembershipForm({
             Join {SITE_NAME}
           </Typography>
           <Typography sx={{ opacity: 0.9, mt: 1, maxWidth: 640 }}>
-            Fill in your plot and owner details, then upload your documents and payment proof. Your application PDF arrives by email the moment you submit.
+            Fill in your plot and owner details and upload your documents, then pay the fee online. Your application PDF arrives by email once the payment is done.
           </Typography>
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 2.5 }}>
-            {[`bKash: ${BKASH_NUMBER}`, `Bank A/C: ${BANK.accountNumber}`].map(label => (
+            {[`General: BDT ${FEES.GENERAL.toLocaleString("en-IN")}`, `Associate: BDT ${FEES.ASSOCIATE.toLocaleString("en-IN")}`, "Pay online"].map(label => (
               <Chip key={label} label={label} sx={{ bgcolor: "rgba(255,255,255,.14)", color: "#fff", border: "1px solid rgba(255,255,255,.3)", backdropFilter: "blur(6px)", fontWeight: 700 }} />
             ))}
           </Stack>
@@ -692,9 +621,6 @@ export default function PnsMembershipForm({
 
       <Container maxWidth="lg" sx={{ mt: 3 }}>
         <Stack spacing={2}>
-          <Card>
-            <CardContent>{paymentInfo}</CardContent>
-          </Card>
           <Alert
             severity="info"
             action={
@@ -709,7 +635,7 @@ export default function PnsMembershipForm({
       </Container>
 
       {/* 🔹 Main form */}
-      <Container maxWidth="lg" sx={{ pt: 2, pb: { xs: 4, md: 6 } }}>
+      <Container maxWidth="lg" sx={theme => ({ pt: 2, pb: { xs: 4, md: 6 }, ...publicCards(theme.palette.mode === "dark") })}>
         <Box
           component="form"
           noValidate
@@ -761,14 +687,17 @@ export default function PnsMembershipForm({
               <Typography variant="body2" color="text.secondary">
                 Need to make a change now? Contact the society with your reference number.
               </Typography>
-              <Button component={Link} href="/auth/login" variant="outlined" sx={{ mt: 1 }}>
-                Log in to check your status
+              <Button component={Link} href="/track" variant="outlined" sx={{ mt: 1 }}>
+                Track your application
               </Button>
             </Box>
           )}
           <Stack spacing={3} sx={{ opacity: locked ? 0.4 : 1 }}>
-            {/* Membership type (asked first) */}
+            {/* One card for the whole form; each part is a section inside it. */}
             <Card>
+              <Stack divider={<Divider flexItem sx={{ mx: { xs: 2, md: 3 } }} />}>
+            {/* Membership type (asked first) */}
+            <Box component="section">
               <CardHeader title="Type of Membership" subheader="Choose one to begin" />
               <CardContent>
                 <RadioGroup
@@ -778,14 +707,17 @@ export default function PnsMembershipForm({
                   sx={{ gap: 2 }}
                 >
                   {(["GENERAL", "ASSOCIATE"] as const).map((t, i) => (
-                    <Card
+                    <Box
                       key={t}
-                      variant="outlined"
                       sx={{
                         flex: "1 1 260px",
                         p: 1.5,
-                        borderColor: v.membershipType === t ? "primary.main" : undefined,
-                        borderWidth: v.membershipType === t ? 2 : 1,
+                        borderRadius: "18px",
+                        border: "1px solid",
+                        borderColor: v.membershipType === t ? "primary.main" : "divider",
+                        boxShadow: v.membershipType === t ? theme => `inset 0 0 0 1px ${theme.palette.primary.main}` : "none",
+                        bgcolor: v.membershipType === t ? "action.hover" : "transparent",
+                        transition: "border-color .2s ease, background-color .2s ease, box-shadow .2s ease",
                       }}
                     >
                       <FormControlLabel
@@ -801,12 +733,12 @@ export default function PnsMembershipForm({
                               {MEMBER_TYPE_LABELS[t].hint}
                             </Typography>
                             <Typography variant="caption" sx={{ fontWeight: 700 }}>
-                              Fee: BDT {FEES[t].BKASH.toLocaleString("en-IN")} (bKash) / {FEES[t].BANK.toLocaleString("en-IN")} (bank)
+                              Fee: BDT {FEES[t].toLocaleString("en-IN")}
                             </Typography>
                           </Box>
                         }
                       />
-                    </Card>
+                    </Box>
                   ))}
                 </RadioGroup>
 
@@ -850,10 +782,10 @@ export default function PnsMembershipForm({
                   </Row>
                 )}
               </CardContent>
-            </Card>
+            </Box>
 
             {/* Plot Information */}
-            <Card>
+            <Box component="section">
               <CardHeader
                 title="Plot Information"
                 subheader="Sector, Road, Plot, Size"
@@ -937,10 +869,10 @@ export default function PnsMembershipForm({
                   </Col>
                 </Row>
               </CardContent>
-            </Card>
+            </Box>
 
             {/* Ownership Proof */}
-            <Card>
+            <Box component="section">
               <CardHeader
                 title="Ownership Proof"
                 subheader="Attach exactly ONE document"
@@ -988,10 +920,10 @@ export default function PnsMembershipForm({
                   />
                 </Stack>
               </CardContent>
-            </Card>
+            </Box>
 
             {/* Owner Info */}
-            <Card>
+            <Box component="section">
               <CardHeader
                 title={isAssociate ? "Applicant’s Information" : "Plot Owner’s Information"}
                 subheader={isAssociate ? "Your own details as the associate member" : undefined}
@@ -1129,130 +1061,20 @@ export default function PnsMembershipForm({
                   </Col>
                 </Row>
               </CardContent>
-            </Card>
+            </Box>
 
             {/* Payment */}
-            <Card>
+            <Box component="section">
               <CardHeader
                 title="Payment"
-                subheader="Attach receipt and fill relevant fields"
+                subheader="Paid online after you submit"
               />
               <CardContent>
                 <Stack spacing={2}>
                   {paymentInfo}
-
-                  <Row>
-                    <Col>
-                      <FormControl fullWidth size="small">
-                        <InputLabel id="pay-method">Payment method</InputLabel>
-                        <Select
-                          labelId="pay-method"
-                          label="Payment method"
-                          value={v.paymentMethod}
-                          onChange={e =>
-                            setField(
-                              "paymentMethod",
-                              e.target.value as PaymentMethod
-                            )
-                          }
-                          onBlur={() => markTouched("paymentMethod")}
-                        >
-                          <MenuItem value="BKASH">bKash</MenuItem>
-                          <MenuItem value="BANK">
-                            Bank deposit/transfer
-                          </MenuItem>
-                        </Select>
-                      </FormControl>
-                    </Col>
-                  </Row>
-
-                  {/* Fee Alert based on payment method */}
-                  {v.paymentMethod === "BKASH" && (
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      Registration fee: BDT {BKASH_FEE}
-                    </Alert>
-                  )}
-                  {v.paymentMethod === "BANK" && (
-                    <Alert severity="info" sx={{ borderRadius: 2 }}>
-                      Registration fee: BDT {BANK_FEE}
-                    </Alert>
-                  )}
-
-                  <Row>
-                    {v.paymentMethod === "BKASH" ? (
-                      <>
-                        <Col>
-                          <TextField
-                            size="small"
-                            required
-                            label="bKash transaction ID"
-                            value={v.bkashTransactionId}
-                            onChange={e =>
-                              setField("bkashTransactionId", e.target.value)
-                            }
-                            onBlur={() => markTouched("bkashTransactionId")}
-                            error={!!showErr("bkashTransactionId")}
-                            helperText={showErr("bkashTransactionId")}
-                            fullWidth
-                          />
-                        </Col>
-                        <Col>
-                          <TextField
-                            size="small"
-                            required
-                            label="bKash account number used"
-                            type="number"
-                            value={v.bkashAccountNumber}
-                            onChange={e =>
-                              setField("bkashAccountNumber", e.target.value)
-                            }
-                            onBlur={() => markTouched("bkashAccountNumber")}
-                            error={!!showErr("bkashAccountNumber")}
-                            helperText={showErr("bkashAccountNumber")}
-                            fullWidth
-                          />
-                        </Col>
-                      </>
-                    ) : (
-                      <Col>
-                        <TextField
-                          size="small"
-                          required
-                          label="Bank account number (sender)"
-                          value={v.bankAccountNumberFrom}
-                          onChange={e =>
-                            setField("bankAccountNumberFrom", e.target.value)
-                          }
-                          onBlur={() => markTouched("bankAccountNumberFrom")}
-                          error={!!showErr("bankAccountNumberFrom")}
-                          helperText={showErr("bankAccountNumberFrom")}
-                          fullWidth
-                        />
-                      </Col>
-                    )}
-
-                    <Col>
-                      <FilePicker
-                        required={v.paymentMethod === "BANK"}
-                        label={
-                          v.paymentMethod === "BKASH"
-                            ? "Upload bKash receipt/screenshot"
-                            : "Upload bank deposit slip/screenshot"
-                        }
-                        file={v.paymentReceipt}
-                        onChange={f => {
-                          // setField already marks touched and validates
-                          setField("paymentReceipt", f);
-                        }}
-                        helper={
-                          v.paymentMethod === "BANK"
-                            ? "PDF/JPG/PNG (≤10MB)"
-                            : "Optional for bKash (PDF/JPG/PNG ≤10MB if uploaded)"
-                        }
-                        errorText={showErr("paymentReceipt")}
-                      />
-                    </Col>
-                  </Row>
+                  <Alert severity="info" sx={{ borderRadius: 2 }}>
+                    After you review and submit, you&apos;ll go to the secure SSLCommerz page to pay BDT {FEE.toLocaleString("en-IN")}. Your application is saved first, so if the payment fails you can pay later from Track your application.
+                  </Alert>
 
                   <Divider />
 
@@ -1281,6 +1103,8 @@ export default function PnsMembershipForm({
                   )}
                 </Stack>
               </CardContent>
+            </Box>
+              </Stack>
             </Card>
 
             <Stack
@@ -1338,7 +1162,6 @@ export default function PnsMembershipForm({
             files={[
               { label: "Ownership proof", file: v.ownershipProofFile },
               { label: isAssociate ? "Applicant's photo" : "Owner's photo", file: v.ownerPhoto },
-              { label: "Payment receipt", file: v.paymentReceipt },
             ]}
           />
 

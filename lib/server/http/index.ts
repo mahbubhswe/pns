@@ -4,3 +4,4 @@ export * from "./validate";
 export * from "./multipart";
 export * from "./cors";
 export * from "./negotiation";
+export * from "./origin";

@@ -36,3 +36,9 @@ export const UPLOAD_FOLDERS = {
   general: "uploads",
   previews: "uploads/previews",
 } as const;
+
+/** "Forgot password" email links stop working after this. */
+export const PASSWORD_RESET_TTL_SECONDS = 60 * 60; // 1 hour
+
+/** Password set-up links created by staff (e.g. for imported members) last longer. */
+export const PASSWORD_SETUP_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days

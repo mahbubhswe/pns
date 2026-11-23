@@ -29,14 +29,15 @@ import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import AddRounded from "@mui/icons-material/AddRounded";
 import DescriptionRounded from "@mui/icons-material/DescriptionRounded";
 import LoginRounded from "@mui/icons-material/LoginRounded";
+import KeyRounded from "@mui/icons-material/KeyRounded";
 import PageGate from "@/components/dashboard/PageGate";
 import { PageHeader, SectionCard, StatusChip } from "@/components/dashboard/ui";
-import { apiDelete, apiPatch, errorMessage, getJSON } from "@/lib/api";
+import { apiDelete, apiPatch, apiPost, errorMessage, getJSON } from "@/lib/api";
 import { useAdmin } from "@/lib/useAdmin";
 import { loginAsMember } from "@/lib/impersonate";
 import { formatDate, initials, money, photoSrc } from "@/lib/format";
-import type { MemberDto as Member, MemberResponse, VouchersResponse } from "@/types/api";
-import type { MemberUiStatus } from "@/lib/shared/membership";
+import type { MemberDto as Member, MemberResponse, PasswordLinkResponse, VouchersResponse } from "@/types/api";
+import { PAYMENT_STATUS_LABELS, type MemberUiStatus } from "@/lib/shared/membership";
 
 const PROOF: Record<string, string> = {
   LD_TAX_RECEIPT: "LD tax receipt",
@@ -83,6 +84,40 @@ export default function MemberDetailPage() {
     }
   }
 
+  /** A 7-day link the member opens to set their password (imported members have none). */
+  async function passwordLink() {
+    if (!p) return;
+    const emailable = !/^imported\+.*@example\.com$/i.test(p.email);
+    const ask = await Swal.fire({
+      title: "Password set-up link",
+      text: emailable
+        ? `Create a link ${p.ownerNameEnglish} can open to set a new password. Send it by email too?`
+        : `${p.ownerNameEnglish} has no email on record. Create a link to share by WhatsApp or SMS? They will choose their login email when they open it.`,
+      icon: "question",
+      showCancelButton: true,
+      showDenyButton: emailable,
+      confirmButtonText: emailable ? "Create & email" : "Create link",
+      denyButtonText: "Create only",
+      confirmButtonColor: "#0F6E56",
+      denyButtonColor: "#5B6B64",
+    });
+    if (ask.isDismissed) return;
+    try {
+      const res = await apiPost<PasswordLinkResponse>(`/api/memberships/${id}/password-link`, { sendEmail: emailable && ask.isConfirmed });
+      const copied = await navigator.clipboard?.writeText(res.url).then(() => true, () => false);
+      await Swal.fire({
+        icon: "success",
+        title: res.emailed ? "Link emailed" : "Link created",
+        text: `${res.emailed ? `Sent to ${p.email}. ` : emailable && ask.isConfirmed ? "The email could not be sent. " : ""}${copied ? "Copied to the clipboard. " : ""}It works for ${res.expiresInDays} days, once.`,
+        input: "text",
+        inputValue: res.url,
+        inputAttributes: { readonly: "true" },
+      });
+    } catch (e) {
+      Swal.fire({ icon: "error", title: "Failed", text: errorMessage(e, "Could not create the link") });
+    }
+  }
+
   async function onDelete() {
     const result = await Swal.fire({
       title: "Delete this member record?",
@@ -109,10 +144,19 @@ export default function MemberDetailPage() {
         title="Member profile"
         subtitle="Check the plot, documents and payment, then record your decision."
         actions={
-          p && can("members.impersonate") && !admin?.impersonatedBy ? (
-            <Button variant="outlined" startIcon={<LoginRounded />} onClick={() => loginAsMember(p)}>
-              Log in as member
-            </Button>
+          p && (can("members.manage") || (can("members.impersonate") && !admin?.impersonatedBy)) ? (
+            <Stack direction="row" spacing={1}>
+              {can("members.manage") && (
+                <Button variant="outlined" startIcon={<KeyRounded />} onClick={passwordLink}>
+                  Password link
+                </Button>
+              )}
+              {can("members.impersonate") && !admin?.impersonatedBy && (
+                <Button variant="outlined" startIcon={<LoginRounded />} onClick={() => loginAsMember(p)}>
+                  Log in as member
+                </Button>
+              )}
+            </Stack>
           ) : undefined
         }
       />
@@ -225,10 +269,20 @@ export default function MemberDetailPage() {
 
             <SectionCard title="Payment">
               <Typography sx={{ fontSize: 28, fontWeight: 800 }}>{money(p.membershipFee, { decimals: false })}</Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                Paid via {p.paymentMethod === "BKASH" ? "bKash" : "bank transfer"}
+              <Typography
+                variant="body2"
+                sx={{ mb: 1.5, fontWeight: 700, color: p.paymentStatus === "PAID" ? "success.main" : p.paymentStatus === "FAILED" ? "error.main" : "warning.main" }}
+              >
+                {PAYMENT_STATUS_LABELS[p.paymentStatus]}
+                {p.paymentMethod === "ONLINE" ? " · online (SSLCommerz)" : p.paymentMethod === "BKASH" ? " · bKash (manual)" : " · bank transfer (manual)"}
               </Typography>
-              {p.paymentMethod === "BKASH" ? (
+              {p.paymentMethod === "ONLINE" ? (
+                <>
+                  <KV label="Transaction ID" value={p.paymentTranId || "—"} mono />
+                  <KV label="Paid with" value={p.paymentChannel || "—"} />
+                  <KV label="Paid on" value={p.paidAt ? formatDate(p.paidAt) : "—"} />
+                </>
+              ) : p.paymentMethod === "BKASH" ? (
                 <>
                   <KV label="bKash transaction ID" value={p.bkashTransactionId || "—"} mono />
                   <KV label="Sent from (bKash no.)" value={p.bkashAccountNumber || "—"} mono />
@@ -259,7 +313,7 @@ export default function MemberDetailPage() {
                           size="small"
                           startIcon={<AddRounded />}
                           component={Link}
-                          href={`/dashboard/accounting/vouchers?new=INCOME&memberId=${p.id}&amount=${p.membershipFee}&party=${encodeURIComponent(p.ownerNameEnglish)}&ref=${encodeURIComponent(p.bkashTransactionId || p.bankAccountNumberFrom || "")}`}
+                          href={`/dashboard/accounting/vouchers?new=INCOME&memberId=${p.id}&amount=${p.membershipFee}&party=${encodeURIComponent(p.ownerNameEnglish)}&ref=${encodeURIComponent(p.paymentTranId || p.bkashTransactionId || p.bankAccountNumberFrom || "")}`}
                         >
                           Record fee
                         </Button>

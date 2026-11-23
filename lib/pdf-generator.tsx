@@ -77,6 +77,7 @@ export interface ApplicationData {
   bkashTransactionId?: string | null;
   bkashAccountNumber?: string | null;
   bankAccountNumberFrom?: string | null;
+  paymentTranId?: string | null;
 }
 
 interface ApplicationPDFProps {
@@ -178,7 +179,7 @@ const ApplicationPDF: React.FC<ApplicationPDFProps> = ({ data }) => (
         <Text style={styles.subtitle}>Payment Information</Text>
         <View style={styles.field}>
           <Text style={styles.label}>Payment Method:</Text>
-          <Text style={styles.value}>{data.paymentMethod}</Text>
+          <Text style={styles.value}>{data.paymentMethod === "ONLINE" ? "Online (SSLCommerz)" : data.paymentMethod}</Text>
         </View>
         <View style={styles.field}>
           <Text style={styles.label}>Membership Fee:</Text>
@@ -195,6 +196,12 @@ const ApplicationPDF: React.FC<ApplicationPDFProps> = ({ data }) => (
               <Text style={styles.value}>{data.bkashAccountNumber}</Text>
             </View>
           </>
+        )}
+        {data.paymentMethod === "ONLINE" && (
+          <View style={styles.field}>
+            <Text style={styles.label}>Transaction ID:</Text>
+            <Text style={styles.value}>{data.paymentTranId}</Text>
+          </View>
         )}
         {data.paymentMethod === "BANK" && (
           <View style={styles.field}>

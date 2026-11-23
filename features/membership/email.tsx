@@ -35,6 +35,7 @@ function toApplicationData(user: User): ApplicationData {
     bkashTransactionId: user.bkashTransactionId,
     bkashAccountNumber: user.bkashAccountNumber,
     bankAccountNumberFrom: user.bankAccountNumberFrom,
+    paymentTranId: user.paymentTranId,
   };
 }
 

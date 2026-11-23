@@ -256,6 +256,26 @@ display (`features/post/sanitize.ts`).
   storage URL is never sent to the browser; files are streamed by
   `/api/documents/[id]/file`, which re-checks the audience on every request.
 
+## Online payment (SSLCommerz) and accounts
+
+- Manual bKash/bank payment is gone. `features/payment`: the registration saves
+  the application as `paymentStatus = UNPAID`, then `startPayment` opens an
+  SSLCommerz checkout and the browser is sent there.
+- SSLCommerz posts back to `/api/payments/sslcommerz/{success,fail,cancel,ipn}`.
+  Only the gateway's validation API (`validatePayment`, by `val_id`) can mark a
+  payment `PAID`, and only if the transaction id and amount match. The
+  application email/PDF goes out once, when the payment is first confirmed.
+- Unpaid or failed applications can pay later from `/track` (reference + phone).
+- Credentials are entered in Dashboard → Site settings → Payment and stored in
+  the `SiteSetting` row `payment_gateway` (not public). The store password is
+  encrypted with a key derived from `JWT_SECRET` (`lib/server/crypto.ts`): after
+  rotating `JWT_SECRET`, enter the password again. Registration is blocked while
+  online payment is off. Links in the callbacks use `NEXT_PUBLIC_APP_URL`.
+- Members: `/auth/forgot` emails a 1-hour reset link; staff can create a 7-day
+  set-up link on a member's page (imported members have no usable password).
+  Links are JWTs bound to the current password hash, so they work once.
+- `/track` answers application + payment status for a matching reference and phone.
+
 ## File storage
 
 All uploads go through `persistUpload`. Locally files land in

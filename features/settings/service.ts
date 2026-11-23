@@ -36,6 +36,8 @@ export async function getSettings(): Promise<SiteSettings> {
     if (!isSection(row.key) || !isObject(row.value)) continue;
     merged[row.key] = { ...merged[row.key], ...row.value };
   }
+  // Nested object: keep defaults for blocks added after the row was saved.
+  merged.home.show = { ...DEFAULT_SITE_SETTINGS.home.show, ...(isObject(merged.home.show) ? merged.home.show : {}) };
 
   const parsed = siteSettingsSchema.safeParse(merged);
   if (!parsed.success) {

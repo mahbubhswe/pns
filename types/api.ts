@@ -13,6 +13,7 @@ import type {
   MemberUiStatus,
   OwnershipProofType,
   PaymentMethod,
+  PaymentStatus,
 } from "@/lib/shared/membership";
 import type { SiteSettings } from "@/lib/shared/settings";
 import type { PostAudience } from "@/lib/shared/posts";
@@ -66,6 +67,10 @@ export type MemberDto = {
   status: MemberUiStatus;
   /** Raw review status stored in the database. */
   statusCode: MemberStatus;
+  paymentStatus: PaymentStatus;
+  paymentTranId: string | null;
+  paymentChannel: string | null;
+  paidAt: string | null;
   createdAt: string;
   updatedAt: string;
   /** Alias of createdAt kept for the membership grid / CSV export. */
@@ -95,12 +100,42 @@ export type RegisterMemberResponse = OkResponse & {
   /** Share with the applicant for queries. */
   applicationRef: string;
   message: string;
-  emailSent: boolean;
+  /** Gateway checkout page to send the applicant to (online payment). */
+  paymentUrl: string;
 };
+
+/** Online payment gateway settings as shown to admins (the password is never sent). */
+export type GatewaySettingsDto = {
+  enabled: boolean;
+  sandbox: boolean;
+  storeId: string;
+  hasPassword: boolean;
+  /** A password is saved but can't be read (JWT_SECRET changed): enter it again. */
+  passwordUnreadable: boolean;
+};
+export type GatewaySettingsResponse = { gateway: GatewaySettingsDto };
+export type StartPaymentResponse = { paymentUrl: string };
 
 export type MemberLoginResponse = OkResponse & {
   user: { id: number; email: string; name: string; status: MemberStatus };
 };
+
+/** Public "track my application" answer. Only what the applicant already knows, plus the status. */
+export type TrackApplicationDto = {
+  ref: string;
+  name: string;
+  membershipType: "GENERAL" | "ASSOCIATE";
+  status: MemberStatus;
+  submittedAt: string;
+  /** Set once approved. */
+  pnsId: string | null;
+  paymentStatus: PaymentStatus;
+  membershipFee: number;
+};
+export type TrackApplicationResponse = { application: TrackApplicationDto };
+
+/** Staff-created password set-up link for a member. */
+export type PasswordLinkResponse = OkResponse & { url: string; expiresInDays: number; emailed: boolean; emailable: boolean };
 
 export type ProfileResponse = OkResponse & {
   profile: MemberDto;

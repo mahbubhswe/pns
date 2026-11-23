@@ -241,7 +241,7 @@ export default function UsersPage() {
           }
         />
 
-        <Grid min={200} sx={{ mb: 3 }}>
+        <Grid min={200} fit sx={{ mb: 3 }}>
           <StatCard label="Staff accounts" value={counts.total} />
           <StatCard label="Active" value={counts.active} tone="success" />
           <StatCard label="Full access" value={counts.full} tone="warning" hint="Super Admin level" />

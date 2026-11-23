@@ -10,7 +10,8 @@ export const brand = {
   coral: "#E2553C",
   amber: "#F4A62A",
   ink: "#12241D",
-  paper: "#F6F4EE",
+  /** Page background in light mode (one colour for every section). */
+  paper: "#FFFAFA",
   sky: "#2F6FDE",
 };
 

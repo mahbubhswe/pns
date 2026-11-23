@@ -11,13 +11,13 @@ import type {
   ListMembersQuery,
   MemberLoginInput,
   RegisterMemberInput,
+  TrackApplicationInput,
 } from "./schema";
 
 /** URLs of the documents uploaded alongside a registration. */
 export type RegistrationFiles = {
   ownershipProofFile: string | null;
   ownerPhoto: string | null;
-  paymentReceipt: string | null;
 };
 
 /** `membershipFee` is decided by the caller from site settings, never by the client. */
@@ -49,11 +49,9 @@ export async function registerMember(
       email: input.email,
       ownerPhoto: files.ownerPhoto,
       password,
-      paymentMethod: input.paymentMethod,
-      bkashTransactionId: input.bkashTransactionId ?? null,
-      bkashAccountNumber: input.bkashAccountNumber ?? null,
-      bankAccountNumberFrom: input.bankAccountNumberFrom ?? null,
-      paymentReceipt: files.paymentReceipt,
+      // Paid online through the gateway after submission; manual payment is no longer accepted.
+      paymentMethod: "ONLINE",
+      paymentStatus: "UNPAID",
       membershipFee,
       agreeDataUse: input.agreeDataUse,
     },
@@ -184,6 +182,7 @@ export async function importMembers(rows: ImportMemberRow[]): Promise<ImportResu
         email: email || `imported+${randomUUID()}@example.com`,
         password: await bcrypt.hash(randomUUID(), BCRYPT_ROUNDS),
         paymentMethod: "BKASH",
+        paymentStatus: "PAID",
         membershipFee: MEMBERSHIP_FEE_DEFAULT,
         agreeDataUse: false,
         status: memberStatusFromUi(row.status || "active") ?? "APPROVED",
@@ -194,4 +193,20 @@ export async function importMembers(rows: ImportMemberRow[]): Promise<ImportResu
     result.created += 1;
   }
   return result;
+}
+
+const lastTenDigits = (v: string) => v.replace(/\D/g, "").slice(-10);
+
+/**
+ * Public "track my application": the reference number and the phone number on
+ * the form must both match. The same answer is given for a wrong reference
+ * and a wrong phone, so neither can be guessed on its own.
+ */
+export async function trackApplication(input: TrackApplicationInput): Promise<User> {
+  const user = await prisma.user.findUnique({ where: { applicationRef: input.ref } });
+  const phone = lastTenDigits(input.phone);
+  if (!user || phone.length < 10 || lastTenDigits(user.contactNumber) !== phone) {
+    throw ApiError.notFound("No application matches this reference and phone number.");
+  }
+  return user;
 }

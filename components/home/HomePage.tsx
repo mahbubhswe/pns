@@ -7,26 +7,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Box,
-  Button,
-  Card,
-  Container,
-  IconButton,
-  Stack,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, Button, Card, Container, IconButton, Stack, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
 import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import LoginRounded from "@mui/icons-material/LoginRounded";
-import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
-import ContentCopyRounded from "@mui/icons-material/ContentCopyRounded";
-import CheckRounded from "@mui/icons-material/CheckRounded";
 import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import MapRounded from "@mui/icons-material/MapRounded";
@@ -39,20 +24,17 @@ import Diversity3Rounded from "@mui/icons-material/Diversity3Rounded";
 import ShieldRounded from "@mui/icons-material/ShieldRounded";
 import ParkRounded from "@mui/icons-material/ParkRounded";
 import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
-import FolderSharedRounded from "@mui/icons-material/FolderSharedRounded";
-import PaymentsRounded from "@mui/icons-material/PaymentsRounded";
-import EditNoteRounded from "@mui/icons-material/EditNoteRounded";
-import TaskAltRounded from "@mui/icons-material/TaskAltRounded";
-import PhoneIphoneRounded from "@mui/icons-material/PhoneIphoneRounded";
-import AccountBalanceRounded from "@mui/icons-material/AccountBalanceRounded";
 import HeroScenes from "@/components/landing/HeroScenes";
 import { SceneSvg } from "@/components/landing/scenes";
 import { SCENE_CSS, SceneDefs } from "@/components/landing/scene-kit";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import NewsCard from "@/components/news/NewsCard";
+import { CountUp, Paragraphs, RichText, SectionTitle, bdt, publicCards, reveal } from "@/components/home/parts";
+import { FaqSection, FeesSection, StepsSection, clamp2 } from "@/components/home/JoinSections";
+import GallerySection from "@/components/home/GallerySection";
 import type { PublicPostDto } from "@/types/api";
-import { renderTemplate, stripStepNumber, visibleHomeSections, type HeroSlide, type SiteSettings } from "@/lib/shared/settings";
+import { renderTemplate, visibleHomeSections, type HeroSlide, type SiteSettings } from "@/lib/shared/settings";
 
 type Props = {
   settings: SiteSettings;
@@ -69,7 +51,12 @@ const BENEFIT_ICONS = [
   <ParkRounded key="p" />,
   <ReceiptLongRounded key="r" />,
 ];
-const STEP_ICONS = [<FolderSharedRounded key="f" />, <PaymentsRounded key="p" />, <EditNoteRounded key="e" />, <TaskAltRounded key="t" />];
+/**
+ * Illustration per "Why join" card (indexes into the township scenes), in card order:
+ * festival (together) · master plan (notices) · lakeside (neighbours) ·
+ * city lights (safety) · green & solar · building our future (open accounts).
+ */
+const BENEFIT_SCENES = [17, 18, 1, 5, 11, 14];
 const iconAt = (icons: React.ReactNode[], i: number) => icons[i % icons.length];
 
 const HERO_HEIGHT = { xs: "max(640px, 92svh)", md: "min(max(680px, 92vh), 920px)" };
@@ -77,124 +64,6 @@ const HERO_WASH = {
   xs: "linear-gradient(180deg, rgba(8,20,16,.35) 0%, rgba(8,20,16,0) 18%, rgba(8,20,16,0) 42%, rgba(8,20,16,.9) 100%)",
   md: "radial-gradient(ellipse 72% 70% at 0% 100%, rgba(8,20,16,.85) 0%, rgba(8,20,16,.55) 45%, rgba(8,20,16,0) 100%), linear-gradient(180deg, rgba(8,20,16,.35) 0%, rgba(8,20,16,0) 16%, rgba(8,20,16,0) 80%, rgba(8,20,16,.45) 100%)",
 };
-const BANGLA = /[ঀ-৿]/;
-const BANGLA_FONT = '"Hind Siliguri", sans-serif';
-
-const reveal = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.2 },
-  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
-};
-
-const bdt = (n: number) => n.toLocaleString("en-IN");
-
-function Highlight({ children }: { children: React.ReactNode }) {
-  return (
-    <Box
-      component="span"
-      sx={{
-        position: "relative",
-        whiteSpace: "nowrap",
-        zIndex: 0,
-        "&::after": {
-          content: '""',
-          position: "absolute",
-          left: "-2%",
-          right: "-2%",
-          bottom: "0.08em",
-          height: "0.34em",
-          bgcolor: "#F4A62A",
-          opacity: 0.85,
-          borderRadius: "4px",
-          zIndex: -1,
-          transform: "skewX(-8deg)",
-        },
-      }}
-    >
-      {children}
-    </Box>
-  );
-}
-
-/** Render `*highlighted*` parts; with `lastWord`, highlight the final word when nothing is marked. */
-function RichText({ text, lastWord = false }: { text: string; lastWord?: boolean }) {
-  if (!text.includes("*") && lastWord) {
-    const m = text.match(/^([\s\S]*\s)(\S+)$/);
-    if (m) {
-      return (
-        <>
-          {m[1]}
-          <Highlight>{m[2]}</Highlight>
-        </>
-      );
-    }
-  }
-  const parts = text.split(/\*([^*]+)\*/g);
-  return <>{parts.map((part, i) => (i % 2 ? <Highlight key={i}>{part}</Highlight> : <React.Fragment key={i}>{part}</React.Fragment>))}</>;
-}
-
-/** One Typography per line; Bangla lines use the Bangla font. */
-function Paragraphs({ text, sx, banglaSx }: { text: string; sx?: object; banglaSx?: object }) {
-  const lines = text.split(/\n+/).map(l => l.trim()).filter(Boolean);
-  return (
-    <>
-      {lines.map((line, i) => (
-        <Typography key={i} sx={{ ...sx, ...(i > 0 && { mt: 1 }), ...(BANGLA.test(line) && { fontFamily: BANGLA_FONT, ...banglaSx }) }}>
-          {line}
-        </Typography>
-      ))}
-    </>
-  );
-}
-
-function SectionTitle({ eyebrow, title, sub, center }: { eyebrow: string; title: string; sub?: string; center?: boolean }) {
-  return (
-    <Box sx={{ textAlign: center ? "center" : "left", maxWidth: center ? 760 : 640, mx: center ? "auto" : 0, mb: { xs: 4, md: 6 } }}>
-      <Typography variant="overline" color="secondary" sx={{ display: "block", mb: 1 }}>
-        {eyebrow}
-      </Typography>
-      {title && (
-        <Typography variant="h2" sx={{ fontSize: { xs: 30, sm: 38, md: 46 } }}>
-          <RichText text={title} />
-        </Typography>
-      )}
-      {sub && (
-        <Box sx={{ mt: 2 }}>
-          <Paragraphs text={sub} sx={{ color: "text.secondary", fontSize: { md: 18 }, lineHeight: 1.7 }} />
-        </Box>
-      )}
-    </Box>
-  );
-}
-
-function CopyLine({ label, value }: { label: string; value: string }) {
-  const [done, setDone] = useState(false);
-  return (
-    <Stack direction="row" alignItems="center" spacing={1} sx={{ py: 1, borderBottom: t => `1px dashed ${t.palette.divider}`, "&:last-of-type": { borderBottom: 0 } }}>
-      <Typography variant="body2" color="text.secondary" sx={{ flex: "0 0 120px", fontWeight: 600 }}>
-        {label}
-      </Typography>
-      <Typography sx={{ flex: 1, fontWeight: 750, fontVariantNumeric: "tabular-nums", letterSpacing: ".02em", wordBreak: "break-word" }}>{value}</Typography>
-      <Tooltip title={done ? "Copied" : "Copy"}>
-        <IconButton
-          size="small"
-          aria-label={`Copy ${label}`}
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(value);
-              setDone(true);
-              setTimeout(() => setDone(false), 1600);
-            } catch {}
-          }}
-        >
-          {done ? <CheckRounded fontSize="small" color="success" /> : <ContentCopyRounded fontSize="small" />}
-        </IconButton>
-      </Tooltip>
-    </Stack>
-  );
-}
-
 /** Photo slider used when Settings → Landing page → Hero style is "Photos". */
 function PhotoHero({ slides, fallbackAlt, children }: { slides: HeroSlide[]; fallbackAlt: string; children: React.ReactNode }) {
   const [index, setIndex] = useState(0);
@@ -270,12 +139,10 @@ export default function HomePage({ settings, news = [] }: Props) {
   const whyGridRef = useRef<HTMLDivElement>(null);
   const whyInView = useInView(whyGridRef, { once: true, amount: 0.15 });
   const dark = theme.palette.mode === "dark";
-  const { home, site, payment, registration } = settings;
+  const { home, site, registration } = settings;
   const t = (text: string) => renderTemplate(text, settings);
   const open = registration.open;
   const usePhotos = home.heroStyle === "photos" && home.slides.length > 0;
-  const hasBkash = Boolean(payment.bkashNumber);
-  const hasBank = Boolean(payment.bankAccountNumber);
 
   const heroCopy = (
     <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", pb: { xs: 12, md: 11 }, pt: { xs: 9, md: 8 } }}>
@@ -292,7 +159,7 @@ export default function HomePage({ settings, news = [] }: Props) {
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ mt: { xs: 2.25, md: 3 } }}>
             {open && (
               <Button component={Link} href="/auth/register" size="large" variant="contained" color="warning" endIcon={<ArrowForwardRounded />} sx={{ color: "#2B1A00", px: 3.5, py: { xs: 1.25, md: 1.6 }, fontSize: 16.5 }}>
-                Become a member
+                {t(home.heroPrimaryLabel) || "Become a member"}
               </Button>
             )}
             <Button
@@ -303,7 +170,7 @@ export default function HomePage({ settings, news = [] }: Props) {
               startIcon={<LoginRounded />}
               sx={{ color: "#fff", borderColor: "rgba(255,255,255,.55)", px: 3, py: { xs: 1.25, md: 1.6 }, fontSize: 16, backdropFilter: "blur(6px)", "&:hover": { borderColor: "#fff", bgcolor: "rgba(255,255,255,.08)" } }}
             >
-              Member login
+              {t(home.heroSecondaryLabel) || "Member login"}
             </Button>
           </Stack>
           {!open && registration.closedMessage && <Typography sx={{ mt: 2, opacity: 0.9, maxWidth: 520 }}>{registration.closedMessage}</Typography>}
@@ -321,13 +188,12 @@ export default function HomePage({ settings, news = [] }: Props) {
   const sections = visibleHomeSections(settings);
   const show = (s: (typeof sections)[number]) => sections.includes(s);
 
-  const stepCols = Math.min(Math.max(home.steps.length, 1), 3);
-
   return (
     <>
       <PublicHeader overlay site={site} registrationOpen={open} sections={sections} />
 
-      <main>
+      {/* Every card on the home page: large radius, hairline edge, soft diffuse shadow. */}
+      <Box component="main" sx={publicCards(dark)}>
         {/* Scene CSS + gradients are supplied by HeroScenes; add them for the photo hero too. */}
         {usePhotos && (
           <>
@@ -346,12 +212,14 @@ export default function HomePage({ settings, news = [] }: Props) {
         )}
 
         {/* STAT BAND */}
-        {stats.length > 0 && (
+        {home.show.stats && stats.length > 0 && (
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 4, mt: { xs: 3, md: -6 } }}>
           <Card sx={{ p: { xs: 1, md: 1.5 }, display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: `repeat(${stats.length}, 1fr)` }, boxShadow: dark ? "none" : "0 30px 60px -30px rgba(18,36,29,.35)" }}>
             {stats.map((x, i) => (
               <Box key={i} sx={{ p: { xs: 2, md: 3 }, borderLeft: { md: i ? `1px solid ${theme.palette.divider}` : 0 }, borderTop: { xs: i > 1 ? `1px solid ${theme.palette.divider}` : 0, md: 0 } }}>
-                <Typography sx={{ fontSize: { xs: 30, md: 40 }, fontWeight: 800, letterSpacing: "-0.03em", color: "primary.main", lineHeight: 1 }}>{x.n}</Typography>
+                <Typography sx={{ fontSize: { xs: 30, md: 40 }, fontWeight: 800, letterSpacing: "-0.03em", color: "primary.main", lineHeight: 1 }}>
+                  <CountUp text={x.n} />
+                </Typography>
                 <Typography sx={{ fontWeight: 750, mt: 1 }}>{x.l}</Typography>
                 <Typography variant="body2" color="text.secondary">
                   {x.s}
@@ -368,22 +236,26 @@ export default function HomePage({ settings, news = [] }: Props) {
             <Container maxWidth="lg">
               <Box sx={{ display: "grid", gap: { xs: 5, md: 8 }, gridTemplateColumns: { xs: "1fr", md: "1fr 1.1fr" }, alignItems: "center" }}>
                 <motion.div {...reveal}>
-                  <SectionTitle eyebrow="About Purbachal" title={t(home.aboutTitle)} sub={t(home.aboutIntro)} />
+                  <SectionTitle title={t(home.aboutTitle)} />
                   <Stack spacing={2.5}>
                     {home.aboutPoints.map((f, i) => (
                       <Stack key={`${i}-${f.title}`} direction="row" spacing={2}>
                         <Box sx={{ width: 48, height: 48, borderRadius: 3, display: "grid", placeItems: "center", bgcolor: alpha(theme.palette.primary.main, 0.1), color: "primary.main", flexShrink: 0 }}>{iconAt(ABOUT_ICONS, i)}</Box>
                         <Box>
                           <Typography sx={{ fontWeight: 750, fontSize: 17 }}>{t(f.title)}</Typography>
-                          <Typography color="text.secondary">{t(f.body)}</Typography>
+                          <Typography color="text.secondary" sx={clamp2}>{t(f.body)}</Typography>
                         </Box>
                       </Stack>
                     ))}
                   </Stack>
                 </motion.div>
                 <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}>
-                  <Box sx={{ borderRadius: 6, overflow: "hidden", aspectRatio: "16 / 11", boxShadow: "0 40px 80px -40px rgba(18,36,29,.55)", border: `1px solid ${theme.palette.divider}` }}>
-                    <SceneSvg index={18} />
+                  <Box sx={{ position: "relative", borderRadius: 6, overflow: "hidden", aspectRatio: "16 / 11", boxShadow: "0 40px 80px -40px rgba(18,36,29,.55)", border: `1px solid ${theme.palette.divider}` }}>
+                    {home.aboutImage ? (
+                      <Image src={home.aboutImage} alt={site.name} fill unoptimized sizes="(min-width: 900px) 50vw, 100vw" style={{ objectFit: "cover" }} />
+                    ) : (
+                      <SceneSvg index={18} />
+                    )}
                   </Box>
                 </motion.div>
               </Box>
@@ -393,10 +265,10 @@ export default function HomePage({ settings, news = [] }: Props) {
 
         {/* WHY JOIN */}
         {show("why") && (
-          <Box id="why" sx={{ overflow: "hidden", py: { xs: 8, md: 12 }, bgcolor: dark ? "#0E1C17" : "#EFEBE2", scrollMarginTop: 80 }}>
+          <Box id="why" sx={{ overflow: "hidden", py: { xs: 8, md: 12 }, scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
               <motion.div {...reveal}>
-                <SectionTitle center eyebrow={`Why join ${site.shortName}`} title={t(home.benefitsTitle)} sub={t(home.benefitsIntro)} />
+                <SectionTitle center title={t(home.benefitsTitle)} />
               </motion.div>
               {/*
                 Cards drop in from above, gather into a stack in the middle, then
@@ -456,24 +328,49 @@ export default function HomePage({ settings, news = [] }: Props) {
                         "--stack-rotate": `${(i - 2.5) * 2.4}deg`,
                       }}
                     >
-                      {/* Dark cards in both themes (requested): deep green with light text. */}
+                      {/* Illustration on top (the site's own township scenes), then icon, title and one line. */}
                       <Card
                         sx={{
-                          p: 3,
+                          p: "5px",
+                          pb: 2.5,
                           height: "100%",
-                          bgcolor: "#12261E",
-                          color: "#fff",
-                          border: "1px solid rgba(255,255,255,.08)",
-                          backgroundImage: "radial-gradient(120% 80% at 100% 0%, rgba(74,222,149,.10) 0%, rgba(74,222,149,0) 60%)",
-                          transition: "transform .25s ease, box-shadow .25s ease, border-color .25s ease",
-                          "&:hover": { transform: "translateY(-4px)", borderColor: "rgba(244,166,42,.45)", boxShadow: "0 24px 40px -24px rgba(8,20,16,.6)" },
+                          transition: "transform .25s ease, box-shadow .25s ease",
+                          "&:hover": { transform: "translateY(-4px)" },
+                          "&:hover .why-art .pns-scene": { transform: "scale(1.06)" },
                         }}
                       >
-                        <Box sx={{ width: 52, height: 52, borderRadius: 3.5, display: "grid", placeItems: "center", bgcolor: "rgba(255,255,255,.08)", color: i % 2 ? "#F4A62A" : "#4ADE95", mb: 2 }}>
-                          {iconAt(BENEFIT_ICONS, i)}
+                        <Box
+                          className="why-art"
+                          sx={{
+                            position: "relative",
+                            aspectRatio: "16 / 9",
+                            borderRadius: "25px",
+                            overflow: "hidden",
+                            isolation: "isolate",
+                            "& .pns-scene": { position: "absolute", inset: 0, width: "100%", height: "100%", transition: "transform .8s cubic-bezier(.22,1,.36,1)" },
+                          }}
+                        >
+                          <SceneSvg index={BENEFIT_SCENES[i % BENEFIT_SCENES.length]} />
                         </Box>
-                        <Typography sx={{ fontWeight: 800, fontSize: 19, mb: 0.75, color: "#fff" }}>{t(b.title)}</Typography>
-                        <Typography sx={{ lineHeight: 1.65, color: "rgba(255,255,255,.74)" }}>{t(b.body)}</Typography>
+                        <Box sx={{ px: 2.25, mt: -3.5, position: "relative" }}>
+                          <Box
+                            sx={{
+                              width: 52,
+                              height: 52,
+                              borderRadius: "16px",
+                              display: "grid",
+                              placeItems: "center",
+                              bgcolor: "background.paper",
+                              color: i % 2 ? "#E8961A" : "primary.main",
+                              boxShadow: dark ? "0 6px 16px rgba(0,0,0,.4)" : "0 6px 16px rgba(20,20,43,.12)",
+                              mb: 1.75,
+                            }}
+                          >
+                            {iconAt(BENEFIT_ICONS, i)}
+                          </Box>
+                          <Typography sx={{ fontWeight: 800, fontSize: 19, mb: 0.75 }}>{t(b.title)}</Typography>
+                          <Typography color="text.secondary" sx={{ ...clamp2, lineHeight: 1.6 }}>{t(b.body)}</Typography>
+                        </Box>
                       </Card>
                     </Box>
                   );
@@ -483,110 +380,19 @@ export default function HomePage({ settings, news = [] }: Props) {
           </Box>
         )}
 
-        {/* HOW TO JOIN */}
-        {show("join") && (
-          <Box id="join" sx={{ py: { xs: 8, md: 13 }, scrollMarginTop: 80 }}>
-            <Container maxWidth="lg">
-              <motion.div {...reveal}>
-                <SectionTitle eyebrow="How to join" title={t(home.stepsTitle)} />
-              </motion.div>
-              <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: `repeat(${stepCols}, 1fr)` }, position: "relative" }}>
-                {home.steps.length > 1 && home.steps.length <= 3 && (
-                  <Box aria-hidden sx={{ display: { xs: "none", md: "block" }, position: "absolute", top: 34, left: "12%", right: "12%", height: 2, background: `repeating-linear-gradient(90deg, ${theme.palette.divider} 0 10px, transparent 10px 18px)` }} />
-                )}
-                {home.steps.map((s, i) => (
-                  <motion.div key={`${i}-${s.title}`} {...reveal} transition={{ ...reveal.transition, delay: (i % 3) * 0.1 }}>
-                    <Box sx={{ position: "relative" }}>
-                      <Box sx={{ width: 68, height: 68, borderRadius: 5, display: "grid", placeItems: "center", bgcolor: "primary.main", color: "primary.contrastText", position: "relative", boxShadow: `0 14px 30px -14px ${theme.palette.primary.main}` }}>
-                        {iconAt(STEP_ICONS, i)}
-                        <Box sx={{ position: "absolute", top: -8, right: -8, width: 26, height: 26, borderRadius: "50%", bgcolor: "warning.main", color: "#2B1A00", fontWeight: 900, fontSize: 13, display: "grid", placeItems: "center", border: `3px solid ${theme.palette.background.default}` }}>{i + 1}</Box>
-                      </Box>
-                      <Typography sx={{ fontWeight: 800, fontSize: 20, mt: 2.5, mb: 1 }}>{stripStepNumber(t(s.title))}</Typography>
-                      <Typography color="text.secondary" sx={{ lineHeight: 1.7 }}>
-                        {t(s.body)}
-                      </Typography>
-                    </Box>
-                  </motion.div>
-                ))}
-              </Box>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 6 }}>
-                {open && (
-                  <Button component={Link} href="/auth/register" variant="contained" size="large" endIcon={<ArrowForwardRounded />}>
-                    Start my application
-                  </Button>
-                )}
-                {home.faqs.length > 0 && (
-                  <Button component="a" href="#faq" variant="outlined" size="large">
-                    Read the FAQ
-                  </Button>
-                )}
-              </Stack>
-            </Container>
-          </Box>
-        )}
+        {/* GALLERY */}
+        {show("gallery") && <GallerySection title={t(home.galleryTitle)} items={home.gallery.map(g => ({ src: g.src, caption: t(g.caption) }))} />}
 
-        {/* FEES */}
-        {show("fees") && (
-          <Box id="fees" sx={{ pb: { xs: 8, md: 12 }, pt: home.steps.length ? 0 : { xs: 8, md: 12 }, scrollMarginTop: 80 }}>
-            <Container maxWidth="lg">
-              <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", md: hasBkash && hasBank ? "1fr 1fr" : "1fr" } }}>
-                {hasBkash && (
-                  <motion.div {...reveal}>
-                    <Card sx={{ p: { xs: 2.5, md: 3.5 }, height: "100%", position: "relative", overflow: "hidden" }}>
-                      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, bgcolor: "#D12053" }} />
-                      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-                        <Box sx={{ width: 48, height: 48, borderRadius: 3, display: "grid", placeItems: "center", bgcolor: alpha("#D12053", 0.12), color: "#D12053", flexShrink: 0 }}>
-                          <PhoneIphoneRounded />
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: 800, fontSize: 19 }}>Pay with bKash</Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Send Money from any bKash account
-                          </Typography>
-                        </Box>
-                        <Typography sx={{ ml: "auto !important", fontWeight: 900, fontSize: 26 }}>৳{bdt(payment.feeBkash)}</Typography>
-                      </Stack>
-                      <CopyLine label="bKash number" value={payment.bkashNumber} />
-                      <CopyLine label="Reference" value="Your full name" />
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                        Keep the 10-character transaction ID from the bKash SMS — the form asks for it.
-                      </Typography>
-                    </Card>
-                  </motion.div>
-                )}
-                {hasBank && (
-                  <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}>
-                    <Card sx={{ p: { xs: 2.5, md: 3.5 }, height: "100%", position: "relative", overflow: "hidden" }}>
-                      <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, height: 5, bgcolor: "primary.main" }} />
-                      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-                        <Box sx={{ width: 48, height: 48, borderRadius: 3, display: "grid", placeItems: "center", bgcolor: alpha(theme.palette.primary.main, 0.12), color: "primary.main", flexShrink: 0 }}>
-                          <AccountBalanceRounded />
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontWeight: 800, fontSize: 19 }}>Bank deposit or transfer</Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {payment.bankName}
-                          </Typography>
-                        </Box>
-                        <Typography sx={{ ml: "auto !important", fontWeight: 900, fontSize: 26 }}>৳{bdt(payment.feeBank)}</Typography>
-                      </Stack>
-                      {payment.bankAccountName && <CopyLine label="Account name" value={payment.bankAccountName} />}
-                      <CopyLine label="Account no." value={payment.bankAccountNumber} />
-                      {payment.bankRoutingNumber && <CopyLine label="Routing no." value={payment.bankRoutingNumber} />}
-                    </Card>
-                  </motion.div>
-                )}
-              </Box>
-            </Container>
-          </Box>
-        )}
+        {/* HOW TO JOIN + FEES */}
+        {show("join") && <StepsSection settings={settings} />}
+        {show("fees") && <FeesSection settings={settings} />}
 
         {/* LATEST NEWS (public posts only) */}
-        {news.length > 0 && (
+        {home.show.news && news.length > 0 && (
           <Box id="news" sx={{ py: { xs: 8, md: 12 }, scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
               <motion.div {...reveal}>
-                <SectionTitle center eyebrow="News & notices" title="Latest from the society" />
+                <SectionTitle center title={t(home.newsTitle)} />
               </motion.div>
               <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" } }}>
                 {news.map((post, i) => (
@@ -605,30 +411,10 @@ export default function HomePage({ settings, news = [] }: Props) {
         )}
 
         {/* FAQ */}
-        {show("faq") && (
-          <Box id="faq" sx={{ py: { xs: 8, md: 12 }, bgcolor: dark ? "#0E1C17" : "#EFEBE2", scrollMarginTop: 80 }}>
-            <Container maxWidth="md">
-              <motion.div {...reveal}>
-                <SectionTitle center eyebrow="Questions" title={t(home.faqTitle)} />
-              </motion.div>
-              {home.faqs.map((f, i) => (
-                <motion.div key={`${i}-${f.question}`} {...reveal} transition={{ ...reveal.transition, delay: (i % 8) * 0.04 }}>
-                  <Accordion defaultExpanded={i === 0} sx={{ bgcolor: "background.paper" }}>
-                    <AccordionSummary expandIcon={<ExpandMoreRounded />} sx={{ px: 3, py: 0.5 }}>
-                      <Typography sx={{ fontWeight: 750, fontSize: 17 }}>{t(f.question)}</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails sx={{ px: 3, pb: 3, pt: 0 }}>
-                      <Paragraphs text={t(f.answer)} sx={{ color: "text.secondary", lineHeight: 1.7 }} />
-                    </AccordionDetails>
-                  </Accordion>
-                </motion.div>
-              ))}
-            </Container>
-          </Box>
-        )}
+        {show("faq") && <FaqSection settings={settings} />}
 
         {/* CTA */}
-        {(home.ctaTitle || home.ctaBody) && (
+        {home.show.cta && (home.ctaTitle || home.ctaBody) && (
           <Box sx={{ py: { xs: 8, md: 12 } }}>
             <Container maxWidth="lg">
               <motion.div {...reveal}>
@@ -651,13 +437,13 @@ export default function HomePage({ settings, news = [] }: Props) {
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ mt: 3.5 }}>
                       {open ? (
                         <Button component={Link} href="/auth/register" variant="contained" color="warning" size="large" endIcon={<ArrowForwardRounded />} sx={{ color: "#2B1A00" }}>
-                          Start registration
+                          {t(home.ctaPrimaryLabel) || "Start registration"}
                         </Button>
                       ) : (
                         <Typography sx={{ color: "#F4A62A", fontWeight: 700, alignSelf: "center" }}>{registration.closedMessage}</Typography>
                       )}
-                      <Button component={Link} href="/auth/login" size="large" sx={{ color: "#fff" }}>
-                        I already applied
+                      <Button component={Link} href="/track" size="large" sx={{ color: "#fff" }}>
+                        {t(home.ctaSecondaryLabel) || "Track my application"}
                       </Button>
                     </Stack>
                   </Box>
@@ -666,7 +452,7 @@ export default function HomePage({ settings, news = [] }: Props) {
             </Container>
           </Box>
         )}
-      </main>
+      </Box>
 
       <PublicFooter site={site} sections={sections} />
     </>

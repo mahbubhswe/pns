@@ -42,24 +42,46 @@ const titledItemSchema = z.object({ title: text.min(1, "Title is required"), bod
 const statSchema = z.object({ value: text.min(1, "Figure is required").max(20), label: text.min(1, "Label is required").max(60), note: text.max(80) });
 const faqSchema = z.object({ question: text.min(1, "Question is required"), answer: longText });
 
+const label = z.string().trim().max(60);
+
 export const homeSectionSchema = z.object({
+  show: z.object({
+    stats: z.boolean(),
+    about: z.boolean(),
+    why: z.boolean(),
+    gallery: z.boolean(),
+    join: z.boolean(),
+    fees: z.boolean(),
+    news: z.boolean(),
+    faq: z.boolean(),
+    cta: z.boolean(),
+  }),
   heroTitle: text.min(1, "Hero title is required"),
   heroSubtitle: longText,
+  heroPrimaryLabel: label,
+  heroSecondaryLabel: label,
   heroStyle: z.enum(["scenes", "photos"], { message: "Choose scenes or photos" }),
   slides: z.array(slideSchema).min(1, "At least one slide is required").max(10),
   stats: z.array(statSchema).max(6),
   aboutTitle: text,
   aboutIntro: longText,
+  aboutImage: z.union([z.literal(""), imageUrl]),
   aboutPoints: z.array(titledItemSchema).max(20),
+  galleryTitle: text,
+  gallery: z.array(z.object({ src: imageUrl, caption: text })).max(30),
   benefitsTitle: text,
   benefitsIntro: longText,
   benefits: z.array(titledItemSchema).max(20),
   stepsTitle: text,
   steps: z.array(titledItemSchema).max(20),
+  feesTitle: text,
   faqTitle: text,
   faqs: z.array(faqSchema).max(50),
+  newsTitle: text,
   ctaTitle: text,
   ctaBody: longText,
+  ctaPrimaryLabel: label,
+  ctaSecondaryLabel: label,
 });
 
 /** Full, validated settings object (what `getSettings()` returns). */

@@ -89,7 +89,7 @@ export default function DashboardPage() {
         </Box>
       </Card>
 
-      <Grid min={220} sx={{ mb: 3 }}>
+      <Grid min={220} fit sx={{ mb: 3 }}>
         <StatCard label="Total members" value={s?.total ?? "—"} icon={<Groups2Rounded />} hint={s ? `${approvalRate}% approved` : " "} href={can("members.view") ? "/dashboard/membership" : undefined} />
         <StatCard label="Approved" value={s?.active ?? "—"} tone="success" icon={<VerifiedRounded />} hint="Active members" href={can("members.view") ? "/dashboard/membership?status=active" : undefined} />
         <StatCard label="Pending review" value={s?.pending ?? "—"} tone="warning" icon={<HourglassTopRounded />} hint="Need a decision" href={can("members.view") ? "/dashboard/membership?status=pending" : undefined} />
@@ -97,7 +97,7 @@ export default function DashboardPage() {
       </Grid>
 
       {showFinance && (
-        <Grid min={220} sx={{ mb: 3 }}>
+        <Grid min={220} fit sx={{ mb: 3 }}>
           <StatCard label="Money in hand & bank" value={fin ? money(fin.totalBalance, { decimals: false }) : "—"} tone="info" icon={<AccountBalanceWalletRounded />} hint={fin ? `${fin.balances.length} cash/bank accounts` : " "} href="/dashboard/accounting" />
           <StatCard label="Income this month" value={fin ? money(fin.month.income, { decimals: false }) : "—"} tone="success" icon={<TrendingUpRounded />} hint="Receipts recorded" />
           <StatCard label="Spent this month" value={fin ? money(fin.month.expense, { decimals: false }) : "—"} tone="secondary" icon={<TrendingDownRounded />} hint="Payments recorded" />

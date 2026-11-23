@@ -87,3 +87,34 @@ export const importMemberRowSchema = z.object({
 });
 export const importMembersSchema = z.union([importMemberRowSchema, z.array(importMemberRowSchema)]);
 export type ImportMemberRow = z.infer<typeof importMemberRowSchema>;
+
+/** "Forgot password": always answered the same way, whether or not the email exists. */
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+});
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(1, "This link is invalid"),
+  password: z.string().min(8, "Password must be at least 8 characters").max(200),
+  /** Required only for imported members who have no email yet: it becomes their login. */
+  email: z.string().trim().toLowerCase().email("Enter a valid email").optional(),
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+
+/** Staff: create a password set-up link for a member, optionally emailing it. */
+export const passwordLinkSchema = z.object({
+  sendEmail: z.boolean().default(false),
+});
+export type PasswordLinkInput = z.infer<typeof passwordLinkSchema>;
+
+/** Public application lookup: the reference number plus the phone number used on the form. */
+export const trackApplicationSchema = z.object({
+  ref: z.string().trim().toUpperCase().min(1, "Enter your reference number").max(40),
+  phone: z
+    .string()
+    .trim()
+    .max(30)
+    .refine(v => v.replace(/\D/g, "").length >= 10, "Enter the phone number you used on the form"),
+});
+export type TrackApplicationInput = z.infer<typeof trackApplicationSchema>;

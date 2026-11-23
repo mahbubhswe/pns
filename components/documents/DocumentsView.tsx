@@ -70,7 +70,6 @@ export default function DocumentsView({ documents, isMember, ...chrome }: Public
   return (
     <PublicShell {...chrome}>
       <PublicPageTitle
-        eyebrow="Documents"
         title="Society documents"
         intro={
           isMember

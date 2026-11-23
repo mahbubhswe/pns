@@ -16,6 +16,21 @@ export type TitledItem = { title: string; body: string };
 /** A figure in the band under the hero, e.g. { value: "30", label: "Planned sectors", note: "in Purbachal New Town" }. */
 export type StatItem = { value: string; label: string; note: string };
 export type FaqItem = { question: string; answer: string };
+/** A photo in the home-page gallery (uploaded from Dashboard → Landing page). */
+export type GalleryItem = { src: string; caption: string };
+/** Home-page blocks an admin can switch off (Dashboard → Landing page). */
+export type HomeBlock = "stats" | "about" | "why" | "gallery" | "join" | "fees" | "news" | "faq" | "cta";
+export const HOME_BLOCKS: Array<{ key: HomeBlock; label: string }> = [
+  { key: "stats", label: "Figures under the hero" },
+  { key: "about", label: "About" },
+  { key: "why", label: "Why join" },
+  { key: "gallery", label: "Gallery" },
+  { key: "join", label: "How to join steps" },
+  { key: "fees", label: "Fees & payment" },
+  { key: "news", label: "Latest news" },
+  { key: "faq", label: "FAQ" },
+  { key: "cta", label: "Final call to action" },
+];
 
 export type SiteSettings = {
   site: {
@@ -48,24 +63,37 @@ export type SiteSettings = {
    * new line for a second paragraph (e.g. the Bangla line).
    */
   home: {
+    /** Which home-page blocks are shown (a block also hides when it has no content). */
+    show: Record<HomeBlock, boolean>;
     heroTitle: string;
     heroSubtitle: string;
+    heroPrimaryLabel: string;
+    heroSecondaryLabel: string;
     heroStyle: HeroStyle;
     slides: HeroSlide[];
     /** Figures under the hero (hidden when empty). */
     stats: StatItem[];
     aboutTitle: string;
     aboutIntro: string;
+    /** Photo beside the About text; empty shows the township illustration. */
+    aboutImage: string;
     aboutPoints: TitledItem[];
+    galleryTitle: string;
+    /** Photos for the gallery section (hidden when empty). */
+    gallery: GalleryItem[];
     benefitsTitle: string;
     benefitsIntro: string;
     benefits: TitledItem[];
     stepsTitle: string;
     steps: TitledItem[];
+    feesTitle: string;
     faqTitle: string;
     faqs: FaqItem[];
+    newsTitle: string;
     ctaTitle: string;
     ctaBody: string;
+    ctaPrimaryLabel: string;
+    ctaSecondaryLabel: string;
   };
 };
 
@@ -97,8 +125,11 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     closedMessage: "Membership registration is currently closed. Please check back later.",
   },
   home: {
+    show: { stats: true, about: true, why: true, gallery: true, join: true, fees: true, news: true, faq: true, cta: true },
     heroTitle: "Welcome to *Purbachal Newtown Society*",
     heroSubtitle: "Be United – Make your voice heard",
+    heroPrimaryLabel: "Become a member",
+    heroSecondaryLabel: "Member login",
     heroStyle: "scenes",
     slides: [
       {
@@ -114,6 +145,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
         alt: "Purbachal 300 ft lake",
       },
     ],
+    aboutImage: "",
     aboutTitle: "Bangladesh's largest planned township — *our future home.*",
     aboutIntro:
       "Planned by RAJUK to the northeast of Dhaka, Purbachal New Town is linked to the city by the ~12.5 km expressway many still call the “300 feet road” (July 36 Expressway).",
@@ -128,6 +160,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
       },
       { title: "Connectivity", body: "A fast link to Kuril Flyover on one side and Kanchan Bridge on the other." },
     ],
+    galleryTitle: "Life in *Purbachal*",
+    gallery: [],
     benefitsTitle: "Neighbours who look out for each other",
     benefitsIntro:
       "We're plot owners just like you — volunteers who want Purbachal to grow into the town we were promised.",
@@ -143,17 +177,18 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     steps: [
       {
         title: "Prepare your documents",
-        body: "One proof of land ownership — LD tax receipt with plot details, mutation paper or BDS khatian — plus the owner's NID number and a recent photo.",
-      },
-      {
-        title: "Pay the one-time fee",
-        body: "BDT {fee} by bKash Send Money to {bkash} (reference: your full name), or BDT {feeBank} to the society's bank account.",
+        body: "Keep your ownership proof, NID and a recent photo ready.",
       },
       {
         title: "Fill in the online form",
-        body: "Plot details, owner information and payment reference. Upload your documents — you'll get your application PDF by email right away.",
+        body: "Add your plot and personal details and upload the documents.",
+      },
+      {
+        title: "Pay online",
+        body: "Pay the membership fee securely, and your application is complete.",
       },
     ],
+    feesTitle: "Membership fee",
     faqTitle: "Things neighbours usually ask",
     faqs: [
       {
@@ -163,7 +198,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
       {
         question: "What documents do I need?",
         answer:
-          "One ownership proof (LD tax receipt with plot details, mutation paper or BDS khatian), the owner's NID number, a recent photo and your payment receipt or transaction ID.",
+          "One proof of land ownership (LD tax receipt, mutation paper or BDS khatian), the owner's NID number and a recent photo.",
       },
       {
         question: "How do I know my application was received?",
@@ -188,27 +223,30 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     stats: [
       { value: "30", label: "Planned sectors", note: "in Purbachal New Town" },
       { value: "৳{fee}", label: "One-time fee", note: "paid once when you apply" },
-      { value: "3", label: "Simple steps", note: "documents, payment, form" },
+      { value: "3", label: "Simple steps", note: "documents, form, payment" },
       { value: "100%", label: "Online", note: "apply & track from anywhere" },
     ],
+    newsTitle: "Latest from the society",
+    ctaPrimaryLabel: "Start registration",
+    ctaSecondaryLabel: "Track my application",
     ctaTitle: "Ready to meet your neighbours?",
-    ctaBody:
-      "Pay the fee, keep your documents ready and complete the short online form. We'll take it from there.\nআজই সদস্য হোন — একসাথে গড়ি আমাদের পূর্বাচল।",
+    ctaBody: "আজই সদস্য হোন — একসাথে গড়ি আমাদের পূর্বাচল।",
   },
 };
 
 /** Landing-page sections that can be hidden from settings (anchor ids on the home page). */
-export type HomeSection = "about" | "why" | "join" | "fees" | "faq";
+export type HomeSection = "about" | "why" | "gallery" | "join" | "fees" | "faq";
 
 /** Which home-page sections have content, so header/footer links never point at a hidden section. */
 export function visibleHomeSections(settings: SiteSettings): HomeSection[] {
-  const { home, payment } = settings;
+  const { home } = settings;
   const shown: HomeSection[] = [];
-  if (home.aboutTitle || home.aboutIntro || home.aboutPoints.length > 0) shown.push("about");
-  if (home.benefits.length > 0) shown.push("why");
-  if (home.steps.length > 0) shown.push("join");
-  if (payment.bkashNumber || payment.bankAccountNumber) shown.push("fees");
-  if (home.faqs.length > 0) shown.push("faq");
+  if (home.show.about && (home.aboutTitle || home.aboutIntro || home.aboutPoints.length > 0)) shown.push("about");
+  if (home.show.why && home.benefits.length > 0) shown.push("why");
+  if (home.show.gallery && home.gallery.length > 0) shown.push("gallery");
+  if (home.show.join && home.steps.length > 0) shown.push("join");
+  if (home.show.fees) shown.push("fees");
+  if (home.show.faq && home.faqs.length > 0) shown.push("faq");
   return shown;
 }
 

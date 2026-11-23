@@ -47,8 +47,12 @@ export function formatPnsId(id: number): string {
 export const OWNERSHIP_PROOF_TYPES = ["LD_TAX_RECEIPT", "MUTATION_PAPER", "BDS_KHATIAN"] as const;
 export type OwnershipProofType = (typeof OWNERSHIP_PROOF_TYPES)[number];
 
-export const PAYMENT_METHODS = ["BKASH", "BANK"] as const;
+export const PAYMENT_METHODS = ["BKASH", "BANK", "ONLINE"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const PAYMENT_STATUSES = ["UNPAID", "PAID", "FAILED"] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = { UNPAID: "Payment pending", PAID: "Paid", FAILED: "Payment failed" };
 
 /** Database representation of a member's review status. */
 export const MEMBER_STATUSES = ["PENDING", "APPROVED", "REJECTED"] as const;
