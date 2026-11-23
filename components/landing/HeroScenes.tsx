@@ -119,8 +119,8 @@ export default function HeroScenes({ children }: { children?: React.ReactNode })
           zIndex: 1,
           pointerEvents: "none",
           background: {
-            xs: "linear-gradient(180deg, rgba(8,20,16,.55) 0%, rgba(8,20,16,.15) 28%, rgba(8,20,16,.25) 55%, rgba(8,20,16,.88) 100%)",
-            md: "linear-gradient(90deg, rgba(8,20,16,.80) 0%, rgba(8,20,16,.55) 32%, rgba(8,20,16,.08) 62%, rgba(8,20,16,0) 100%), linear-gradient(180deg, rgba(8,20,16,.45) 0%, rgba(8,20,16,0) 22%, rgba(8,20,16,0) 70%, rgba(8,20,16,.55) 100%)",
+            xs: "linear-gradient(180deg, rgba(8,20,16,.35) 0%, rgba(8,20,16,0) 18%, rgba(8,20,16,0) 42%, rgba(8,20,16,.9) 100%)",
+            md: "radial-gradient(ellipse 72% 70% at 0% 100%, rgba(8,20,16,.85) 0%, rgba(8,20,16,.55) 45%, rgba(8,20,16,0) 100%), linear-gradient(180deg, rgba(8,20,16,.35) 0%, rgba(8,20,16,0) 16%, rgba(8,20,16,0) 80%, rgba(8,20,16,.45) 100%)",
           },
         }}
       />
@@ -128,7 +128,7 @@ export default function HeroScenes({ children }: { children?: React.ReactNode })
       {/* Hero copy supplied by the page */}
       <Box sx={{ position: "relative", zIndex: 2, height: "100%" }}>{children}</Box>
 
-      {/* Scene caption + controls */}
+      {/* Scene counter + controls */}
       <Box
         sx={{
           position: "absolute",
@@ -137,28 +137,14 @@ export default function HeroScenes({ children }: { children?: React.ReactNode })
           right: 0,
           bottom: 0,
           px: { xs: 2, md: 5 },
-          pb: { xs: 2, md: 9 },
+          pb: { xs: 2, md: 3 },
         }}
       >
         <Stack direction="row" alignItems="flex-end" spacing={2} sx={{ maxWidth: 1360, mx: "auto" }}>
-          <Box sx={{ flex: 1, minWidth: 0, color: "#fff", display: { xs: "none", sm: "block" } }}>
-            <AnimatePresence mode="wait">
-              <motion.div key={scene.key} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.4 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 800, letterSpacing: ".16em", textTransform: "uppercase", opacity: 0.75 }}>
-                  Scene {String(index + 1).padStart(2, "0")} / {n}
-                </Typography>
-                <Typography sx={{ fontWeight: 800, fontSize: 18 }}>
-                  {scene.title}
-                  <Box component="span" sx={{ fontFamily: '"Hind Siliguri", sans-serif', fontWeight: 600, opacity: 0.85, ml: 1.25, fontSize: 16 }}>
-                    · {scene.bn}
-                  </Box>
-                </Typography>
-                <Typography sx={{ opacity: 0.85, fontSize: 14 }}>{scene.caption}</Typography>
-              </motion.div>
-            </AnimatePresence>
-          </Box>
+          {/* No caption here: the page's hero copy sits bottom-left, so the scene itself stays visible. */}
+          <Box sx={{ flex: 1 }} />
           <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: "auto" }}>
-            <Typography sx={{ color: "#fff", fontWeight: 800, fontVariantNumeric: "tabular-nums", display: { sm: "none" }, mr: 0.5 }}>
+            <Typography sx={{ color: "#fff", fontWeight: 800, fontVariantNumeric: "tabular-nums", opacity: 0.85, mr: 0.5 }}>
               {String(index + 1).padStart(2, "0")}/{n}
             </Typography>
             <CtrlButton label="Previous scene" onClick={() => go(index - 1, -1)}>

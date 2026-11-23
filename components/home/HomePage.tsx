@@ -6,7 +6,7 @@
 // starts a new paragraph (Bangla lines get the Bangla font automatically).
 import Link from "next/link";
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -21,7 +21,7 @@ import {
   Typography,
 } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "framer-motion";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import LoginRounded from "@mui/icons-material/LoginRounded";
 import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
@@ -43,7 +43,6 @@ import FolderSharedRounded from "@mui/icons-material/FolderSharedRounded";
 import PaymentsRounded from "@mui/icons-material/PaymentsRounded";
 import EditNoteRounded from "@mui/icons-material/EditNoteRounded";
 import TaskAltRounded from "@mui/icons-material/TaskAltRounded";
-import LockRounded from "@mui/icons-material/LockRounded";
 import PhoneIphoneRounded from "@mui/icons-material/PhoneIphoneRounded";
 import AccountBalanceRounded from "@mui/icons-material/AccountBalanceRounded";
 import HeroScenes from "@/components/landing/HeroScenes";
@@ -75,8 +74,8 @@ const iconAt = (icons: React.ReactNode[], i: number) => icons[i % icons.length];
 
 const HERO_HEIGHT = { xs: "max(640px, 92svh)", md: "min(max(680px, 92vh), 920px)" };
 const HERO_WASH = {
-  xs: "linear-gradient(180deg, rgba(8,20,16,.55) 0%, rgba(8,20,16,.15) 28%, rgba(8,20,16,.25) 55%, rgba(8,20,16,.88) 100%)",
-  md: "linear-gradient(90deg, rgba(8,20,16,.80) 0%, rgba(8,20,16,.55) 32%, rgba(8,20,16,.08) 62%, rgba(8,20,16,0) 100%), linear-gradient(180deg, rgba(8,20,16,.45) 0%, rgba(8,20,16,0) 22%, rgba(8,20,16,0) 70%, rgba(8,20,16,.55) 100%)",
+  xs: "linear-gradient(180deg, rgba(8,20,16,.35) 0%, rgba(8,20,16,0) 18%, rgba(8,20,16,0) 42%, rgba(8,20,16,.9) 100%)",
+  md: "radial-gradient(ellipse 72% 70% at 0% 100%, rgba(8,20,16,.85) 0%, rgba(8,20,16,.55) 45%, rgba(8,20,16,0) 100%), linear-gradient(180deg, rgba(8,20,16,.35) 0%, rgba(8,20,16,0) 16%, rgba(8,20,16,0) 80%, rgba(8,20,16,.45) 100%)",
 };
 const BANGLA = /[ঀ-৿]/;
 const BANGLA_FONT = '"Hind Siliguri", sans-serif';
@@ -268,6 +267,8 @@ function PhotoHero({ slides, fallbackAlt, children }: { slides: HeroSlide[]; fal
 
 export default function HomePage({ settings, news = [] }: Props) {
   const theme = useTheme();
+  const whyGridRef = useRef<HTMLDivElement>(null);
+  const whyInView = useInView(whyGridRef, { once: true, amount: 0.15 });
   const dark = theme.palette.mode === "dark";
   const { home, site, payment, registration } = settings;
   const t = (text: string) => renderTemplate(text, settings);
@@ -277,44 +278,18 @@ export default function HomePage({ settings, news = [] }: Props) {
   const hasBank = Boolean(payment.bankAccountNumber);
 
   const heroCopy = (
-    <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: { xs: "flex-end", md: "center" }, pb: { xs: 14, md: 16 }, pt: { xs: 9, md: 8 } }}>
+    <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", pb: { xs: 12, md: 11 }, pt: { xs: 9, md: 8 } }}>
       <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
-        <Box sx={{ maxWidth: 660, color: "#fff" }}>
-          <Stack
-            direction="row"
-            spacing={1}
-            alignItems="center"
-            sx={{ display: "inline-flex", px: 1.5, py: 0.75, borderRadius: 999, bgcolor: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.25)", backdropFilter: "blur(10px)", mb: 2.5 }}
-          >
-            <Box
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                bgcolor: open ? "#4ADE95" : "#F4A62A",
-                ...(open && {
-                  boxShadow: "0 0 0 0 rgba(74,222,149,.7)",
-                  animation: "pns-ping 1.8s infinite",
-                  "@keyframes pns-ping": { "70%": { boxShadow: "0 0 0 10px rgba(74,222,149,0)" }, "100%": { boxShadow: "0 0 0 0 rgba(74,222,149,0)" } },
-                }),
-              }}
-            />
-            <Typography sx={{ fontSize: 13.5, fontWeight: 700 }}>
-              {open ? "Membership open" : "Registration closed for now"}
-              <Box component="span" sx={{ fontFamily: BANGLA_FONT, fontWeight: 600, opacity: 0.85, ml: 1 }}>
-                {open ? "· সদস্যপদ চলছে" : "· নিবন্ধন সাময়িক বন্ধ"}
-              </Box>
-            </Typography>
-          </Stack>
-          <Typography component="h1" sx={{ fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.02, fontSize: { xs: 36, sm: 54, md: 68 }, textShadow: "0 2px 30px rgba(0,0,0,.25)" }}>
+        <Box sx={{ maxWidth: 560, color: "#fff" }}>
+          <Typography component="h1" sx={{ fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05, fontSize: { xs: 28, sm: 42, md: 54 }, textShadow: "0 2px 24px rgba(0,0,0,.35)" }}>
             <RichText text={t(home.heroTitle)} lastWord />
           </Typography>
           {home.heroSubtitle && (
-            <Box sx={{ mt: { xs: 1.5, md: 2.5 }, maxWidth: 560 }}>
-              <Paragraphs text={t(home.heroSubtitle)} sx={{ fontSize: { xs: 15, md: 19 }, lineHeight: 1.6, opacity: 0.92 }} banglaSx={{ fontSize: { xs: 16, md: 18 }, opacity: 0.85 }} />
+            <Box sx={{ mt: { xs: 1.25, md: 1.75 }, maxWidth: 520 }}>
+              <Paragraphs text={t(home.heroSubtitle)} sx={{ fontSize: { xs: 15, md: 18 }, lineHeight: 1.55, opacity: 0.95, textShadow: "0 1px 12px rgba(0,0,0,.4)" }} banglaSx={{ fontSize: { xs: 16, md: 18 }, opacity: 0.85 }} />
             </Box>
           )}
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ mt: { xs: 2.5, md: 4 } }}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25} sx={{ mt: { xs: 2.25, md: 3 } }}>
             {open && (
               <Button component={Link} href="/auth/register" size="large" variant="contained" color="warning" endIcon={<ArrowForwardRounded />} sx={{ color: "#2B1A00", px: 3.5, py: { xs: 1.25, md: 1.6 }, fontSize: 16.5 }}>
                 Become a member
@@ -332,18 +307,6 @@ export default function HomePage({ settings, news = [] }: Props) {
             </Button>
           </Stack>
           {!open && registration.closedMessage && <Typography sx={{ mt: 2, opacity: 0.9, maxWidth: 520 }}>{registration.closedMessage}</Typography>}
-          <Stack direction="row" spacing={{ xs: 2, sm: 3 }} useFlexGap flexWrap="wrap" sx={{ mt: 3.5, opacity: 0.9, display: { xs: "none", sm: "flex" } }}>
-            {[
-              { i: <PaymentsRounded fontSize="small" />, t: `One-time fee ৳${bdt(payment.feeBkash)}` },
-              { i: <PhoneIphoneRounded fontSize="small" />, t: "Apply from your phone" },
-              { i: <LockRounded fontSize="small" />, t: "Your data stays private" },
-            ].map(x => (
-              <Stack key={x.t} direction="row" spacing={0.75} alignItems="center">
-                {x.i}
-                <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{x.t}</Typography>
-              </Stack>
-            ))}
-          </Stack>
         </Box>
       </motion.div>
     </Container>
@@ -430,32 +393,91 @@ export default function HomePage({ settings, news = [] }: Props) {
 
         {/* WHY JOIN */}
         {show("why") && (
-          <Box id="why" sx={{ py: { xs: 8, md: 12 }, bgcolor: dark ? "#0E1C17" : "#EFEBE2", scrollMarginTop: 80 }}>
+          <Box id="why" sx={{ overflow: "hidden", py: { xs: 8, md: 12 }, bgcolor: dark ? "#0E1C17" : "#EFEBE2", scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
               <motion.div {...reveal}>
                 <SectionTitle center eyebrow={`Why join ${site.shortName}`} title={t(home.benefitsTitle)} sub={t(home.benefitsIntro)} />
               </motion.div>
-              <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" } }}>
-                {home.benefits.map((b, i) => (
-                  <motion.div key={`${i}-${b.title}`} {...reveal} transition={{ ...reveal.transition, delay: (i % 6) * 0.06 }}>
-                    <Card
+              {/*
+                Cards drop in from above, gather into a stack in the middle, then
+                spread out to their own places and keep floating gently.
+                The stack offsets apply only on the 3-column (md+) layout.
+              */}
+              <Box
+                ref={whyGridRef}
+                className={whyInView ? "is-in" : undefined}
+                sx={{
+                  display: "grid",
+                  gap: 2.5,
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
+                  perspective: "1400px",
+                  "& .pns-drop": {
+                    height: "100%",
+                    opacity: 0,
+                    transformStyle: "preserve-3d",
+                    transform: "translate3d(var(--entry-x), -420px, 380px) rotate(var(--entry-rotate)) scale(1.18)",
+                  },
+                  "&.is-in .pns-drop": {
+                    animation:
+                      "pns-stack-in 2s cubic-bezier(.2,.78,.2,1) var(--drop-delay) both, pns-card-float 7s ease-in-out calc(var(--drop-delay) + 2s) infinite",
+                  },
+                  "@keyframes pns-stack-in": {
+                    "0%": { opacity: 0, transform: "translate3d(var(--entry-x), -420px, 380px) rotate(var(--entry-rotate)) scale(1.18)" },
+                    "44%": { opacity: 1, transform: "translate3d(var(--stack-x), var(--stack-y), 60px) rotate(var(--stack-rotate)) scale(1.06)" },
+                    "66%": { opacity: 1, transform: "translate3d(var(--stack-x), var(--stack-y), 40px) rotate(var(--stack-rotate)) scale(1.03)" },
+                    "90%": { opacity: 1, transform: "translate3d(0, -7px, 0) rotate(0) scale(1.02)" },
+                    "100%": { opacity: 1, transform: "translate3d(0, 0, 0) rotate(0) scale(1)" },
+                  },
+                  "@keyframes pns-card-float": {
+                    "0%, 100%": { transform: "translateY(0) rotate(0)" },
+                    "35%": { transform: "translateY(-7px) rotate(-.45deg)" },
+                    "70%": { transform: "translateY(3px) rotate(.35deg)" },
+                  },
+                  "@media (prefers-reduced-motion: reduce)": {
+                    "& .pns-drop, &.is-in .pns-drop": { opacity: 1, transform: "none", animation: "none" },
+                  },
+                }}
+              >
+                {home.benefits.map((b, i) => {
+                  const rows = Math.ceil(home.benefits.length / 3);
+                  const col = i % 3;
+                  const row = Math.floor(i / 3);
+                  return (
+                    <Box
+                      key={`${i}-${b.title}`}
+                      className="pns-drop"
                       sx={{
-                        p: 3,
-                        height: "100%",
-                        transition: "transform .25s ease, box-shadow .25s ease, border-color .25s ease",
-                        "&:hover": { transform: "translateY(-4px)", borderColor: alpha(theme.palette.primary.main, 0.4), boxShadow: dark ? "none" : "0 24px 40px -24px rgba(18,36,29,.35)" },
+                        "--drop-delay": `${i * 0.08}s`,
+                        "--entry-x": i % 2 === 0 ? "-28vw" : "28vw",
+                        "--entry-rotate": `${i % 2 === 0 ? -14 - i : 14 + i}deg`,
+                        // Toward the middle card (one card ≈ 108% wide / 112% tall incl. gap).
+                        "--stack-x": { xs: "0%", md: `${(1 - col) * 108}%` },
+                        "--stack-y": { xs: "0%", md: `${((rows - 1) / 2 - row) * 112}%` },
+                        "--stack-rotate": `${(i - 2.5) * 2.4}deg`,
                       }}
                     >
-                      <Box sx={{ width: 52, height: 52, borderRadius: 3.5, display: "grid", placeItems: "center", bgcolor: i % 2 ? alpha(theme.palette.secondary.main, 0.12) : alpha(theme.palette.primary.main, 0.12), color: i % 2 ? "secondary.main" : "primary.main", mb: 2 }}>
-                        {iconAt(BENEFIT_ICONS, i)}
-                      </Box>
-                      <Typography sx={{ fontWeight: 800, fontSize: 19, mb: 0.75 }}>{t(b.title)}</Typography>
-                      <Typography color="text.secondary" sx={{ lineHeight: 1.65 }}>
-                        {t(b.body)}
-                      </Typography>
-                    </Card>
-                  </motion.div>
-                ))}
+                      {/* Dark cards in both themes (requested): deep green with light text. */}
+                      <Card
+                        sx={{
+                          p: 3,
+                          height: "100%",
+                          bgcolor: "#12261E",
+                          color: "#fff",
+                          border: "1px solid rgba(255,255,255,.08)",
+                          backgroundImage: "radial-gradient(120% 80% at 100% 0%, rgba(74,222,149,.10) 0%, rgba(74,222,149,0) 60%)",
+                          transition: "transform .25s ease, box-shadow .25s ease, border-color .25s ease",
+                          "&:hover": { transform: "translateY(-4px)", borderColor: "rgba(244,166,42,.45)", boxShadow: "0 24px 40px -24px rgba(8,20,16,.6)" },
+                        }}
+                      >
+                        <Box sx={{ width: 52, height: 52, borderRadius: 3.5, display: "grid", placeItems: "center", bgcolor: "rgba(255,255,255,.08)", color: i % 2 ? "#F4A62A" : "#4ADE95", mb: 2 }}>
+                          {iconAt(BENEFIT_ICONS, i)}
+                        </Box>
+                        <Typography sx={{ fontWeight: 800, fontSize: 19, mb: 0.75, color: "#fff" }}>{t(b.title)}</Typography>
+                        <Typography sx={{ lineHeight: 1.65, color: "rgba(255,255,255,.74)" }}>{t(b.body)}</Typography>
+                      </Card>
+                    </Box>
+                  );
+                })}
               </Box>
             </Container>
           </Box>
