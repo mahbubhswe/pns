@@ -9,7 +9,7 @@ import Image from "next/image";
 import React, { useEffect, useState } from "react";
 import { Box, Button, Card, Container, IconButton, Stack, Typography } from "@mui/material";
 import { alpha, useTheme } from "@mui/material/styles";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Crossfade, Reveal, usePrefersReducedMotion } from "@/components/home/motion";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import LoginRounded from "@mui/icons-material/LoginRounded";
 import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
@@ -29,7 +29,7 @@ import LazyScene from "@/components/landing/LazyScene";
 import { SCENE_CSS, SceneDefs } from "@/components/landing/scene-kit";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
-import { CountUp, Paragraphs, RichText, SectionTitle, bdt, publicCards, reveal } from "@/components/home/parts";
+import { CountUp, Paragraphs, RichText, SectionTitle, bdt, publicCards } from "@/components/home/parts";
 import dynamic from "next/dynamic";
 import Deferred from "@/components/home/Deferred";
 import { clamp2 } from "@/components/home/parts";
@@ -77,7 +77,7 @@ const HERO_WASH = {
 function PhotoHero({ slides, fallbackAlt, children }: { slides: HeroSlide[]; fallbackAlt: string; children: React.ReactNode }) {
   const [index, setIndex] = useState(0);
   const [hovering, setHovering] = useState(false);
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const n = slides.length;
   const go = (i: number) => setIndex(((i % n) + n) % n);
 
@@ -92,8 +92,7 @@ function PhotoHero({ slides, fallbackAlt, children }: { slides: HeroSlide[]; fal
   return (
     <Box component="section" aria-roledescription="carousel" aria-label="Photos of Purbachal New Town" sx={{ position: "relative", height: HERO_HEIGHT, overflow: "hidden", bgcolor: "#0B1A14", isolation: "isolate" }}>
       <Box sx={{ position: "absolute", inset: 0, zIndex: 0 }} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
-        <AnimatePresence initial={false}>
-          <motion.div key={`${index}-${slide.src}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 1.1 }} style={{ position: "absolute", inset: 0 }}>
+        <Crossfade id={`${index}-${slide.src}`} duration={1100}>
             <Box
               sx={{
                 position: "absolute",
@@ -105,8 +104,7 @@ function PhotoHero({ slides, fallbackAlt, children }: { slides: HeroSlide[]; fal
               {/* `unoptimized` so admins may use images from any host. */}
               <Image src={slide.src} alt={slide.alt || fallbackAlt} fill priority={index === 0} unoptimized sizes="100vw" style={{ objectFit: "cover" }} />
             </Box>
-          </motion.div>
-        </AnimatePresence>
+        </Crossfade>
       </Box>
       <Box aria-hidden sx={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", background: HERO_WASH }} />
       <Box sx={{ position: "relative", zIndex: 2, height: "100%" }}>{children}</Box>
@@ -153,7 +151,7 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
 
   const heroCopy = (
     <Container maxWidth="lg" sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", pb: { xs: 12, md: 11 }, pt: { xs: 9, md: 8 } }}>
-      <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}>
+      <Box sx={{ animation: "pns-hero-up .8s cubic-bezier(.22,1,.36,1) both", "@keyframes pns-hero-up": { from: { opacity: 0, transform: "translateY(24px)" }, to: { opacity: 1, transform: "none" } } }}>
         <Box sx={{ maxWidth: 560, color: "#fff" }}>
           <Typography component="h1" sx={{ fontWeight: 800, letterSpacing: "-0.035em", lineHeight: 1.05, fontSize: { xs: 28, sm: 42, md: 54 }, textShadow: "0 2px 24px rgba(0,0,0,.35)" }}>
             <RichText text={t(home.heroTitle)} lastWord />
@@ -182,7 +180,7 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
           </Stack>
           {!open && registration.closedMessage && <Typography sx={{ mt: 2, opacity: 0.9, maxWidth: 520 }}>{registration.closedMessage}</Typography>}
         </Box>
-      </motion.div>
+      </Box>
     </Container>
   );
 
@@ -242,7 +240,7 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
           <Box id="about" sx={{ py: { xs: 8, md: 13 }, scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
               <Box sx={{ display: "grid", gap: { xs: 5, md: 8 }, gridTemplateColumns: { xs: "1fr", md: "1fr 1.1fr" }, alignItems: "center" }}>
-                <motion.div {...reveal}>
+                <Reveal>
                   <SectionTitle title={t(home.aboutTitle)} />
                   <Stack spacing={2.5}>
                     {home.aboutPoints.map((f, i) => (
@@ -255,8 +253,8 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
                       </Stack>
                     ))}
                   </Stack>
-                </motion.div>
-                <motion.div {...reveal} transition={{ ...reveal.transition, delay: 0.1 }}>
+                </Reveal>
+                <Reveal delay={0.1}>
                   <Box sx={{ position: "relative", borderRadius: 6, overflow: "hidden", aspectRatio: "16 / 11", boxShadow: "0 40px 80px -40px rgba(18,36,29,.55)", border: `1px solid ${theme.palette.divider}` }}>
                     {home.aboutImage ? (
                       <Image src={home.aboutImage} alt={site.name} fill unoptimized sizes="(min-width: 900px) 50vw, 100vw" style={{ objectFit: "cover" }} />
@@ -264,7 +262,7 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
                       <LazyScene index={18} />
                     )}
                   </Box>
-                </motion.div>
+                </Reveal>
               </Box>
             </Container>
           </Box>
@@ -274,14 +272,14 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
         {show("why") && (
           <Box id="why" sx={{ overflow: "hidden", py: { xs: 8, md: 12 }, scrollMarginTop: 80 }}>
             <Container maxWidth="lg">
-              <motion.div {...reveal}>
+              <Reveal>
                 <SectionTitle center title={t(home.benefitsTitle)} />
-              </motion.div>
+              </Reveal>
               {/* Cards in a plain grid; each fades in gently like the rest of the page. */}
               <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" } }}>
                 {home.benefits.map((b, i) => {
                   return (
-                    <motion.div key={`${i}-${b.title}`} {...reveal} transition={{ ...reveal.transition, delay: (i % 3) * 0.06 }} style={{ height: "100%" }}>
+                    <Reveal key={`${i}-${b.title}`} delay={(i % 3) * 0.06} style={{ height: "100%" }}>
                       {/* Illustration on top (the site's own township scenes), then icon, title and one line. */}
                       <Card
                         sx={{
@@ -326,7 +324,7 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
                           <Typography color="text.secondary" sx={{ ...clamp2, lineHeight: 1.6 }}>{t(b.body)}</Typography>
                         </Box>
                       </Card>
-                    </motion.div>
+                    </Reveal>
                   );
                 })}
               </Box>
@@ -378,7 +376,7 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
         {home.show.cta && (home.ctaTitle || home.ctaBody) && (
           <Box sx={{ py: { xs: 8, md: 12 } }}>
             <Container maxWidth="lg">
-              <motion.div {...reveal}>
+              <Reveal>
                 <Card sx={{ position: "relative", overflow: "hidden", border: 0, minHeight: { xs: 420, md: 380 }, display: "flex", alignItems: "center" }}>
                   <Box sx={{ position: "absolute", inset: 0 }}>
                     <LazyScene index={17} />
@@ -409,7 +407,7 @@ export default function HomePage({ settings, news = [], committee = [] }: Props)
                     </Stack>
                   </Box>
                 </Card>
-              </motion.div>
+              </Reveal>
             </Container>
           </Box>
         )}

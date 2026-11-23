@@ -4,7 +4,7 @@
 // In settings text, `*words*` are highlighted and a new line starts a new
 // paragraph (Bangla lines get the Bangla font automatically).
 import React, { useEffect, useRef, useState } from "react";
-import { animate, useInView, useReducedMotion } from "framer-motion";
+import { tween, useInViewOnce, usePrefersReducedMotion } from "@/components/home/motion";
 import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import ContentCopyRounded from "@mui/icons-material/ContentCopyRounded";
 import CheckRounded from "@mui/icons-material/CheckRounded";
@@ -12,12 +12,6 @@ import CheckRounded from "@mui/icons-material/CheckRounded";
 export const BANGLA = /[ঀ-৿]/;
 export const BANGLA_FONT = 'var(--font-hind), sans-serif';
 
-export const reveal = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.2 },
-  transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
-};
 
 export const bdt = (n: number) => n.toLocaleString("en-IN");
 
@@ -167,8 +161,8 @@ export function publicCards(dark: boolean) {
 export function CountUp({ text, duration = 1.6 }: { text: string; duration?: number }) {
   const m = text.match(/^(\D*?)(\d[\d,]*(?:\.\d+)?)([\s\S]*)$/);
   const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true, amount: 0.6 });
-  const reduce = useReducedMotion();
+  const inView = useInViewOnce(ref, { amount: 0.6 });
+  const reduce = usePrefersReducedMotion();
 
   const parts = m
     ? { prefix: m[1], suffix: m[3], target: Number(m[2].replace(/,/g, "")), decimals: m[2].includes(".") ? m[2].split(".")[1].length : 0, grouped: m[2].includes(",") }
@@ -189,8 +183,7 @@ export function CountUp({ text, duration = 1.6 }: { text: string; duration?: num
       return;
     }
     if (!inView) return;
-    const controls = animate(0, parts.target, { duration, ease: [0.16, 1, 0.3, 1], onUpdate: v => setShown(format(v)) });
-    return () => controls.stop();
+    return tween(0, parts.target, duration * 1000, v => setShown(format(v)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inView, reduce, text]);
 

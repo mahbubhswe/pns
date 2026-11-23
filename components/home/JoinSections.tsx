@@ -2,11 +2,11 @@
 
 // Home page: How to join steps, fees and FAQ. Minimal by design: each section
 // shows only its title; items keep one short line (clamped to two lines).
+import { Reveal } from "@/components/home/motion";
 import React from "react";
 import Link from "next/link";
 import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, Container, Stack, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { motion } from "framer-motion";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
 import FolderSharedRounded from "@mui/icons-material/FolderSharedRounded";
@@ -16,7 +16,7 @@ import TaskAltRounded from "@mui/icons-material/TaskAltRounded";
 import SearchRounded from "@mui/icons-material/SearchRounded";
 import HomeWorkRounded from "@mui/icons-material/HomeWorkRounded";
 import FamilyRestroomRounded from "@mui/icons-material/FamilyRestroomRounded";
-import { Paragraphs, SectionTitle, bdt, clamp2, reveal } from "@/components/home/parts";
+import { Paragraphs, SectionTitle, bdt, clamp2 } from "@/components/home/parts";
 import { MEMBER_TYPE_LABELS } from "@/lib/shared/membership";
 import LazyScene from "@/components/landing/LazyScene";
 import { renderTemplate, stripStepNumber, type SiteSettings } from "@/lib/shared/settings";
@@ -39,7 +39,7 @@ export function StepsSection({ settings }: { settings: SiteSettings }) {
         <SectionTitle center title={t(home.stepsTitle)} />
         <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: `repeat(${cols}, 1fr)` } }}>
           {home.steps.map((s, i) => (
-            <motion.div key={`${i}-${s.title}`} {...reveal} transition={{ ...reveal.transition, delay: (i % 4) * 0.08 }} style={{ height: "100%" }}>
+            <Reveal key={`${i}-${s.title}`} delay={(i % 4) * 0.08} style={{ height: "100%" }}>
               {/* Illustration on top with the step number, icon overlapping its edge, then title and one line. */}
               <Card
                 component="article"
@@ -110,7 +110,7 @@ export function StepsSection({ settings }: { settings: SiteSettings }) {
                   {t(s.body)}
                 </Typography>
               </Card>
-            </motion.div>
+            </Reveal>
           ))}
         </Box>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} justifyContent="center" sx={{ mt: 5 }}>
@@ -200,7 +200,7 @@ export function FeesSection({ settings }: { settings: SiteSettings }) {
         <SectionTitle center title={t(home.feesTitle)} />
         <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
           {plans.map((plan, i) => (
-            <motion.div key={plan.type} {...reveal} transition={{ ...reveal.transition, delay: i * 0.08 }} style={{ height: "100%" }}>
+            <Reveal key={plan.type} delay={i * 0.08} style={{ height: "100%" }}>
               {/* Offer card: glass shell, 5px inset, graphic on top, pill button below. */}
               <Box
                 component="article"
@@ -245,7 +245,7 @@ export function FeesSection({ settings }: { settings: SiteSettings }) {
                   </Button>
                 )}
               </Box>
-            </motion.div>
+            </Reveal>
           ))}
         </Box>
       </Container>

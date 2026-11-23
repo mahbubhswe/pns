@@ -7,7 +7,7 @@ import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import PauseRounded from "@mui/icons-material/PauseRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Crossfade, usePrefersReducedMotion } from "@/components/home/motion";
 import { SCENES, SceneSvg, preloadScene } from "./scenes";
 import { SCENE_CSS, SceneDefs } from "./scene-kit";
 
@@ -20,7 +20,7 @@ export default function HeroScenes({ children }: { children?: React.ReactNode })
   const [hovering, setHovering] = useState(false);
   const [visible, setVisible] = useState(true);
   const [tick, setTick] = useState(0);
-  const reduce = useReducedMotion();
+  const reduce = usePrefersReducedMotion();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const n = SCENES.length;
 
@@ -105,19 +105,9 @@ export default function HeroScenes({ children }: { children?: React.ReactNode })
 
       {/* Scenes */}
       <Box sx={{ position: "absolute", inset: 0, zIndex: 0 }} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
-        <AnimatePresence initial={false} custom={dir}>
-          <motion.div
-            key={scene.key}
-            custom={dir}
-            initial={{ opacity: 0, scale: 1.06, x: dir * 40 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 1.02, x: dir * -40 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            style={{ position: "absolute", inset: 0 }}
-          >
-            <SceneSvg index={index} paused={!visible} />
-          </motion.div>
-        </AnimatePresence>
+        <Crossfade id={scene.key} dir={dir} shift={40} zoom duration={900}>
+          <SceneSvg index={index} paused={!visible} />
+        </Crossfade>
       </Box>
 
       {/* Legibility washes */}

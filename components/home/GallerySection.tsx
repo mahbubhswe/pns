@@ -3,14 +3,14 @@
 // Home page photo gallery (photos uploaded from Dashboard → Landing page → Gallery).
 // A frosted-glass panel holding a photo grid, the first photo shown large;
 // clicking a photo opens it full size with previous / next.
+import { Reveal } from "@/components/home/motion";
 import React, { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { Box, Container, Dialog, IconButton, Typography } from "@mui/material";
-import { motion } from "framer-motion";
 import CloseRounded from "@mui/icons-material/CloseRounded";
 import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
-import { SectionTitle, reveal } from "@/components/home/parts";
+import { SectionTitle } from "@/components/home/parts";
 
 type Photo = { src: string; caption: string };
 
@@ -46,7 +46,7 @@ export default function GallerySection({ title, items }: { title: string; items:
     <Box id="gallery" sx={{ py: { xs: 8, md: 11 }, scrollMarginTop: 80 }}>
       <Container maxWidth="lg">
         <SectionTitle center title={title} />
-        <motion.div {...reveal}>
+        <Reveal>
           {/* Same frosted-glass panel as the cards. */}
           <Box
             sx={theme => ({
@@ -125,7 +125,7 @@ export default function GallerySection({ title, items }: { title: string; items:
               ))}
             </Box>
           </Box>
-        </motion.div>
+        </Reveal>
       </Container>
 
       {/* Full-size viewer */}

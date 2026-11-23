@@ -5,11 +5,11 @@
 // /#join points at it). Until then an empty box of roughly the right height
 // holds its place, carrying the section's id so in-page links still work.
 import React, { useEffect, useRef, useState } from "react";
-import { useInView } from "framer-motion";
+import { useInViewOnce } from "@/components/home/motion";
 
 export default function Deferred({ id, minHeight, children }: { id: string; minHeight: number; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
-  const near = useInView(ref, { once: true, margin: "700px 0px" });
+  const near = useInViewOnce(ref, { margin: "700px 0px" });
   const [linked, setLinked] = useState(false);
 
   // A link to this section (on load or later): render it now, then scroll to it.
