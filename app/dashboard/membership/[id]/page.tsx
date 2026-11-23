@@ -202,7 +202,7 @@ export default function MemberDetailPage() {
                   )}
                 </Stack>
                 {p.ownerNameBangla && (
-                  <Typography sx={{ fontFamily: '"Hind Siliguri", sans-serif', fontSize: 18, mt: 0.25 }} color="text.secondary">
+                  <Typography sx={{ fontFamily: 'var(--font-hind), sans-serif', fontSize: 18, mt: 0.25 }} color="text.secondary">
                     {p.ownerNameBangla}
                   </Typography>
                 )}

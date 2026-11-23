@@ -25,21 +25,30 @@ import ShieldRounded from "@mui/icons-material/ShieldRounded";
 import ParkRounded from "@mui/icons-material/ParkRounded";
 import ReceiptLongRounded from "@mui/icons-material/ReceiptLongRounded";
 import HeroScenes from "@/components/landing/HeroScenes";
-import { SceneSvg } from "@/components/landing/scenes";
+import LazyScene from "@/components/landing/LazyScene";
 import { SCENE_CSS, SceneDefs } from "@/components/landing/scene-kit";
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
-import NewsCard from "@/components/news/NewsCard";
 import { CountUp, Paragraphs, RichText, SectionTitle, bdt, publicCards, reveal } from "@/components/home/parts";
-import { FaqSection, FeesSection, StepsSection, clamp2 } from "@/components/home/JoinSections";
-import GallerySection from "@/components/home/GallerySection";
-import type { PublicPostDto } from "@/types/api";
+import dynamic from "next/dynamic";
+import Deferred from "@/components/home/Deferred";
+import { clamp2 } from "@/components/home/parts";
+import type { CommitteeMemberDto, PublicPostDto } from "@/types/api";
+// Section-by-section loading: each of these is its own code chunk, fetched only when its section comes near.
+const StepsSection = dynamic(() => import("@/components/home/JoinSections").then(m => m.StepsSection));
+const FeesSection = dynamic(() => import("@/components/home/JoinSections").then(m => m.FeesSection));
+const FaqSection = dynamic(() => import("@/components/home/JoinSections").then(m => m.FaqSection));
+const GallerySection = dynamic(() => import("@/components/home/GallerySection"));
+const CommitteeSection = dynamic(() => import("@/components/committee/CommitteeView").then(m => m.CommitteeSection));
+const NewsSection = dynamic(() => import("@/components/home/NewsSection"));
 import { renderTemplate, visibleHomeSections, type HeroSlide, type SiteSettings } from "@/lib/shared/settings";
 
 type Props = {
   settings: SiteSettings;
   /** Latest published PUBLIC posts (never members-only or staff-only). The section hides when empty. */
   news?: PublicPostDto[];
+  /** Active executive committee members, in display order. */
+  committee?: CommitteeMemberDto[];
 };
 
 const ABOUT_ICONS = [<MapRounded key="m" />, <PlaceRounded key="p" />, <AltRouteRounded key="a" />, <ApartmentRounded key="b" />];
@@ -134,7 +143,7 @@ function PhotoHero({ slides, fallbackAlt, children }: { slides: HeroSlide[]; fal
   );
 }
 
-export default function HomePage({ settings, news = [] }: Props) {
+export default function HomePage({ settings, news = [], committee = [] }: Props) {
   const theme = useTheme();
   const whyGridRef = useRef<HTMLDivElement>(null);
   const whyInView = useInView(whyGridRef, { once: true, amount: 0.15 });
@@ -254,7 +263,7 @@ export default function HomePage({ settings, news = [] }: Props) {
                     {home.aboutImage ? (
                       <Image src={home.aboutImage} alt={site.name} fill unoptimized sizes="(min-width: 900px) 50vw, 100vw" style={{ objectFit: "cover" }} />
                     ) : (
-                      <SceneSvg index={18} />
+                      <LazyScene index={18} />
                     )}
                   </Box>
                 </motion.div>
@@ -350,7 +359,7 @@ export default function HomePage({ settings, news = [] }: Props) {
                             "& .pns-scene": { position: "absolute", inset: 0, width: "100%", height: "100%", transition: "transform .8s cubic-bezier(.22,1,.36,1)" },
                           }}
                         >
-                          <SceneSvg index={BENEFIT_SCENES[i % BENEFIT_SCENES.length]} />
+                          <LazyScene index={BENEFIT_SCENES[i % BENEFIT_SCENES.length]} />
                         </Box>
                         <Box sx={{ px: 2.25, mt: -3.5, position: "relative" }}>
                           <Box
@@ -381,37 +390,44 @@ export default function HomePage({ settings, news = [] }: Props) {
         )}
 
         {/* GALLERY */}
-        {show("gallery") && <GallerySection title={t(home.galleryTitle)} items={home.gallery.map(g => ({ src: g.src, caption: t(g.caption) }))} />}
+        {show("gallery") && (
+          <Deferred id="gallery" minHeight={700}>
+            <GallerySection title={t(home.galleryTitle)} items={home.gallery.map(g => ({ src: g.src, caption: t(g.caption) }))} />
+          </Deferred>
+        )}
 
         {/* HOW TO JOIN + FEES */}
-        {show("join") && <StepsSection settings={settings} />}
-        {show("fees") && <FeesSection settings={settings} />}
+        {show("join") && (
+          <Deferred id="join" minHeight={640}>
+            <StepsSection settings={settings} />
+          </Deferred>
+        )}
+        {show("fees") && (
+          <Deferred id="fees" minHeight={520}>
+            <FeesSection settings={settings} />
+          </Deferred>
+        )}
 
-        {/* LATEST NEWS (public posts only) */}
-        {home.show.news && news.length > 0 && (
-          <Box id="news" sx={{ py: { xs: 8, md: 12 }, scrollMarginTop: 80 }}>
-            <Container maxWidth="lg">
-              <motion.div {...reveal}>
-                <SectionTitle center title={t(home.newsTitle)} />
-              </motion.div>
-              <Box sx={{ display: "grid", gap: 2.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" } }}>
-                {news.map((post, i) => (
-                  <motion.div key={post.id} {...reveal} transition={{ ...reveal.transition, delay: i * 0.06 }}>
-                    <NewsCard post={post} />
-                  </motion.div>
-                ))}
-              </Box>
-              <Box sx={{ textAlign: "center", mt: 4 }}>
-                <Button component={Link} href="/news" variant="outlined" endIcon={<ArrowForwardRounded />}>
-                  All news
-                </Button>
-              </Box>
-            </Container>
-          </Box>
+        {/* COMMITTEE */}
+        {show("committee") && (
+          <Deferred id="committee" minHeight={760}>
+            <CommitteeSection title={t(home.committeeTitle)} members={committee} />
+          </Deferred>
         )}
 
         {/* FAQ */}
-        {show("faq") && <FaqSection settings={settings} />}
+        {show("faq") && (
+          <Deferred id="faq" minHeight={640}>
+            <FaqSection settings={settings} />
+          </Deferred>
+        )}
+
+        {/* LATEST NEWS (public posts only) */}
+        {home.show.news && news.length > 0 && (
+          <Deferred id="news" minHeight={620}>
+            <NewsSection title={t(home.newsTitle)} news={news} />
+          </Deferred>
+        )}
 
         {/* CTA */}
         {home.show.cta && (home.ctaTitle || home.ctaBody) && (
@@ -420,7 +436,7 @@ export default function HomePage({ settings, news = [] }: Props) {
               <motion.div {...reveal}>
                 <Card sx={{ position: "relative", overflow: "hidden", border: 0, minHeight: { xs: 420, md: 380 }, display: "flex", alignItems: "center" }}>
                   <Box sx={{ position: "absolute", inset: 0 }}>
-                    <SceneSvg index={17} />
+                    <LazyScene index={17} />
                   </Box>
                   <Box sx={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, rgba(8,20,16,.88) 0%, rgba(8,20,16,.6) 50%, rgba(8,20,16,.2) 100%)" }} />
                   <Box sx={{ position: "relative", p: { xs: 3, md: 7 }, color: "#fff", maxWidth: 640 }}>

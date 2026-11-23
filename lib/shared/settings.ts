@@ -19,7 +19,7 @@ export type FaqItem = { question: string; answer: string };
 /** A photo in the home-page gallery (uploaded from Dashboard → Landing page). */
 export type GalleryItem = { src: string; caption: string };
 /** Home-page blocks an admin can switch off (Dashboard → Landing page). */
-export type HomeBlock = "stats" | "about" | "why" | "gallery" | "join" | "fees" | "news" | "faq" | "cta";
+export type HomeBlock = "stats" | "about" | "why" | "gallery" | "join" | "fees" | "committee" | "news" | "faq" | "cta";
 export const HOME_BLOCKS: Array<{ key: HomeBlock; label: string }> = [
   { key: "stats", label: "Figures under the hero" },
   { key: "about", label: "About" },
@@ -27,6 +27,7 @@ export const HOME_BLOCKS: Array<{ key: HomeBlock; label: string }> = [
   { key: "gallery", label: "Gallery" },
   { key: "join", label: "How to join steps" },
   { key: "fees", label: "Fees & payment" },
+  { key: "committee", label: "Executive committee" },
   { key: "news", label: "Latest news" },
   { key: "faq", label: "FAQ" },
   { key: "cta", label: "Final call to action" },
@@ -87,6 +88,7 @@ export type SiteSettings = {
     stepsTitle: string;
     steps: TitledItem[];
     feesTitle: string;
+    committeeTitle: string;
     faqTitle: string;
     faqs: FaqItem[];
     newsTitle: string;
@@ -125,7 +127,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
     closedMessage: "Membership registration is currently closed. Please check back later.",
   },
   home: {
-    show: { stats: true, about: true, why: true, gallery: true, join: true, fees: true, news: true, faq: true, cta: true },
+    show: { stats: true, about: true, why: true, gallery: true, join: true, fees: true, committee: true, news: true, faq: true, cta: true },
     heroTitle: "Welcome to *Purbachal Newtown Society*",
     heroSubtitle: "Be United – Make your voice heard",
     heroPrimaryLabel: "Become a member",
@@ -189,6 +191,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
       },
     ],
     feesTitle: "Membership fee",
+    committeeTitle: "Meet your *committee*",
     faqTitle: "Things neighbours usually ask",
     faqs: [
       {
@@ -235,7 +238,7 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 };
 
 /** Landing-page sections that can be hidden from settings (anchor ids on the home page). */
-export type HomeSection = "about" | "why" | "gallery" | "join" | "fees" | "faq";
+export type HomeSection = "about" | "why" | "gallery" | "join" | "fees" | "committee" | "faq";
 
 /** Which home-page sections have content, so header/footer links never point at a hidden section. */
 export function visibleHomeSections(settings: SiteSettings): HomeSection[] {
@@ -246,6 +249,7 @@ export function visibleHomeSections(settings: SiteSettings): HomeSection[] {
   if (home.show.gallery && home.gallery.length > 0) shown.push("gallery");
   if (home.show.join && home.steps.length > 0) shown.push("join");
   if (home.show.fees) shown.push("fees");
+  if (home.show.committee) shown.push("committee");
   if (home.show.faq && home.faqs.length > 0) shown.push("faq");
   return shown;
 }

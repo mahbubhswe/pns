@@ -467,7 +467,7 @@ function SchoolRun() {
         <line x1={800} y1={326} x2={800} y2={312} stroke="#3B3B3B" strokeWidth={3} />
         <line x1={800} y1={326} x2={810} y2={330} stroke="#3B3B3B" strokeWidth={3} />
         <rect x={580} y={372} width={440} height={34} rx={6} fill="#0F6E56" />
-        <text x={800} y={396} textAnchor="middle" fontSize={20} fontWeight={800} fill="#F6F4EE" fontFamily="Plus Jakarta Sans, sans-serif" letterSpacing="2">
+        <text x={800} y={396} textAnchor="middle" fontSize={20} fontWeight={800} fill="#F6F4EE" style={{ fontFamily: "var(--font-jakarta), sans-serif" }} letterSpacing="2">
           COMMUNITY SCHOOL
         </text>
         {[0, 1, 2].map(row =>
@@ -602,7 +602,7 @@ function Market() {
           <g key={sh.label}>
             <rect x={x} y={430} width={300} height={250} fill="#F7F1E6" />
             <rect x={x + 20} y={440} width={260} height={40} rx={6} fill="#1D2228" />
-            <text x={x + 150} y={468} textAnchor="middle" fontSize={20} fontWeight={800} fill="#F4A62A" fontFamily="Plus Jakarta Sans, sans-serif" letterSpacing="2">
+            <text x={x + 150} y={468} textAnchor="middle" fontSize={20} fontWeight={800} fill="#F4A62A" style={{ fontFamily: "var(--font-jakarta), sans-serif" }} letterSpacing="2">
               {sh.label}
             </text>
             <g>
@@ -732,7 +732,7 @@ function Construction() {
       <rect x={0} y={640} width={W} height={260} fill="#C8B79A" />
       <rect x={0} y={640} width={W} height={60} fill="#B7A27C" />
       <rect x={150} y={600} width={1300} height={60} fill="#0F6E56" />
-      <text x={800} y={640} textAnchor="middle" fontSize={26} fontWeight={800} fill="#F6F4EE" fontFamily="Plus Jakarta Sans, sans-serif" letterSpacing="3">
+      <text x={800} y={640} textAnchor="middle" fontSize={26} fontWeight={800} fill="#F6F4EE" style={{ fontFamily: "var(--font-jakarta), sans-serif" }} letterSpacing="3">
         BUILDING OUR COMMUNITY TOGETHER
       </text>
       <Road y={700} h={100} lanes={2} />
@@ -806,14 +806,14 @@ function CareClose() {
       <rect x={662} y={300} width={116} height={360} fill="url(#glass)" />
       <rect x={662} y={300} width={116} height={6} fill="#C9D3DA" />
       <rect x={680} y={208} width={80} height={80} rx={14} fill="#1E8E6E" />
-      <text x={720} y={269} textAnchor="middle" fontSize={56} fontWeight={900} fill="#fff" fontFamily="Plus Jakarta Sans, sans-serif">
+      <text x={720} y={269} textAnchor="middle" fontSize={56} fontWeight={900} fill="#fff" style={{ fontFamily: "var(--font-jakarta), sans-serif" }}>
         H
       </text>
       <rect x={560} y={600} width={320} height={60} fill="url(#glass)" />
       <rect x={540} y={588} width={360} height={14} fill="#1E8E6E" />
       <Tower x={1060} base={660} w={180} h={300} color="#EAF2EC" seed={214} />
       <rect x={1080} y={420} width={140} height={34} rx={6} fill="#1E8E6E" />
-      <text x={1150} y={444} textAnchor="middle" fontSize={16} fontWeight={800} fill="#fff" fontFamily="Plus Jakarta Sans, sans-serif" letterSpacing="2">
+      <text x={1150} y={444} textAnchor="middle" fontSize={16} fontWeight={800} fill="#fff" style={{ fontFamily: "var(--font-jakarta), sans-serif" }} letterSpacing="2">
         PHARMACY
       </text>
       <Tower x={140} base={660} w={200} h={340} color="#F3DCCB" seed={215} />
@@ -914,7 +914,7 @@ function MasterPlan() {
           blocks.push(<rect key={`s${px}-${py}`} x={px + 26} y={py} width={22} height={52} rx={4} fill="#000" opacity={0.07} />);
         }
       blocks.push(
-        <text key={`l${ci}${ri}`} x={x0 + 14} y={y1 - 12} fontSize={16} fontWeight={800} fill="#5A6B64" fontFamily="Plus Jakarta Sans, sans-serif">
+        <text key={`l${ci}${ri}`} x={x0 + 14} y={y1 - 12} fontSize={16} fontWeight={800} fill="#5A6B64" style={{ fontFamily: "var(--font-jakarta), sans-serif" }}>
           SECTOR {ci * 3 + ri + 1}
         </text>
       );
@@ -1007,7 +1007,7 @@ function Metro() {
         <rect x={980} y={330} width={360} height={110} fill="#EFF3F5" opacity={0.9} />
         <path d="M960 330 Q1160 270 1360 330 Z" fill="#0F6E56" />
         <rect x={1060} y={344} width={200} height={26} rx={6} fill="#1D2228" />
-        <text x={1160} y={363} textAnchor="middle" fontSize={15} fontWeight={800} fill="#F4A62A" fontFamily="Plus Jakarta Sans, sans-serif" letterSpacing="2">
+        <text x={1160} y={363} textAnchor="middle" fontSize={15} fontWeight={800} fill="#F4A62A" style={{ fontFamily: "var(--font-jakarta), sans-serif" }} letterSpacing="2">
           PURBACHAL
         </text>
       </g>

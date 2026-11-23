@@ -5,7 +5,7 @@ import React from "react";
 import Link from "next/link";
 import { Box, Container, Link as MLink, Stack, Typography } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { SceneSvg } from "@/components/landing/scenes";
+import LazyScene from "@/components/landing/LazyScene";
 import { SCENE_CSS, SceneDefs } from "@/components/landing/scene-kit";
 import EmailRounded from "@mui/icons-material/EmailRounded";
 import PhoneRounded from "@mui/icons-material/PhoneRounded";
@@ -64,7 +64,7 @@ export default function PublicFooter({
           "& .pns-scene": { width: "100%", height: "100%" },
         }}
       >
-        <SceneSvg index={0} paused />
+        <LazyScene index={0} paused />
       </Box>
       <Container maxWidth="lg" sx={{ position: "relative" }}>
         <Box sx={{ display: "grid", gap: 4, gridTemplateColumns: { xs: "1fr", md: "1.4fr 1fr 1fr" } }}>
@@ -73,7 +73,7 @@ export default function PublicFooter({
             <Typography sx={{ mt: 2, maxWidth: 380, lineHeight: 1.7 }}>
               {lead} Working together for a safer, greener and better-planned neighbourhood.
             </Typography>
-            <Typography sx={{ mt: 1, fontFamily: '"Hind Siliguri", sans-serif', opacity: 0.8 }}>প্রতিবেশীদের নিয়ে গড়ে ওঠা সমাজ।</Typography>
+            <Typography sx={{ mt: 1, fontFamily: 'var(--font-hind), sans-serif', opacity: 0.8 }}>প্রতিবেশীদের নিয়ে গড়ে ওঠা সমাজ।</Typography>
             {contacts.length > 0 && (
               <Stack spacing={0.75} sx={{ mt: 2.5 }}>
                 {contacts.map(c => (
@@ -106,7 +106,7 @@ export default function PublicFooter({
             {has("about") && <FooterLink href="/#about">About Purbachal</FooterLink>}
             {has("why") && <FooterLink href="/#why">Why join</FooterLink>}
             {has("gallery") && <FooterLink href="/#gallery">Gallery</FooterLink>}
-            <FooterLink href="/committee">Executive committee</FooterLink>
+            {has("committee") && <FooterLink href="/#committee">Executive committee</FooterLink>}
             <FooterLink href="/news">News & notices</FooterLink>
             <FooterLink href="/documents">Documents</FooterLink>
           </Stack>

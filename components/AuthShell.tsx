@@ -54,7 +54,7 @@ export default function AuthShell({
         <Box sx={{ position: "absolute", left: { xs: 16, md: 40 }, right: { xs: 16, md: 40 }, bottom: { xs: 16, md: 40 }, color: "#fff", display: { xs: "none", md: "block" } }}>
           <Typography sx={{ fontSize: 30, fontWeight: 800, letterSpacing: "-0.02em", lineHeight: 1.15, maxWidth: 520 }}>“{quote}”</Typography>
           <Typography sx={{ mt: 1.5, opacity: 0.85 }}>
-            {s.title} · <Box component="span" sx={{ fontFamily: '"Hind Siliguri", sans-serif' }}>{s.bn}</Box>
+            {s.title} · <Box component="span" sx={{ fontFamily: 'var(--font-hind), sans-serif' }}>{s.bn}</Box>
           </Typography>
         </Box>
       </Box>

@@ -16,17 +16,16 @@ import TaskAltRounded from "@mui/icons-material/TaskAltRounded";
 import SearchRounded from "@mui/icons-material/SearchRounded";
 import HomeWorkRounded from "@mui/icons-material/HomeWorkRounded";
 import FamilyRestroomRounded from "@mui/icons-material/FamilyRestroomRounded";
-import { Paragraphs, SectionTitle, bdt, reveal } from "@/components/home/parts";
+import { Paragraphs, SectionTitle, bdt, clamp2, reveal } from "@/components/home/parts";
 import { MEMBER_TYPE_LABELS } from "@/lib/shared/membership";
-import { SceneSvg } from "@/components/landing/scenes";
+import LazyScene from "@/components/landing/LazyScene";
 import { renderTemplate, stripStepNumber, type SiteSettings } from "@/lib/shared/settings";
 
 /** Illustration per step (township scenes): welcome gate · golden sunrise · neighbourhood market. */
 const STEP_SCENES = [2, 7, 12];
 const STEP_ICONS = [<FolderSharedRounded key="f" />, <EditNoteRounded key="e" />, <PaymentsRounded key="p" />, <TaskAltRounded key="t" />];
 
-/** One short line under an item title; longer text is cut at two lines. */
-export const clamp2 = { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as const;
+
 
 export function StepsSection({ settings }: { settings: SiteSettings }) {
   const theme = useTheme();
@@ -65,7 +64,7 @@ export function StepsSection({ settings }: { settings: SiteSettings }) {
                     "& .pns-scene": { position: "absolute", inset: 0, width: "100%", height: "100%", transition: "transform .8s cubic-bezier(.22,1,.36,1)" },
                   }}
                 >
-                  <SceneSvg index={STEP_SCENES[i % STEP_SCENES.length]} />
+                  <LazyScene index={STEP_SCENES[i % STEP_SCENES.length]} />
                   <Box
                     sx={{
                       position: "absolute",
@@ -147,7 +146,7 @@ function FeeBanner({ scene, tint, icon, label, amount, note }: { scene: number; 
         "& .pns-scene": { position: "absolute", inset: 0, width: "100%", height: "100%", transition: "transform .8s cubic-bezier(.22,1,.36,1)" },
       }}
     >
-      <SceneSvg index={scene} />
+      <LazyScene index={scene} />
       {/* Brand-tinted shade: clear at the top, deep at the bottom where the text sits. */}
       <Box aria-hidden sx={{ position: "absolute", inset: 0, background: `linear-gradient(180deg, ${tint}00 42%, ${tint}CC 74%, ${tint} 100%)` }} />
       <Box

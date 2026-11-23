@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { refreshPublicPages } from "@/lib/server/cache";
 import type { Post, PostAudience, Prisma } from "@/lib/generated/prisma";
 import { ApiError } from "@/lib/server/http/errors";
 import type { CreatePostInput, UpdatePostInput } from "./schema";
@@ -19,7 +20,7 @@ export async function getPostById(id: number): Promise<Post> {
 
 /** `authorId` is the id of the management user creating the post. */
 export async function createPost(input: CreatePostInput, authorId: number): Promise<Post> {
-  return prisma.post.create({
+  const post = await prisma.post.create({
     data: {
       title: input.title,
       content: cleanPostHtml(input.content),
@@ -29,6 +30,8 @@ export async function createPost(input: CreatePostInput, authorId: number): Prom
       authorId,
     },
   });
+  refreshPublicPages();
+  return post;
 }
 
 export async function updatePost(id: number, input: UpdatePostInput): Promise<Post> {
@@ -38,11 +41,14 @@ export async function updatePost(id: number, input: UpdatePostInput): Promise<Po
   if (input.coverUrl !== undefined) data.coverImage = input.coverUrl;
   if (input.published !== undefined) data.published = input.published;
   if (input.audience !== undefined) data.audience = input.audience;
-  return prisma.post.update({ where: { id }, data });
+  const post = await prisma.post.update({ where: { id }, data });
+  refreshPublicPages();
+  return post;
 }
 
 export async function deletePost(id: number): Promise<void> {
   await prisma.post.delete({ where: { id } });
+  refreshPublicPages();
 }
 
 // ---------------------------------------------------------------------------

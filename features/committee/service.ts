@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { refreshPublicPages } from "@/lib/server/cache";
 import type { CommitteeMember, Prisma } from "@/lib/generated/prisma";
 import { ApiError } from "@/lib/server/http/errors";
 import type { CommitteeMemberDto } from "@/types/api";
@@ -31,7 +32,7 @@ export async function listPublicCommittee(): Promise<CommitteeMember[]> {
 }
 
 export async function createCommitteeMember(input: CreateCommitteeMemberInput): Promise<CommitteeMember> {
-  return prisma.committeeMember.create({
+  const member = await prisma.committeeMember.create({
     data: {
       name: input.name,
       position: input.position,
@@ -43,6 +44,8 @@ export async function createCommitteeMember(input: CreateCommitteeMemberInput): 
       isActive: input.isActive,
     },
   });
+  refreshPublicPages();
+  return member;
 }
 
 export async function updateCommitteeMember(id: number, input: UpdateCommitteeMemberInput): Promise<CommitteeMember> {
@@ -53,9 +56,12 @@ export async function updateCommitteeMember(id: number, input: UpdateCommitteeMe
   for (const key of ["name", "position", "bio", "photoUrl", "phone", "email", "sortOrder", "isActive"] as const) {
     if (input[key] !== undefined) (data as Record<string, unknown>)[key] = input[key];
   }
-  return prisma.committeeMember.update({ where: { id }, data });
+  const member = await prisma.committeeMember.update({ where: { id }, data });
+  refreshPublicPages();
+  return member;
 }
 
 export async function deleteCommitteeMember(id: number): Promise<void> {
   await prisma.committeeMember.delete({ where: { id } });
+  refreshPublicPages();
 }

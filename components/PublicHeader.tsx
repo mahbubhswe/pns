@@ -1,8 +1,8 @@
 "use client";
 
 // components/PublicHeader.tsx — site header for the public pages (transparent over the hero, solid on scroll).
-// Home-page sections are links in the bar (one per section); pages that open
-// separately (Committee, News, Documents, Track) are grouped under "More ▾" (opens on hover).
+// No dropdowns: every link sits in the bar. Most content is one page (home
+// sections); only News, Documents and Track open separate pages.
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -15,7 +15,6 @@ import {
   List,
   ListItemButton,
   ListItemText,
-  ListSubheader,
   Slide,
   Stack,
   Toolbar,
@@ -23,11 +22,6 @@ import {
 import { alpha, useTheme } from "@mui/material/styles";
 import MenuRounded from "@mui/icons-material/MenuRounded";
 import CloseRounded from "@mui/icons-material/CloseRounded";
-import Groups2Rounded from "@mui/icons-material/Groups2Rounded";
-import CampaignRounded from "@mui/icons-material/CampaignRounded";
-import DescriptionRounded from "@mui/icons-material/DescriptionRounded";
-import ManageSearchRounded from "@mui/icons-material/ManageSearchRounded";
-import MoreMenu, { type MoreLink } from "@/components/MoreMenu";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import BrandLogo from "@/components/BrandLogo";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -35,22 +29,20 @@ import { DEFAULT_SITE_SETTINGS, type HomeSection, type SiteSettings } from "@/li
 
 type NavLink = { label: string; href: string; section?: HomeSection };
 
-/** One link per home-page section, in page order. Hidden when that section is off or empty. */
+/** Home-page sections (one page), in page order. Hidden when that section is off or empty. */
 const SECTION_LINKS: NavLink[] = [
   { label: "About", href: "/#about", section: "about" },
-  { label: "Why join", href: "/#why", section: "why" },
   { label: "Gallery", href: "/#gallery", section: "gallery" },
   { label: "How to join", href: "/#join", section: "join" },
-  { label: "Fees", href: "/#fees", section: "fees" },
+  { label: "Committee", href: "/#committee", section: "committee" },
   { label: "FAQ", href: "/#faq", section: "faq" },
 ];
 
-/** Separate pages, under "More ▾". */
-const PAGE_LINKS: MoreLink[] = [
-  { label: "Executive committee", hint: "Who runs the society", href: "/committee", icon: <Groups2Rounded /> },
-  { label: "News & notices", hint: "Updates from the committee", href: "/news", icon: <CampaignRounded /> },
-  { label: "Documents", hint: "Constitution, certificates & more", href: "/documents", icon: <DescriptionRounded /> },
-  { label: "Track application", hint: "Check your status or pay", href: "/track", icon: <ManageSearchRounded /> },
+/** The only separate pages. */
+const PAGE_LINKS: NavLink[] = [
+  { label: "News", href: "/news" },
+  { label: "Documents", href: "/documents" },
+  { label: "Track", href: "/track" },
 ];
 
 const navSx = { fontWeight: 650, fontSize: 14.5, px: { lg: 1.1, xl: 1.5 }, minWidth: 0, whiteSpace: "nowrap", opacity: 0.9, "&:hover": { opacity: 1 } } as const;
@@ -107,7 +99,11 @@ export default function PublicHeader({ overlay = false, site = DEFAULT_SITE_SETT
                 {l.label}
               </Button>
             ))}
-            <MoreMenu items={PAGE_LINKS} sx={navSx} />
+            {PAGE_LINKS.map(l => (
+              <Button key={l.href} component={Link} href={l.href} color="inherit" sx={navSx}>
+                {l.label}
+              </Button>
+            ))}
           </Stack>
           <ThemeToggle />
           <Button component={Link} href="/auth/login" color="inherit" sx={{ display: { xs: "none", sm: "inline-flex" }, fontWeight: 700 }}>
@@ -143,13 +139,9 @@ export default function PublicHeader({ overlay = false, site = DEFAULT_SITE_SETT
               <ListItemText primary={l.label} primaryTypographyProps={{ fontWeight: 650, fontSize: 16 }} />
             </ListItemButton>
           ))}
-          <ListSubheader disableSticky sx={{ bgcolor: "transparent", lineHeight: "32px", mt: 1 }}>
-            More
-          </ListSubheader>
           {PAGE_LINKS.map(l => (
-            <ListItemButton key={l.href} component={Link} href={l.href} onClick={close} sx={{ gap: 1.5 }}>
-              <Box sx={{ display: "grid", placeItems: "center", color: "primary.main", "& svg": { fontSize: 20 } }}>{l.icon}</Box>
-              <ListItemText primary={l.label} primaryTypographyProps={{ fontWeight: 650, fontSize: 16 }} />
+            <ListItemButton key={l.href} component={Link} href={l.href} onClick={close}>
+              <ListItemText primary={l.label === "Track" ? "Track application" : l.label} primaryTypographyProps={{ fontWeight: 650, fontSize: 16 }} />
             </ListItemButton>
           ))}
         </List>

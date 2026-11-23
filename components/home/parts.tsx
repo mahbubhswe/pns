@@ -10,7 +10,7 @@ import ContentCopyRounded from "@mui/icons-material/ContentCopyRounded";
 import CheckRounded from "@mui/icons-material/CheckRounded";
 
 export const BANGLA = /[ঀ-৿]/;
-export const BANGLA_FONT = '"Hind Siliguri", sans-serif';
+export const BANGLA_FONT = 'var(--font-hind), sans-serif';
 
 export const reveal = {
   initial: { opacity: 0, y: 24 },
@@ -200,3 +200,6 @@ export function CountUp({ text, duration = 1.6 }: { text: string; duration?: num
     </span>
   );
 }
+
+/** One short line under an item title; longer text is cut at two lines. */
+export const clamp2 = { display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" } as const;

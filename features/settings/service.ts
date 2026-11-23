@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { refreshPublicPages } from "@/lib/server/cache";
 import type { Prisma } from "@/lib/generated/prisma";
 import { logger } from "@/lib/server/logger";
 import {
@@ -67,5 +68,6 @@ export async function updateSettings(input: UpdateSiteSettingsInput, updatedById
   });
 
   await prisma.$transaction(writes);
+  refreshPublicPages();
   return getSettings();
 }

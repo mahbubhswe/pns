@@ -3,6 +3,11 @@ import type { ReactNode } from "react";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v16-appRouter";
 import { ThemeModeProvider } from "@/contexts/ThemeContext";
 import { getPublicSettings } from "@/features/settings";
+import { Hind_Siliguri, Plus_Jakarta_Sans } from "next/font/google";
+
+// Served from our own domain and preloaded: no extra request to Google before text shows.
+const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], weight: ["400", "500", "600", "700", "800"], style: ["normal", "italic"], display: "swap", variable: "--font-jakarta" });
+const hind = Hind_Siliguri({ subsets: ["bengali", "latin"], weight: ["400", "500", "600", "700"], display: "swap", variable: "--font-hind" });
 
 /** Site name and tagline come from the database (dashboard → Settings). */
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,17 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const viewport: Viewport = { themeColor: "#0F6E56" };
 
-const FONTS =
-  "https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500&display=swap";
-
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="stylesheet" href={FONTS} />
-      </head>
+    <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${hind.variable}`}>
       {/* Browser extensions (e.g. ColorZilla's cz-shortcut-listen) add attributes to <body>. */}
       <body suppressHydrationWarning>
         <AppRouterCacheProvider options={{ enableCssLayer: false }}>

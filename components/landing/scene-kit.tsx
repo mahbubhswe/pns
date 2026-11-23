@@ -700,7 +700,7 @@ export function BusShape({ color = "#F2B705", label = "SCHOOL BUS", night = fals
       ))}
       <path d="M262 -100 L282 -100 Q288 -98 290 -88 L294 -66 L262 -66Z" fill="#9FC9E3" />
       <rect x={4} y={-58} width={294} height={6} fill="#1F2327" opacity={0.65} />
-      <text x={120} y={-36} fontSize={13} fontWeight={800} fill="#1F2327" textAnchor="middle" fontFamily="Plus Jakarta Sans, sans-serif" letterSpacing="1">
+      <text x={120} y={-36} fontSize={13} fontWeight={800} fill="#1F2327" textAnchor="middle" style={{ fontFamily: "var(--font-jakarta), sans-serif" }} letterSpacing="1">
         {label}
       </text>
       <rect x={290} y={-40} width={8} height={7} rx={2} fill="#FFF1B8" />
@@ -996,7 +996,7 @@ export function GateArch({ x, base, label = "PURBACHAL NEWTOWN", s = 1 }: { x: n
       <rect x={216} y={-250} width={44} height={250} fill="#E8DFCF" />
       <rect x={-280} y={-292} width={560} height={58} rx={8} fill="#0F6E56" />
       <rect x={-280} y={-240} width={560} height={8} fill="#0A4F3E" />
-      <text x={0} y={-256} textAnchor="middle" fontSize={26} fontWeight={800} fill="#F6F4EE" fontFamily="Plus Jakarta Sans, sans-serif" letterSpacing="3">
+      <text x={0} y={-256} textAnchor="middle" fontSize={26} fontWeight={800} fill="#F6F4EE" style={{ fontFamily: "var(--font-jakarta), sans-serif" }} letterSpacing="3">
         {label}
       </text>
       <circle cx={-238} cy={-262} r={9} fill="#F4A62A" />

@@ -388,6 +388,10 @@ export default function SettingsEditor({ mode }: { mode: SettingsMode }) {
                   </Stack>
                 </EditorSection>
 
+              <EditorSection title="Executive committee" subheader="Members, photos and biographies are managed under Website → Committee">
+                  <TextField label="Section title" value={form.home.committeeTitle} onChange={text("home", "committeeTitle")} fullWidth />
+              </EditorSection>
+
               <EditorSection title="FAQ" subheader="Answers stay folded until a visitor opens them">
                   <Stack spacing={2}>
                     <TextField label="Section title" value={form.home.faqTitle} onChange={text("home", "faqTitle")} fullWidth />

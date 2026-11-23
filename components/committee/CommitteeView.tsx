@@ -12,7 +12,7 @@ import PhoneRounded from "@mui/icons-material/PhoneRounded";
 import ChevronLeftRounded from "@mui/icons-material/ChevronLeftRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import CloseRounded from "@mui/icons-material/CloseRounded";
-import PublicShell, { PublicPageTitle, type PublicChrome } from "@/components/PublicShell";
+import { SectionTitle } from "@/components/home/parts";
 import type { CommitteeMemberDto } from "@/types/api";
 
 /** Line-drawn person, shown when a member has no photo yet. */
@@ -225,20 +225,22 @@ function LeaderCarousel({ members, onBio }: { members: CommitteeMemberDto[]; onB
   );
 }
 
-/** Public /committee page: the executive committee as a leadership carousel. */
-export default function CommitteeView({ members, ...chrome }: PublicChrome & { members: CommitteeMemberDto[] }) {
+/** Home page section: the executive committee as a leadership carousel. */
+export function CommitteeSection({ title, members }: { title: string; members: CommitteeMemberDto[] }) {
   const [bio, setBio] = useState<CommitteeMemberDto | null>(null);
   return (
-    <PublicShell {...chrome}>
-      <PublicPageTitle title="Governance & Leadership" intro={`The elected executive committee of ${chrome.site.name}.`} />
+    <Box id="committee" sx={{ py: { xs: 8, md: 11 }, scrollMarginTop: 80 }}>
       <Container maxWidth="lg">
+        <SectionTitle center title={title} />
         {members.length === 0 ? (
-          <Alert severity="info">The committee list will be published here soon.</Alert>
+          <Alert severity="info" sx={{ maxWidth: 560, mx: "auto" }}>
+            The committee list will be published here soon.
+          </Alert>
         ) : (
           <LeaderCarousel members={members} onBio={setBio} />
         )}
       </Container>
       <BioDialog m={bio} onClose={() => setBio(null)} />
-    </PublicShell>
+    </Box>
   );
 }

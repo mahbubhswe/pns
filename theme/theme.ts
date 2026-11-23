@@ -15,7 +15,7 @@ export const brand = {
   sky: "#2F6FDE",
 };
 
-export const fontStack = `"Plus Jakarta Sans", "Hind Siliguri", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
+export const fontStack = `var(--font-jakarta), var(--font-hind), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif`;
 
 export const getDesignTokens = (mode: "light" | "dark"): ThemeOptions => {
   const light = mode === "light";
